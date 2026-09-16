@@ -1,8 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition, type FormEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useTransition } from "react";
 import { saveDraftNote } from "@/app/actions/notes";
+import FoldedCorner from "@/components/board/FoldedCorner";
 import type { NoteDTO } from "@/components/board/types";
 
 export default function DraftForm({
@@ -15,49 +17,86 @@ export default function DraftForm({
   const router = useRouter();
   const [title, setTitle] = useState(note?.title ?? "");
   const [location, setLocation] = useState(note?.location ?? "");
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLInputElement>(null);
+  const savedRef = useRef(false);
+  const stateRef = useRef({ title, location });
+  stateRef.current = { title, location };
 
-  function handleSubmit(event: FormEvent) {
-    event.preventDefault();
+  useEffect(() => {
+    titleRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    function handlePointerDown(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        save();
+      }
+    }
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function save() {
+    if (savedRef.current) return;
+    savedRef.current = true;
+    const { title, location } = stateRef.current;
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) {
+      onDone();
+      return;
+    }
     startTransition(async () => {
-      await saveDraftNote({ title, location });
+      await saveDraftNote({ title: trimmedTitle, location });
       router.refresh();
       onDone();
     });
   }
 
+  function handleKeyDown(event: KeyboardEvent) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      save();
+    }
+    if (event.key === "Escape") {
+      savedRef.current = true;
+      onDone();
+    }
+  }
+
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex flex-col gap-2 rounded-md border border-sky-300 bg-white p-2 text-sm dark:border-sky-800 dark:bg-zinc-900"
+    <div
+      ref={containerRef}
+      onKeyDown={handleKeyDown}
+      className="relative flex h-44 w-44 -rotate-1 flex-col justify-between overflow-hidden rounded-sm border border-orange-300 bg-orange-200 p-2 text-sm text-orange-950 shadow-md sm:h-48 sm:w-48"
     >
-      <input
-        value={title}
-        onChange={(event) => setTitle(event.target.value)}
-        placeholder="Title"
-        aria-label="Title"
-        required
-        className="rounded border border-zinc-300 px-2 py-1 dark:border-zinc-700 dark:bg-zinc-800"
-      />
-      <input
-        value={location}
-        onChange={(event) => setLocation(event.target.value)}
-        placeholder="Location (optional)"
-        aria-label="Location"
-        className="rounded border border-zinc-300 px-2 py-1 dark:border-zinc-700 dark:bg-zinc-800"
-      />
-      <div className="flex gap-2">
-        <button
-          type="submit"
-          disabled={isPending}
-          className="rounded bg-foreground px-2 py-1 text-background disabled:opacity-50"
-        >
-          Save
-        </button>
-        <button type="button" onClick={onDone} className="rounded px-2 py-1">
-          Cancel
-        </button>
+      <FoldedCorner />
+      <div className="mt-4 min-w-0">
+        <input
+          ref={titleRef}
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+          placeholder="Title"
+          aria-label="Title"
+          className="block w-full bg-transparent font-semibold outline-none placeholder:opacity-50"
+        />
       </div>
-    </form>
+
+      <div className="flex items-end justify-between gap-1">
+        <div className="flex min-w-0 items-center gap-1 text-xs opacity-70">
+          <span aria-hidden>📍</span>
+          <input
+            value={location}
+            onChange={(event) => setLocation(event.target.value)}
+            placeholder="Location"
+            aria-label="Location"
+            className="w-full bg-transparent outline-none placeholder:opacity-40"
+          />
+        </div>
+        <span className="shrink-0 text-[10px] opacity-60">Click outside</span>
+      </div>
+    </div>
   );
 }

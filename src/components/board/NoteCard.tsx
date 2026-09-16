@@ -28,11 +28,7 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
   };
 
   if (isEditing) {
-    return (
-      <div className="w-36 sm:w-40">
-        <NoteForm day={day} note={note} onDone={() => setIsEditing(false)} />
-      </div>
-    );
+    return <NoteForm day={day} note={note} onDone={() => setIsEditing(false)} />;
   }
 
   function handleDelete() {
@@ -59,7 +55,7 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
       ref={setNodeRef}
       style={style}
       onClick={() => setIsEditing(true)}
-      className={`group relative flex h-36 w-36 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border p-2 text-sm shadow-md transition-transform hover:z-10 hover:scale-105 hover:shadow-lg sm:h-40 sm:w-40 ${noteStyle.rotation} ${noteStyle.bg} ${noteStyle.border} ${noteStyle.text}`}
+      className={`group relative flex h-44 w-44 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border p-2 text-sm shadow-md transition-transform hover:z-10 hover:scale-105 hover:shadow-lg sm:h-48 sm:w-48 ${noteStyle.rotation} ${noteStyle.bg} ${noteStyle.border} ${noteStyle.text}`}
     >
       <FoldedCorner />
       <button
@@ -86,25 +82,35 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
       </button>
 
       <div className="mt-4 min-w-0">
-        <p className="text-xs font-medium opacity-80">{note.time}</p>
+        <p className="flex items-center gap-1 text-xs font-medium opacity-80">
+          <span aria-hidden>🕐</span>
+          {note.time}
+        </p>
         <p className="line-clamp-3 font-semibold">{note.title}</p>
-        {note.location && (
-          <p className="line-clamp-1 text-xs opacity-70">{note.location}</p>
-        )}
       </div>
 
-      <button
-        type="button"
-        aria-label={note.googleEventId ? "Update in Calendar" : "Add to Calendar"}
-        onClick={(event) => {
-          event.stopPropagation();
-          handleSyncToCalendar();
-        }}
-        disabled={isSyncing}
-        className="self-end text-xs opacity-0 underline transition-opacity group-hover:opacity-70 disabled:opacity-30"
-      >
-        {isSyncing ? "…" : note.googleEventId ? "↻ Calendar" : "+ Calendar"}
-      </button>
+      <div className="flex items-end justify-between gap-1">
+        {note.location ? (
+          <p className="flex min-w-0 items-center gap-1 text-xs opacity-70">
+            <span aria-hidden>📍</span>
+            <span className="truncate">{note.location}</span>
+          </p>
+        ) : (
+          <span />
+        )}
+        <button
+          type="button"
+          aria-label={note.googleEventId ? "Update in Calendar" : "Add to Calendar"}
+          onClick={(event) => {
+            event.stopPropagation();
+            handleSyncToCalendar();
+          }}
+          disabled={isSyncing}
+          className="shrink-0 text-xs opacity-0 underline transition-opacity group-hover:opacity-70 disabled:opacity-30"
+        >
+          {isSyncing ? "…" : note.googleEventId ? "↻ Calendar" : "+ Calendar"}
+        </button>
+      </div>
 
       {syncError && (
         <p className="absolute inset-x-1 bottom-1 truncate text-[10px] text-red-700">

@@ -179,7 +179,7 @@ export default function Board({
               const style = getNoteStyle(activeNote.id);
               return (
                 <div
-                  className={`relative flex h-36 w-36 flex-col justify-center overflow-hidden rounded-sm border p-2 text-sm shadow-lg sm:h-40 sm:w-40 ${style.rotation} ${style.bg} ${style.border} ${style.text}`}
+                  className={`relative flex h-44 w-44 flex-col justify-center overflow-hidden rounded-sm border p-2 text-sm shadow-lg sm:h-48 sm:w-48 ${style.rotation} ${style.bg} ${style.border} ${style.text}`}
                 >
                   <FoldedCorner />
                   <p className="line-clamp-3 font-semibold">{activeNote.title}</p>

@@ -23,11 +23,7 @@ export default function DraftCard({ note }: { note: NoteDTO }) {
   };
 
   if (isEditing) {
-    return (
-      <div className="w-36 sm:w-40">
-        <DraftForm note={note} onDone={() => setIsEditing(false)} />
-      </div>
-    );
+    return <DraftForm note={note} onDone={() => setIsEditing(false)} />;
   }
 
   function handleDelete() {
@@ -42,7 +38,7 @@ export default function DraftCard({ note }: { note: NoteDTO }) {
       ref={setNodeRef}
       style={style}
       onClick={() => setIsEditing(true)}
-      className="group relative flex h-36 w-36 -rotate-1 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border border-orange-300 bg-orange-200 p-2 text-sm text-orange-950 shadow-md transition-transform hover:z-10 hover:scale-105 hover:shadow-lg sm:h-40 sm:w-40"
+      className="group relative flex h-44 w-44 -rotate-1 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border border-orange-300 bg-orange-200 p-2 text-sm text-orange-950 shadow-md transition-transform hover:z-10 hover:scale-105 hover:shadow-lg sm:h-48 sm:w-48"
     >
       <FoldedCorner />
       <button
@@ -70,12 +66,19 @@ export default function DraftCard({ note }: { note: NoteDTO }) {
 
       <div className="mt-4 min-w-0">
         <p className="line-clamp-3 font-semibold">{note.title}</p>
-        {note.location && (
-          <p className="line-clamp-1 text-xs opacity-70">{note.location}</p>
-        )}
       </div>
 
-      <p className="text-[10px] opacity-70">Drag to a day →</p>
+      <div className="flex items-end justify-between gap-1">
+        {note.location ? (
+          <p className="flex min-w-0 items-center gap-1 text-xs opacity-70">
+            <span aria-hidden>📍</span>
+            <span className="truncate">{note.location}</span>
+          </p>
+        ) : (
+          <span />
+        )}
+        <span className="shrink-0 text-[10px] opacity-70">Drag →</span>
+      </div>
     </div>
   );
 }

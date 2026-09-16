@@ -36,7 +36,7 @@ export default function DraftPanel({ note }: { note: NoteDTO | null }) {
             type="button"
             onClick={() => setIsCreating(true)}
             aria-label="New draft note"
-            className="flex h-36 w-36 items-center justify-center rounded-sm border border-dashed border-zinc-300 text-2xl text-zinc-400 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900 sm:h-40 sm:w-40"
+            className="flex h-44 w-44 items-center justify-center rounded-sm border border-dashed border-zinc-300 text-2xl text-zinc-400 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900 sm:h-48 sm:w-48"
           >
             +
           </button>
