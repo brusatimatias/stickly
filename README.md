@@ -1,4 +1,4 @@
-# Sticly
+# stickly
 
 A notes/reminders app organized on a whiteboard-style weekly board, with Google Calendar integration to turn any note into an event with one click.
 

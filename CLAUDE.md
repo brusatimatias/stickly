@@ -1,4 +1,4 @@
-# Sticly
+# stickly
 
 A notes/reminders app organized on a whiteboard-style weekly board, with Google Calendar integration (see README.md for the functional and stack overview).
 
@@ -15,4 +15,4 @@ A notes/reminders app organized on a whiteboard-style weekly board, with Google 
 
 ## Broader plan context
 
-This project is being developed alongside another, bigger personal project (a social network, with a Rails API, a React client, and a Node.js messaging service), also intended as a portfolio piece. Sticly serves as a "quick win" block: a smaller, well-scoped project to make progress on during moments with less time or energy available.
+This project is being developed alongside another, bigger personal project (a social network, with a Rails API, a React client, and a Node.js messaging service), also intended as a portfolio piece. stickly serves as a "quick win" block: a smaller, well-scoped project to make progress on during moments with less time or energy available.

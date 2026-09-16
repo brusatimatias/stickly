@@ -4,7 +4,7 @@ export default function SignInScreen() {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-6 bg-zinc-50 dark:bg-black">
       <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-        Sticly
+        stickly
       </h1>
       <p className="text-zinc-600 dark:text-zinc-400">
         Sign in to see your weekly board.
