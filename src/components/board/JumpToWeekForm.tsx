@@ -22,6 +22,7 @@ export default function JumpToWeekForm({
         type="date"
         value={value}
         onChange={(event) => setValue(event.target.value)}
+        aria-label="Jump to week containing this date"
         className="rounded border border-zinc-300 px-2 py-1 text-sm dark:border-zinc-700 dark:bg-zinc-900"
       />
       <button

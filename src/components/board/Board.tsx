@@ -2,6 +2,7 @@
 
 import {
   DndContext,
+  DragOverlay,
   PointerSensor,
   closestCenter,
   useSensor,
@@ -52,14 +53,20 @@ export default function Board({
     [DRAFT_CONTAINER]: draftNote ? [draftNote] : [],
   });
   const [, startTransition] = useTransition();
+  const [activeNote, setActiveNote] = useState<NoteDTO | null>(null);
   const originContainerRef = useRef<string | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
 
   function handleDragStart(event: DragStartEvent) {
-    originContainerRef.current =
-      findContainer(event.active.id as string, notesByDay) ?? null;
+    const container = findContainer(event.active.id as string, notesByDay) ?? null;
+    originContainerRef.current = container;
+    setActiveNote(
+      container
+        ? (notesByDay[container].find((note) => note.id === event.active.id) ?? null)
+        : null
+    );
   }
 
   function handleDragOver(event: DragOverEvent) {
@@ -106,6 +113,7 @@ export default function Board({
     const { active, over } = event;
     const originContainer = originContainerRef.current;
     originContainerRef.current = null;
+    setActiveNote(null);
     if (!over) return;
 
     const destinationContainer =
@@ -142,6 +150,7 @@ export default function Board({
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
+        onDragCancel={() => setActiveNote(null)}
       >
         <div className="flex flex-col gap-3 p-4 lg:flex-row">
           <DraftPanel note={notesByDay[DRAFT_CONTAINER][0] ?? null} />
@@ -151,6 +160,15 @@ export default function Board({
             ))}
           </div>
         </div>
+        <DragOverlay>
+          {activeNote && (
+            <div className="rounded-md border border-amber-300 bg-amber-100 p-2 text-sm shadow-lg dark:border-amber-800 dark:bg-amber-950">
+              <p className="font-medium text-zinc-900 dark:text-zinc-100">
+                {activeNote.title}
+              </p>
+            </div>
+          )}
+        </DragOverlay>
       </DndContext>
     </div>
   );

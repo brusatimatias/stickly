@@ -14,13 +14,17 @@ export default function DayColumn({
   day: BoardDay;
   notes: NoteDTO[];
 }) {
-  const { setNodeRef } = useDroppable({ id: day.key });
+  const { setNodeRef, isOver } = useDroppable({ id: day.key });
   const [isAdding, setIsAdding] = useState(false);
 
   return (
     <div
       ref={setNodeRef}
-      className="flex min-h-[16rem] w-full flex-col gap-2 rounded-md border border-zinc-200 bg-zinc-50 p-2 dark:border-zinc-800 dark:bg-zinc-950"
+      className={`flex min-h-[16rem] w-full flex-col gap-2 rounded-md border p-2 transition-colors ${
+        isOver
+          ? "border-amber-400 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/40"
+          : "border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950"
+      }`}
     >
       <header className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
         {day.label}
@@ -28,6 +32,9 @@ export default function DayColumn({
 
       <SortableContext id={day.key} items={notes.map((note) => note.id)} strategy={verticalListSortingStrategy}>
         <div className="flex flex-col gap-2">
+          {notes.length === 0 && (
+            <p className="text-xs text-zinc-400 dark:text-zinc-600">No notes yet</p>
+          )}
           {notes.map((note) => (
             <NoteCard key={note.id} day={day.key} note={note} />
           ))}

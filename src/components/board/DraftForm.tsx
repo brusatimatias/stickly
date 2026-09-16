@@ -35,6 +35,7 @@ export default function DraftForm({
         value={title}
         onChange={(event) => setTitle(event.target.value)}
         placeholder="Title"
+        aria-label="Title"
         required
         className="rounded border border-zinc-300 px-2 py-1 dark:border-zinc-700 dark:bg-zinc-800"
       />
@@ -42,6 +43,7 @@ export default function DraftForm({
         value={location}
         onChange={(event) => setLocation(event.target.value)}
         placeholder="Location (optional)"
+        aria-label="Location"
         className="rounded border border-zinc-300 px-2 py-1 dark:border-zinc-700 dark:bg-zinc-800"
       />
       <div className="flex gap-2">
