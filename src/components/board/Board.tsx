@@ -50,10 +50,21 @@ export default function Board({
   currentWeekParam: string;
 }) {
   const router = useRouter();
-  const [notesByDay, setNotesByDay] = useState<NotesByDay>({
-    ...initialNotesByDay,
-    [DRAFT_CONTAINER]: draftNote ? [draftNote] : [],
-  });
+  function buildNotesByDay(): NotesByDay {
+    return {
+      ...initialNotesByDay,
+      [DRAFT_CONTAINER]: draftNote ? [draftNote] : [],
+    };
+  }
+
+  const [notesByDay, setNotesByDay] = useState<NotesByDay>(buildNotesByDay);
+  const [syncedNotesByDay, setSyncedNotesByDay] = useState(initialNotesByDay);
+  const [syncedDraftNote, setSyncedDraftNote] = useState(draftNote);
+  if (initialNotesByDay !== syncedNotesByDay || draftNote !== syncedDraftNote) {
+    setSyncedNotesByDay(initialNotesByDay);
+    setSyncedDraftNote(draftNote);
+    setNotesByDay(buildNotesByDay());
+  }
   const [, startTransition] = useTransition();
   const [activeNote, setActiveNote] = useState<NoteDTO | null>(null);
   const originContainerRef = useRef<string | null>(null);
