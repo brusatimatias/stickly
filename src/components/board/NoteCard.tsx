@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { addNoteToGoogleCalendar } from "@/app/actions/calendar";
 import { deleteNote } from "@/app/actions/notes";
+import { getNoteStyle } from "@/lib/noteColor";
+import FoldedCorner from "@/components/board/FoldedCorner";
 import NoteForm from "@/components/board/NoteForm";
 import type { NoteDTO } from "@/components/board/types";
 
@@ -17,6 +19,7 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
   const [syncError, setSyncError] = useState<string | null>(null);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: note.id });
+  const noteStyle = getNoteStyle(note.id);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -26,7 +29,9 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
 
   if (isEditing) {
     return (
-      <NoteForm day={day} note={note} onDone={() => setIsEditing(false)} />
+      <div className="w-36 sm:w-40">
+        <NoteForm day={day} note={note} onDone={() => setIsEditing(false)} />
+      </div>
     );
   }
 
@@ -53,63 +58,58 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
     <div
       ref={setNodeRef}
       style={style}
-      className="flex flex-col gap-1 rounded-md border border-amber-300 bg-amber-100 p-2 text-sm shadow-sm dark:border-amber-800 dark:bg-amber-950"
+      onClick={() => setIsEditing(true)}
+      className={`group relative flex h-36 w-36 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border p-2 text-sm shadow-md transition-transform hover:z-10 hover:scale-105 hover:shadow-lg sm:h-40 sm:w-40 ${noteStyle.rotation} ${noteStyle.bg} ${noteStyle.border} ${noteStyle.text}`}
     >
-      <div className="flex items-start justify-between gap-1">
-        <button
-          type="button"
-          aria-label="Drag to reorder"
-          {...attributes}
-          {...listeners}
-          className="cursor-grab select-none text-zinc-500 active:cursor-grabbing"
-        >
-          ⠿
-        </button>
-        <div className="flex-1">
-          <p className="text-xs font-medium text-amber-900 dark:text-amber-200">
-            {note.time}
-          </p>
-          <p className="font-medium text-zinc-900 dark:text-zinc-100">
-            {note.title}
-          </p>
-          {note.location && (
-            <p className="text-xs text-zinc-600 dark:text-zinc-400">
-              {note.location}
-            </p>
-          )}
-        </div>
+      <FoldedCorner />
+      <button
+        type="button"
+        aria-label="Drag to reorder"
+        onClick={(event) => event.stopPropagation()}
+        {...attributes}
+        {...listeners}
+        className="absolute left-1 top-1 cursor-grab select-none opacity-0 transition-opacity group-hover:opacity-70 active:cursor-grabbing"
+      >
+        ⠿
+      </button>
+      <button
+        type="button"
+        aria-label="Delete note"
+        onClick={(event) => {
+          event.stopPropagation();
+          handleDelete();
+        }}
+        disabled={isPending}
+        className="absolute right-1 top-1 opacity-0 transition-opacity group-hover:opacity-70 disabled:opacity-30"
+      >
+        ✕
+      </button>
+
+      <div className="mt-4 min-w-0">
+        <p className="text-xs font-medium opacity-80">{note.time}</p>
+        <p className="line-clamp-3 font-semibold">{note.title}</p>
+        {note.location && (
+          <p className="line-clamp-1 text-xs opacity-70">{note.location}</p>
+        )}
       </div>
-      <div className="flex gap-2 text-xs">
-        <button
-          type="button"
-          onClick={() => setIsEditing(true)}
-          className="text-zinc-600 underline hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-        >
-          Edit
-        </button>
-        <button
-          type="button"
-          onClick={handleDelete}
-          disabled={isPending}
-          className="text-red-700 underline hover:text-red-900 disabled:opacity-50 dark:text-red-400 dark:hover:text-red-300"
-        >
-          Delete
-        </button>
-        <button
-          type="button"
-          onClick={handleSyncToCalendar}
-          disabled={isSyncing}
-          className="text-sky-700 underline hover:text-sky-900 disabled:opacity-50 dark:text-sky-400 dark:hover:text-sky-300"
-        >
-          {isSyncing
-            ? "Syncing…"
-            : note.googleEventId
-              ? "Update in Calendar"
-              : "Add to Calendar"}
-        </button>
-      </div>
+
+      <button
+        type="button"
+        aria-label={note.googleEventId ? "Update in Calendar" : "Add to Calendar"}
+        onClick={(event) => {
+          event.stopPropagation();
+          handleSyncToCalendar();
+        }}
+        disabled={isSyncing}
+        className="self-end text-xs opacity-0 underline transition-opacity group-hover:opacity-70 disabled:opacity-30"
+      >
+        {isSyncing ? "…" : note.googleEventId ? "↻ Calendar" : "+ Calendar"}
+      </button>
+
       {syncError && (
-        <p className="text-xs text-red-700 dark:text-red-400">{syncError}</p>
+        <p className="absolute inset-x-1 bottom-1 truncate text-[10px] text-red-700">
+          {syncError}
+        </p>
       )}
     </div>
   );

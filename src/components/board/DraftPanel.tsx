@@ -1,7 +1,7 @@
 "use client";
 
 import { useDroppable } from "@dnd-kit/core";
-import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
 import { useState } from "react";
 import DraftCard from "@/components/board/DraftCard";
 import DraftForm from "@/components/board/DraftForm";
@@ -14,16 +14,16 @@ export default function DraftPanel({ note }: { note: NoteDTO | null }) {
   return (
     <div
       ref={setNodeRef}
-      className="flex w-full flex-col gap-2 rounded-md border border-sky-200 bg-sky-50 p-3 dark:border-sky-900 dark:bg-sky-950/40 lg:w-64"
+      className="flex w-full flex-col gap-3 rounded-lg border border-dashed border-zinc-200 p-3 dark:border-zinc-800 lg:w-44"
     >
-      <header className="text-sm font-semibold text-sky-900 dark:text-sky-200">
-        Draft note
+      <header className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+        Draft
       </header>
 
       <SortableContext
         id="draft"
         items={note ? [note.id] : []}
-        strategy={verticalListSortingStrategy}
+        strategy={rectSortingStrategy}
       >
         {note && <DraftCard note={note} />}
       </SortableContext>
@@ -35,9 +35,10 @@ export default function DraftPanel({ note }: { note: NoteDTO | null }) {
           <button
             type="button"
             onClick={() => setIsCreating(true)}
-            className="rounded-md border border-dashed border-sky-300 py-1 text-xs text-sky-700 hover:bg-sky-100 dark:border-sky-800 dark:hover:bg-sky-900"
+            aria-label="New draft note"
+            className="flex h-36 w-36 items-center justify-center rounded-sm border border-dashed border-zinc-300 text-2xl text-zinc-400 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900 sm:h-40 sm:w-40"
           >
-            + New draft note
+            +
           </button>
         ))}
     </div>

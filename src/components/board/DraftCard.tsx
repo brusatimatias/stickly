@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { deleteNote } from "@/app/actions/notes";
 import DraftForm from "@/components/board/DraftForm";
+import FoldedCorner from "@/components/board/FoldedCorner";
 import type { NoteDTO } from "@/components/board/types";
 
 export default function DraftCard({ note }: { note: NoteDTO }) {
@@ -22,7 +23,11 @@ export default function DraftCard({ note }: { note: NoteDTO }) {
   };
 
   if (isEditing) {
-    return <DraftForm note={note} onDone={() => setIsEditing(false)} />;
+    return (
+      <div className="w-36 sm:w-40">
+        <DraftForm note={note} onDone={() => setIsEditing(false)} />
+      </div>
+    );
   }
 
   function handleDelete() {
@@ -36,49 +41,41 @@ export default function DraftCard({ note }: { note: NoteDTO }) {
     <div
       ref={setNodeRef}
       style={style}
-      className="flex flex-col gap-1 rounded-md border border-sky-300 bg-sky-100 p-2 text-sm shadow-sm dark:border-sky-800 dark:bg-sky-950"
+      onClick={() => setIsEditing(true)}
+      className="group relative flex h-36 w-36 -rotate-1 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border border-orange-300 bg-orange-200 p-2 text-sm text-orange-950 shadow-md transition-transform hover:z-10 hover:scale-105 hover:shadow-lg sm:h-40 sm:w-40"
     >
-      <div className="flex items-start justify-between gap-1">
-        <button
-          type="button"
-          aria-label="Drag to schedule"
-          {...attributes}
-          {...listeners}
-          className="cursor-grab select-none text-zinc-500 active:cursor-grabbing"
-        >
-          ⠿
-        </button>
-        <div className="flex-1">
-          <p className="font-medium text-zinc-900 dark:text-zinc-100">
-            {note.title}
-          </p>
-          {note.location && (
-            <p className="text-xs text-zinc-600 dark:text-zinc-400">
-              {note.location}
-            </p>
-          )}
-        </div>
+      <FoldedCorner />
+      <button
+        type="button"
+        aria-label="Drag to schedule"
+        onClick={(event) => event.stopPropagation()}
+        {...attributes}
+        {...listeners}
+        className="absolute left-1 top-1 cursor-grab select-none opacity-0 transition-opacity group-hover:opacity-70 active:cursor-grabbing"
+      >
+        ⠿
+      </button>
+      <button
+        type="button"
+        aria-label="Delete note"
+        onClick={(event) => {
+          event.stopPropagation();
+          handleDelete();
+        }}
+        disabled={isPending}
+        className="absolute right-1 top-1 opacity-0 transition-opacity group-hover:opacity-70 disabled:opacity-30"
+      >
+        ✕
+      </button>
+
+      <div className="mt-4 min-w-0">
+        <p className="line-clamp-3 font-semibold">{note.title}</p>
+        {note.location && (
+          <p className="line-clamp-1 text-xs opacity-70">{note.location}</p>
+        )}
       </div>
-      <p className="text-xs text-sky-800 dark:text-sky-300">
-        Drag onto a day to schedule
-      </p>
-      <div className="flex gap-2 text-xs">
-        <button
-          type="button"
-          onClick={() => setIsEditing(true)}
-          className="text-zinc-600 underline hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-        >
-          Edit
-        </button>
-        <button
-          type="button"
-          onClick={handleDelete}
-          disabled={isPending}
-          className="text-red-700 underline hover:text-red-900 disabled:opacity-50 dark:text-red-400 dark:hover:text-red-300"
-        >
-          Delete
-        </button>
-      </div>
+
+      <p className="text-[10px] opacity-70">Drag to a day →</p>
     </div>
   );
 }

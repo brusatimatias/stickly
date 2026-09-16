@@ -16,8 +16,10 @@ import { useRef, useState, useTransition } from "react";
 import { moveNote, scheduleDraftNote } from "@/app/actions/notes";
 import DayColumn from "@/components/board/DayColumn";
 import DraftPanel from "@/components/board/DraftPanel";
+import FoldedCorner from "@/components/board/FoldedCorner";
 import WeekNav from "@/components/board/WeekNav";
 import type { BoardDay, NoteDTO } from "@/components/board/types";
+import { getNoteStyle } from "@/lib/noteColor";
 
 const DRAFT_CONTAINER = "draft";
 
@@ -161,13 +163,18 @@ export default function Board({
           </div>
         </div>
         <DragOverlay>
-          {activeNote && (
-            <div className="rounded-md border border-amber-300 bg-amber-100 p-2 text-sm shadow-lg dark:border-amber-800 dark:bg-amber-950">
-              <p className="font-medium text-zinc-900 dark:text-zinc-100">
-                {activeNote.title}
-              </p>
-            </div>
-          )}
+          {activeNote &&
+            (() => {
+              const style = getNoteStyle(activeNote.id);
+              return (
+                <div
+                  className={`relative flex h-36 w-36 flex-col justify-center overflow-hidden rounded-sm border p-2 text-sm shadow-lg sm:h-40 sm:w-40 ${style.rotation} ${style.bg} ${style.border} ${style.text}`}
+                >
+                  <FoldedCorner />
+                  <p className="line-clamp-3 font-semibold">{activeNote.title}</p>
+                </div>
+              );
+            })()}
         </DragOverlay>
       </DndContext>
     </div>
