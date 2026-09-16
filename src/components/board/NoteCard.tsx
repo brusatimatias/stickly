@@ -10,6 +10,7 @@ import { getNoteStyle } from "@/lib/noteColor";
 import FoldedCorner from "@/components/board/FoldedCorner";
 import NoteForm from "@/components/board/NoteForm";
 import type { NoteDTO } from "@/components/board/types";
+import { CalendarCheckIcon, CalendarIcon, SpinnerIcon } from "@/components/board/icons";
 
 export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) {
   const router = useRouter();
@@ -98,18 +99,35 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
         ) : (
           <span />
         )}
-        <button
-          type="button"
-          aria-label={note.googleEventId ? "Update in Calendar" : "Add to Calendar"}
-          onClick={(event) => {
-            event.stopPropagation();
-            handleSyncToCalendar();
-          }}
-          disabled={isSyncing}
-          className="shrink-0 text-xs opacity-0 underline transition-opacity group-hover:opacity-70 disabled:opacity-30"
-        >
-          {isSyncing ? "…" : note.googleEventId ? "↻ Calendar" : "+ Calendar"}
-        </button>
+        <div className="group/sync relative shrink-0">
+          <button
+            type="button"
+            aria-label={note.googleEventId ? "Update in Calendar" : "Add to Calendar"}
+            onClick={(event) => {
+              event.stopPropagation();
+              handleSyncToCalendar();
+            }}
+            disabled={isSyncing}
+            className={`rounded-full p-1 opacity-0 transition-opacity group-hover:opacity-70 disabled:opacity-40 ${
+              note.googleEventId ? "text-emerald-600 dark:text-emerald-400" : ""
+            }`}
+          >
+            {isSyncing ? (
+              <SpinnerIcon className="h-8 w-8 animate-spin" />
+            ) : note.googleEventId ? (
+              <CalendarCheckIcon className="h-8 w-8" />
+            ) : (
+              <CalendarIcon className="h-8 w-8" />
+            )}
+          </button>
+          <span className="pointer-events-none absolute bottom-full right-0 mb-1 whitespace-nowrap rounded bg-zinc-900 px-1.5 py-0.5 text-[10px] text-white opacity-0 transition-opacity group-hover/sync:opacity-90 dark:bg-zinc-100 dark:text-zinc-900">
+            {isSyncing
+              ? "Syncing…"
+              : note.googleEventId
+                ? "Synced — click to update"
+                : "Add to Calendar"}
+          </span>
+        </div>
       </div>
 
       {syncError && (
