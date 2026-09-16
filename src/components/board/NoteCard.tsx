@@ -4,6 +4,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { addNoteToGoogleCalendar } from "@/app/actions/calendar";
 import { deleteNote } from "@/app/actions/notes";
 import NoteForm from "@/components/board/NoteForm";
 import type { NoteDTO } from "@/components/board/types";
@@ -12,6 +13,8 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [isSyncing, startSyncTransition] = useTransition();
+  const [syncError, setSyncError] = useState<string | null>(null);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: note.id });
 
@@ -31,6 +34,18 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
     startTransition(async () => {
       await deleteNote(note.id);
       router.refresh();
+    });
+  }
+
+  function handleSyncToCalendar() {
+    setSyncError(null);
+    startSyncTransition(async () => {
+      try {
+        await addNoteToGoogleCalendar(note.id);
+        router.refresh();
+      } catch (error) {
+        setSyncError(error instanceof Error ? error.message : "Failed to sync.");
+      }
     });
   }
 
@@ -80,7 +95,22 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
         >
           Delete
         </button>
+        <button
+          type="button"
+          onClick={handleSyncToCalendar}
+          disabled={isSyncing}
+          className="text-sky-700 underline hover:text-sky-900 disabled:opacity-50 dark:text-sky-400 dark:hover:text-sky-300"
+        >
+          {isSyncing
+            ? "Syncing…"
+            : note.googleEventId
+              ? "Update in Calendar"
+              : "Add to Calendar"}
+        </button>
       </div>
+      {syncError && (
+        <p className="text-xs text-red-700 dark:text-red-400">{syncError}</p>
+      )}
     </div>
   );
 }

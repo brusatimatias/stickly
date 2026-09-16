@@ -47,11 +47,18 @@ export default async function Home({
       title: note.title,
       location: note.location,
       time: format(note.scheduledAt, "HH:mm"),
+      googleEventId: note.googleEventId,
     });
   }
 
   const draftNote: NoteDTO | null = draft
-    ? { id: draft.id, title: draft.title, location: draft.location, time: "" }
+    ? {
+        id: draft.id,
+        title: draft.title,
+        location: draft.location,
+        time: "",
+        googleEventId: draft.googleEventId,
+      }
     : null;
 
   return (
