@@ -1,56 +1,56 @@
-# Sticly
+# stickly
 
-App de notas/recordatorios organizadas en un tablero semanal estilo pizarra, con integración a Google Calendar para convertir cualquier nota en un evento con un click.
+A notes/reminders app organized on a whiteboard-style weekly board, with Google Calendar integration to turn any note into an event with one click.
 
-## Funcionalidad
+## Features
 
-- Login con Google (único método de autenticación).
-- Tablero semanal basado en semanas de calendario reales, con navegación entre semanas y salto a una semana específica.
-- Notas como pegatinas por día y hora (título, ubicación opcional, fecha/hora exacta), movibles por drag & drop.
-- Nota borrador: una única nota por usuario, sin fecha, como espacio de scratch.
-- Botón por nota para crear un evento en Google Calendar, vinculado a la nota vía `googleEventId`.
+- Login with Google (the only authentication method).
+- Weekly board based on real calendar weeks, with navigation between weeks and jumping to a specific week.
+- Notes as sticky notes per day and time (title, optional location, exact date/time), movable via drag & drop.
+- Draft note: a single note per user, with no date, used as a scratch space.
+- A per-note button to create a Google Calendar event, linked to the note via `googleEventId`.
 
 ## Stack
 
 - Next.js (App Router) + TypeScript
-- Auth.js (Google provider, sesiones JWT)
+- Auth.js (Google provider, JWT sessions)
 - PostgreSQL + Prisma (driver adapter `@prisma/adapter-pg`)
-- dnd-kit para drag & drop
-- `googleapis` para la integración con Calendar
-- Vercel para el deploy
+- dnd-kit for drag & drop
+- `googleapis` for the Calendar integration
+- Vercel for deployment
 
-## Desarrollo local
+## Local development
 
-1. Instalar dependencias:
+1. Install dependencies:
 
    ```bash
    npm install
    ```
 
-2. Copiar `.env.example` a `.env` y completar:
-   - `DATABASE_URL`: conexión a tu Postgres local.
-   - `AUTH_SECRET`: generar con `openssl rand -base64 32`.
-   - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`: credenciales OAuth de Google Cloud Console, con la Calendar API habilitada y el scope `https://www.googleapis.com/auth/calendar.events`.
+2. Copy `.env.example` to `.env` and fill in:
+   - `DATABASE_URL`: connection string to your local Postgres.
+   - `AUTH_SECRET`: generate with `openssl rand -base64 32`.
+   - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`: OAuth credentials from Google Cloud Console, with the Calendar API enabled and the `https://www.googleapis.com/auth/calendar.events` scope.
 
-3. Aplicar las migraciones de Prisma:
+3. Apply Prisma migrations:
 
    ```bash
    npx prisma migrate dev
    ```
 
-4. Levantar el servidor de desarrollo:
+4. Start the dev server:
 
    ```bash
    npm run dev
    ```
 
-   Abrir [http://localhost:3000](http://localhost:3000).
+   Open [http://localhost:3000](http://localhost:3000).
 
-## Modelo de datos
+## Data model
 
-Ver `prisma/schema.prisma`. Decisiones relevantes:
+See `prisma/schema.prisma`. Notable decisions:
 
-- `scheduledAt` es un único `DateTime` (fecha + hora juntas) para poder armar el evento de Calendar sin combinar campos.
-- `scheduledAt` es nullable; el único caso válido con `null` es la nota borrador (`isDraft: true`).
-- La regla de "una sola nota borrador por usuario" se controla a nivel aplicación, no en el schema.
-- Índice compuesto `[userId, scheduledAt]` para la query de notas de una semana.
+- `scheduledAt` is a single `DateTime` (date + time together) so the Calendar event can be built directly without combining fields.
+- `scheduledAt` is nullable; the only valid case with `null` is the draft note (`isDraft: true`).
+- The "single draft note per user" rule is enforced at the application level, not in the schema.
+- Composite index `[userId, scheduledAt]` for the weekly-notes query.

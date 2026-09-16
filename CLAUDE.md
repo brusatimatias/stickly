@@ -1,18 +1,18 @@
-# Sticly
+# stickly
 
-App de notas/recordatorios organizadas en un tablero semanal estilo pizarra, con integración a Google Calendar (ver README.md para la descripción funcional y de stack).
+A notes/reminders app organized on a whiteboard-style weekly board, with Google Calendar integration (see README.md for the functional and stack overview).
 
-## Decisiones de diseño a respetar
+## Design decisions to respect
 
-- `scheduledAt` es un único campo `DateTime` (fecha + hora juntas), no separado en dos campos, para armar el evento de Calendar directo sin combinar valores.
-- `title` y `location` van separados porque la API de Calendar acepta `location` como campo propio del evento.
-- `scheduledAt` es nullable; el único caso válido con `null` es la nota borrador (`isDraft: true`).
-- La regla de "una sola nota borrador por usuario" se controla a nivel aplicación (no hay unique parcial en Prisma): antes de crear una nota borrador, verificar con `findFirst({ userId, isDraft: true })` si ya existe y actualizar esa en vez de crear una nueva.
-- Índice compuesto `[userId, scheduledAt]` pensado para la query más frecuente: notas de un usuario entre el inicio y el fin de una semana dada.
-- La navegación por semana se resuelve por query (`scheduledAt >= weekStart AND scheduledAt < weekEnd`), no se persiste ningún número de semana en la nota — se deriva de la fecha en cada consulta.
-- No se usa `@auth/prisma-adapter`: el schema no tiene modelos `Account`/`Session`. Las sesiones son JWT (`src/auth.ts`), y los tokens de Google (access/refresh) se guardan en el JWT, no en la base de datos. El `User` propio se sincroniza (upsert) en el callback `jwt` de Auth.js.
-- Postgres corre en el servidor local del usuario (no Docker). La base de desarrollo es `stickly-development`, siguiendo la convención `<app>-development`/`<app>-test` de sus otros proyectos.
+- `scheduledAt` is a single `DateTime` field (date + time together), not split into two fields, so the Calendar event can be built directly without combining values.
+- `title` and `location` are kept separate because the Calendar API accepts `location` as its own event field.
+- `scheduledAt` is nullable; the only valid case with `null` is the draft note (`isDraft: true`).
+- The "single draft note per user" rule is enforced at the application level (no partial unique constraint in Prisma for this): before creating a draft note, check with `findFirst({ userId, isDraft: true })` whether one already exists and update it instead of creating a new one.
+- Composite index `[userId, scheduledAt]` is meant for the most frequent query: a user's notes between the start and end of a given week.
+- Week navigation is resolved via query (`scheduledAt >= weekStart AND scheduledAt < weekEnd`); no week number is persisted on the note — it's derived from the date on each query.
+- `@auth/prisma-adapter` is not used: the schema has no `Account`/`Session` models. Sessions are JWT-based (`src/auth.ts`), and Google tokens (access/refresh) are stored in the JWT, not in the database. The app's own `User` record is synced (upserted) in Auth.js's `jwt` callback.
+- Postgres runs on the user's local server (not Docker). The dev database is `stickly-development`, following the `<app>-development`/`<app>-test` convention used in their other projects.
 
-## Contexto del plan general
+## Broader plan context
 
-Este proyecto se desarrolla en paralelo a otro proyecto personal más grande (una red social, con API en Rails, cliente en React, y un servicio de mensajería en Node.js), pensado también como pieza de portfolio. Sticly funciona como bloque de "victoria rápida": un proyecto más chico y acotado para avanzar en momentos de menor disponibilidad de tiempo o energía.
+This project is being developed alongside another, bigger personal project (a social network, with a Rails API, a React client, and a Node.js messaging service), also intended as a portfolio piece. stickly serves as a "quick win" block: a smaller, well-scoped project to make progress on during moments with less time or energy available.
