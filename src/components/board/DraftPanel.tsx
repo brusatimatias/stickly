@@ -6,6 +6,7 @@ import { useState } from "react";
 import DraftCard from "@/components/board/DraftCard";
 import DraftForm from "@/components/board/DraftForm";
 import type { NoteDTO } from "@/components/board/types";
+import { PlusIcon } from "@/components/board/icons";
 
 export default function DraftPanel({ note }: { note: NoteDTO | null }) {
   const { setNodeRef } = useDroppable({ id: "draft" });
@@ -26,9 +27,9 @@ export default function DraftPanel({ note }: { note: NoteDTO | null }) {
             type="button"
             onClick={() => setIsCreating(true)}
             aria-label="New draft note"
-            className="justify-self-end text-base leading-none text-zinc-400 hover:text-zinc-600 dark:text-zinc-600 dark:hover:text-zinc-300"
+            className="justify-self-end rounded-full p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:text-zinc-600 dark:hover:bg-zinc-900 dark:hover:text-zinc-300"
           >
-            +
+            <PlusIcon className="h-3.5 w-3.5" />
           </button>
         ) : (
           <span aria-hidden />

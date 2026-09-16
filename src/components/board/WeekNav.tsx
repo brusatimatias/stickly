@@ -4,6 +4,7 @@ import { format, parseISO } from "date-fns";
 import Link from "next/link";
 import { useRef } from "react";
 import { useRouter } from "next/navigation";
+import { ChevronLeftIcon, ChevronRightIcon } from "@/components/board/icons";
 
 export default function WeekNav({
   weekLabel,
@@ -34,9 +35,9 @@ export default function WeekNav({
       <Link
         href={`/?week=${prevWeekParam}`}
         aria-label="Previous week"
-        className="rounded-full border border-zinc-300 px-3 py-1 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
+        className="rounded-full border border-zinc-300 p-1.5 text-zinc-600 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-900"
       >
-        ←
+        <ChevronLeftIcon className="h-4 w-4" />
       </Link>
 
       <div className="relative">
@@ -61,9 +62,9 @@ export default function WeekNav({
       <Link
         href={`/?week=${nextWeekParam}`}
         aria-label="Next week"
-        className="rounded-full border border-zinc-300 px-3 py-1 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
+        className="rounded-full border border-zinc-300 p-1.5 text-zinc-600 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-900"
       >
-        →
+        <ChevronRightIcon className="h-4 w-4" />
       </Link>
     </div>
   );

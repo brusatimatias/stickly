@@ -6,6 +6,7 @@ import { useState } from "react";
 import NoteCard from "@/components/board/NoteCard";
 import NoteForm from "@/components/board/NoteForm";
 import type { BoardDay, NoteDTO } from "@/components/board/types";
+import { PlusIcon } from "@/components/board/icons";
 
 export default function DayColumn({
   day,
@@ -35,9 +36,9 @@ export default function DayColumn({
           type="button"
           onClick={() => setIsAdding(true)}
           aria-label="Add note"
-          className="justify-self-end text-base leading-none text-zinc-400 hover:text-zinc-600 dark:text-zinc-600 dark:hover:text-zinc-300"
+          className="justify-self-end rounded-full p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:text-zinc-600 dark:hover:bg-zinc-900 dark:hover:text-zinc-300"
         >
-          +
+          <PlusIcon className="h-3.5 w-3.5" />
         </button>
       </header>
 
