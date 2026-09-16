@@ -1,0 +1,37 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  googleId  String   @unique
+  email     String   @unique
+  name      String?
+  imageUrl  String?
+  notes     Note[]
+  createdAt DateTime @default(now())
+}
+
+model Note {
+  id            String    @id @default(cuid())
+  title         String
+  location      String?
+  scheduledAt   DateTime?
+  isDraft       Boolean   @default(false)
+  position      Int       @default(0)
+  googleEventId String?
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([userId, scheduledAt])
+}
