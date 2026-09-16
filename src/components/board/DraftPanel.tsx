@@ -16,8 +16,23 @@ export default function DraftPanel({ note }: { note: NoteDTO | null }) {
       ref={setNodeRef}
       className="flex w-full flex-col gap-3 rounded-lg border border-dashed border-zinc-200 p-3 dark:border-zinc-800 lg:w-44"
     >
-      <header className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
-        Draft
+      <header className="grid grid-cols-[1.25rem_1fr_1.25rem] items-center">
+        <span aria-hidden />
+        <p className="text-center text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+          Draft
+        </p>
+        {!note ? (
+          <button
+            type="button"
+            onClick={() => setIsCreating(true)}
+            aria-label="New draft note"
+            className="justify-self-end text-base leading-none text-zinc-400 hover:text-zinc-600 dark:text-zinc-600 dark:hover:text-zinc-300"
+          >
+            +
+          </button>
+        ) : (
+          <span aria-hidden />
+        )}
       </header>
 
       <SortableContext
@@ -28,19 +43,7 @@ export default function DraftPanel({ note }: { note: NoteDTO | null }) {
         {note && <DraftCard note={note} />}
       </SortableContext>
 
-      {!note &&
-        (isCreating ? (
-          <DraftForm onDone={() => setIsCreating(false)} />
-        ) : (
-          <button
-            type="button"
-            onClick={() => setIsCreating(true)}
-            aria-label="New draft note"
-            className="flex h-44 w-44 items-center justify-center rounded-sm border border-dashed border-zinc-300 text-2xl text-zinc-400 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900 sm:h-48 sm:w-48"
-          >
-            +
-          </button>
-        ))}
+      {!note && isCreating && <DraftForm onDone={() => setIsCreating(false)} />}
     </div>
   );
 }

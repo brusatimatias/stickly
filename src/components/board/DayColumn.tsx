@@ -26,33 +26,32 @@ export default function DayColumn({
           : "border-transparent"
       }`}
     >
-      <header className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
-        {day.label}
+      <header className="grid grid-cols-[1.25rem_1fr_1.25rem] items-center">
+        <span aria-hidden />
+        <p className="text-center text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+          {day.label}
+        </p>
+        <button
+          type="button"
+          onClick={() => setIsAdding(true)}
+          aria-label="Add note"
+          className="justify-self-end text-base leading-none text-zinc-400 hover:text-zinc-600 dark:text-zinc-600 dark:hover:text-zinc-300"
+        >
+          +
+        </button>
       </header>
 
       <SortableContext id={day.key} items={notes.map((note) => note.id)} strategy={rectSortingStrategy}>
         <div className="flex flex-1 flex-wrap items-start gap-3">
-          {notes.length === 0 && (
+          {notes.length === 0 && !isAdding && (
             <p className="text-xs text-zinc-400 dark:text-zinc-600">No notes yet</p>
           )}
           {notes.map((note) => (
             <NoteCard key={note.id} day={day.key} note={note} />
           ))}
+          {isAdding && <NoteForm day={day.key} onDone={() => setIsAdding(false)} />}
         </div>
       </SortableContext>
-
-      {isAdding ? (
-        <NoteForm day={day.key} onDone={() => setIsAdding(false)} />
-      ) : (
-        <button
-          type="button"
-          onClick={() => setIsAdding(true)}
-          aria-label="Add note"
-          className="flex h-44 w-44 items-center justify-center rounded-sm border border-dashed border-zinc-300 text-2xl text-zinc-400 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900 sm:h-48 sm:w-48"
-        >
-          +
-        </button>
-      )}
     </div>
   );
 }
