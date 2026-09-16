@@ -14,3 +14,8 @@ export function getNotesForWeek(userId: string, weekStart: Date, weekEnd: Date) 
     orderBy: [{ scheduledAt: "asc" }, { position: "asc" }],
   });
 }
+
+/** The user's single draft note (isDraft: true), if any. */
+export function getDraftNote(userId: string) {
+  return prisma.note.findFirst({ where: { userId, isDraft: true } });
+}

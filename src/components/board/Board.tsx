@@ -8,13 +8,17 @@ import {
   useSensors,
   type DragEndEvent,
   type DragOverEvent,
+  type DragStartEvent,
 } from "@dnd-kit/core";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
-import { moveNote } from "@/app/actions/notes";
+import { useRef, useState, useTransition } from "react";
+import { moveNote, scheduleDraftNote } from "@/app/actions/notes";
 import DayColumn from "@/components/board/DayColumn";
+import DraftPanel from "@/components/board/DraftPanel";
 import WeekNav from "@/components/board/WeekNav";
 import type { BoardDay, NoteDTO } from "@/components/board/types";
+
+const DRAFT_CONTAINER = "draft";
 
 type NotesByDay = Record<string, NoteDTO[]>;
 
@@ -28,6 +32,7 @@ function findContainer(id: string, notesByDay: NotesByDay): string | undefined {
 export default function Board({
   days,
   notesByDay: initialNotesByDay,
+  draftNote,
   weekLabel,
   prevWeekParam,
   nextWeekParam,
@@ -35,17 +40,27 @@ export default function Board({
 }: {
   days: BoardDay[];
   notesByDay: NotesByDay;
+  draftNote: NoteDTO | null;
   weekLabel: string;
   prevWeekParam: string;
   nextWeekParam: string;
   currentWeekParam: string;
 }) {
   const router = useRouter();
-  const [notesByDay, setNotesByDay] = useState(initialNotesByDay);
+  const [notesByDay, setNotesByDay] = useState<NotesByDay>({
+    ...initialNotesByDay,
+    [DRAFT_CONTAINER]: draftNote ? [draftNote] : [],
+  });
   const [, startTransition] = useTransition();
+  const originContainerRef = useRef<string | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
+
+  function handleDragStart(event: DragStartEvent) {
+    originContainerRef.current =
+      findContainer(event.active.id as string, notesByDay) ?? null;
+  }
 
   function handleDragOver(event: DragOverEvent) {
     const { active, over } = event;
@@ -56,6 +71,12 @@ export default function Board({
       findContainer(over.id as string, notesByDay) ?? (over.id as string);
 
     if (!activeContainer || !overContainer || activeContainer === overContainer) {
+      return;
+    }
+
+    // Only the draft note itself may ever occupy the draft container, so a
+    // regular scheduled note can never be dropped back into it.
+    if (overContainer === DRAFT_CONTAINER && originContainerRef.current !== DRAFT_CONTAINER) {
       return;
     }
 
@@ -83,15 +104,26 @@ export default function Board({
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
+    const originContainer = originContainerRef.current;
+    originContainerRef.current = null;
     if (!over) return;
 
-    const container = findContainer(active.id as string, notesByDay) ?? (over.id as string);
-    const items = notesByDay[container] ?? [];
+    const destinationContainer =
+      findContainer(active.id as string, notesByDay) ?? (over.id as string);
+    const items = notesByDay[destinationContainer] ?? [];
     const index = items.findIndex((note) => note.id === active.id);
-    if (index === -1) return;
+    if (index === -1 || destinationContainer === DRAFT_CONTAINER) return;
 
     startTransition(async () => {
-      await moveNote({ noteId: active.id as string, day: container, index });
+      if (originContainer === DRAFT_CONTAINER) {
+        await scheduleDraftNote({
+          noteId: active.id as string,
+          day: destinationContainer,
+          index,
+        });
+      } else {
+        await moveNote({ noteId: active.id as string, day: destinationContainer, index });
+      }
       router.refresh();
     });
   }
@@ -107,13 +139,17 @@ export default function Board({
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
-        <div className="grid flex-1 grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-7">
-          {days.map((day) => (
-            <DayColumn key={day.key} day={day} notes={notesByDay[day.key] ?? []} />
-          ))}
+        <div className="flex flex-col gap-3 p-4 lg:flex-row">
+          <DraftPanel note={notesByDay[DRAFT_CONTAINER][0] ?? null} />
+          <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-7">
+            {days.map((day) => (
+              <DayColumn key={day.key} day={day} notes={notesByDay[day.key] ?? []} />
+            ))}
+          </div>
         </div>
       </DndContext>
     </div>

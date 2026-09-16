@@ -1,6 +1,6 @@
 import { addDays, format } from "date-fns";
 import { auth } from "@/auth";
-import { getNotesForWeek } from "@/lib/notes";
+import { getDraftNote, getNotesForWeek } from "@/lib/notes";
 import {
   formatWeekParam,
   getAdjacentWeekStart,
@@ -26,7 +26,10 @@ export default async function Home({
   const reference = parseWeekParam(week);
   const { start, end } = getWeekRange(reference);
 
-  const notes = await getNotesForWeek(session.user.id, start, end);
+  const [notes, draft] = await Promise.all([
+    getNotesForWeek(session.user.id, start, end),
+    getDraftNote(session.user.id),
+  ]);
 
   const days = Array.from({ length: 7 }, (_, index) => {
     const date = addDays(start, index);
@@ -47,6 +50,10 @@ export default async function Home({
     });
   }
 
+  const draftNote: NoteDTO | null = draft
+    ? { id: draft.id, title: draft.title, location: draft.location, time: "" }
+    : null;
+
   return (
     <div className="flex flex-1 flex-col">
       <header className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
@@ -59,6 +66,7 @@ export default async function Home({
         key={format(start, "yyyy-MM-dd")}
         days={days}
         notesByDay={notesByDay}
+        draftNote={draftNote}
         weekLabel={`${format(start, "MMM d")} – ${format(addDays(start, 6), "MMM d, yyyy")}`}
         prevWeekParam={formatWeekParam(getAdjacentWeekStart(start, "prev"))}
         nextWeekParam={formatWeekParam(getAdjacentWeekStart(start, "next"))}

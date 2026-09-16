@@ -4,7 +4,10 @@ import { addDays, startOfDay } from "date-fns";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { combineDayAndTime } from "@/lib/datetime";
+import { insertAtIndex } from "@/lib/ordering";
 import { prisma } from "@/lib/prisma";
+
+const DEFAULT_SCHEDULE_TIME = "09:00";
 
 async function requireUserId(): Promise<string> {
   const session = await auth();
@@ -96,9 +99,7 @@ export async function moveNote(input: { noteId: string; day: string; index: numb
       orderBy: { position: "asc" },
     });
 
-    const insertAt = Math.min(Math.max(input.index, 0), dayNotes.length);
-    const ordered = [...dayNotes];
-    ordered.splice(insertAt, 0, movingNote);
+    const ordered = insertAtIndex(dayNotes, movingNote, input.index);
 
     const previousTime = movingNote.scheduledAt ?? targetDayStart;
     const newScheduledAt = new Date(targetDayStart);
@@ -111,6 +112,75 @@ export async function moveNote(input: { noteId: string; day: string; index: numb
           data: {
             position,
             ...(note.id === input.noteId ? { scheduledAt: newScheduledAt } : {}),
+          },
+        })
+      )
+    );
+  });
+
+  revalidatePath("/");
+}
+
+/**
+ * Upserts the single draft note for the current user, per the
+ * application-level "one draft per user" rule (see CLAUDE.md).
+ */
+export async function saveDraftNote(input: { title: string; location: string }) {
+  const userId = await requireUserId();
+  const existingDraft = await prisma.note.findFirst({
+    where: { userId, isDraft: true },
+  });
+
+  if (existingDraft) {
+    await prisma.note.update({
+      where: { id: existingDraft.id },
+      data: { title: input.title, location: input.location || null },
+    });
+  } else {
+    await prisma.note.create({
+      data: {
+        title: input.title,
+        location: input.location || null,
+        userId,
+        isDraft: true,
+        scheduledAt: null,
+      },
+    });
+  }
+
+  revalidatePath("/");
+}
+
+/** Promotes the draft note to a scheduled note on the given day, at a default time. */
+export async function scheduleDraftNote(input: { noteId: string; day: string; index: number }) {
+  const userId = await requireUserId();
+  const targetDayStart = startOfDay(combineDayAndTime(input.day, "00:00"));
+  const targetDayEnd = addDays(targetDayStart, 1);
+
+  await prisma.$transaction(async (tx) => {
+    const draftNote = await tx.note.findFirst({
+      where: { id: input.noteId, userId, isDraft: true },
+    });
+    if (!draftNote) {
+      throw new Error("Draft note not found");
+    }
+
+    const dayNotes = await tx.note.findMany({
+      where: { userId, isDraft: false, scheduledAt: { gte: targetDayStart, lt: targetDayEnd } },
+      orderBy: { position: "asc" },
+    });
+
+    const ordered = insertAtIndex(dayNotes, draftNote, input.index);
+
+    const scheduledAt = combineDayAndTime(input.day, DEFAULT_SCHEDULE_TIME);
+
+    await Promise.all(
+      ordered.map((note, position) =>
+        tx.note.update({
+          where: { id: note.id },
+          data: {
+            position,
+            ...(note.id === input.noteId ? { isDraft: false, scheduledAt } : {}),
           },
         })
       )
