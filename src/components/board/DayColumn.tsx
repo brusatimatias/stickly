@@ -50,7 +50,7 @@ export default function DayColumn({
       </header>
 
       <SortableContext id={day.key} items={notes.map((note) => note.id)} strategy={rectSortingStrategy}>
-        <div className="flex flex-1 flex-wrap items-start gap-2">
+        <div className="flex flex-1 flex-wrap items-start justify-center gap-2">
           {notes.length === 0 && !isAdding && (
             <p className="text-xs text-zinc-400 dark:text-zinc-600">No notes yet</p>
           )}
