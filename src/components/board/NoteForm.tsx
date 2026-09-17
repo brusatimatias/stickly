@@ -28,7 +28,8 @@ export default function NoteForm({
   const savedRef = useRef(false);
   const stateRef = useRef({ title, location, time });
   stateRef.current = { title, location, time };
-  const noteStyle = getNoteStyle(note?.id ?? day);
+  const [newNoteId] = useState(() => note?.id ?? crypto.randomUUID());
+  const noteStyle = getNoteStyle(newNoteId);
 
   useEffect(() => {
     titleRef.current?.focus();
@@ -63,7 +64,7 @@ export default function NoteForm({
       if (note) {
         await updateNote({ id: note.id, title: trimmedTitle, location, time });
       } else {
-        await createNote({ title: trimmedTitle, location, day, time });
+        await createNote({ id: newNoteId, title: trimmedTitle, location, day, time });
       }
       router.refresh();
     });

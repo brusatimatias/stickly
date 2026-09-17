@@ -31,13 +31,24 @@ function sanitizeLocation(location: string): string | null {
   return location.trim().slice(0, MAX_LOCATION_LENGTH) || null;
 }
 
+const MAX_ID_LENGTH = 64;
+
+function sanitizeClientId(id: string): string {
+  if (!id || id.length > MAX_ID_LENGTH) {
+    throw new Error("Invalid note id");
+  }
+  return id;
+}
+
 export async function createNote(input: {
+  id: string;
   title: string;
   location: string;
   day: string;
   time: string;
 }) {
   const userId = await requireUserId();
+  const id = sanitizeClientId(input.id);
   const hasTime = input.time !== "";
   const scheduledAt = combineDayAndTime(input.day, hasTime ? input.time : "00:00");
   const dayStart = startOfDay(scheduledAt);
@@ -51,6 +62,7 @@ export async function createNote(input: {
 
   await prisma.note.create({
     data: {
+      id,
       title: sanitizeTitle(input.title),
       location: sanitizeLocation(input.location),
       scheduledAt,
