@@ -16,6 +16,21 @@ async function requireUserId(): Promise<string> {
   return session.user.id;
 }
 
+const MAX_TITLE_LENGTH = 200;
+const MAX_LOCATION_LENGTH = 200;
+
+function sanitizeTitle(title: string): string {
+  const trimmed = title.trim().slice(0, MAX_TITLE_LENGTH);
+  if (!trimmed) {
+    throw new Error("Title is required");
+  }
+  return trimmed;
+}
+
+function sanitizeLocation(location: string): string | null {
+  return location.trim().slice(0, MAX_LOCATION_LENGTH) || null;
+}
+
 export async function createNote(input: {
   title: string;
   location: string;
@@ -36,8 +51,8 @@ export async function createNote(input: {
 
   await prisma.note.create({
     data: {
-      title: input.title,
-      location: input.location || null,
+      title: sanitizeTitle(input.title),
+      location: sanitizeLocation(input.location),
       scheduledAt,
       hasTime,
       position,
@@ -62,6 +77,8 @@ export async function updateNote(input: {
     throw new Error("Note not found");
   }
 
+  const title = sanitizeTitle(input.title);
+  const location = sanitizeLocation(input.location);
   const hasTime = input.time !== "";
   const day = existing.scheduledAt.toISOString().slice(0, 10);
   const scheduledAt = combineDayAndTime(day, hasTime ? input.time : "00:00");
@@ -74,8 +91,8 @@ export async function updateNote(input: {
   await prisma.note.updateMany({
     where: { id: input.id, userId },
     data: {
-      title: input.title,
-      location: input.location || null,
+      title,
+      location,
       scheduledAt,
       hasTime,
       ...(clearingTime ? { googleEventId: null } : {}),
@@ -142,6 +159,8 @@ export async function moveNote(input: { noteId: string; day: string; index: numb
  */
 export async function saveDraftNote(input: { title: string; location: string }) {
   const userId = await requireUserId();
+  const title = sanitizeTitle(input.title);
+  const location = sanitizeLocation(input.location);
   const existingDraft = await prisma.note.findFirst({
     where: { userId, isDraft: true },
   });
@@ -149,13 +168,13 @@ export async function saveDraftNote(input: { title: string; location: string }) 
   if (existingDraft) {
     await prisma.note.update({
       where: { id: existingDraft.id },
-      data: { title: input.title, location: input.location || null },
+      data: { title, location },
     });
   } else {
     await prisma.note.create({
       data: {
-        title: input.title,
-        location: input.location || null,
+        title,
+        location,
         userId,
         isDraft: true,
         scheduledAt: null,
