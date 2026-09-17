@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { insertAtIndex } from "./ordering";
+import { insertAtIndex } from "@/lib/ordering";
 
 describe("insertAtIndex", () => {
   test("inserts at the start", () => {

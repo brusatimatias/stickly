@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { combineDayAndTime } from "./datetime";
+import { combineDayAndTime } from "@/lib/datetime";
 
 describe("combineDayAndTime", () => {
   test("combines a day and a time into a single Date", () => {

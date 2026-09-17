@@ -54,6 +54,7 @@ export default function NoteForm({
       onDone();
       return;
     }
+    onDone();
     startTransition(async () => {
       if (note) {
         await updateNote({ id: note.id, title: trimmedTitle, location, time });
@@ -61,7 +62,6 @@ export default function NoteForm({
         await createNote({ title: trimmedTitle, location, day, time });
       }
       router.refresh();
-      onDone();
     });
   }
 
