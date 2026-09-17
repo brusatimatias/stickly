@@ -2,6 +2,7 @@
 
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
+import { isToday, parseISO } from "date-fns";
 import { useState } from "react";
 import NoteCard from "@/components/board/NoteCard";
 import NoteForm from "@/components/board/NoteForm";
@@ -17,6 +18,7 @@ export default function DayColumn({
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: day.key });
   const [isAdding, setIsAdding] = useState(false);
+  const isCurrentDay = isToday(parseISO(day.key));
 
   return (
     <div
@@ -29,7 +31,12 @@ export default function DayColumn({
     >
       <header className="grid grid-cols-[1.25rem_1fr_1.25rem] items-center">
         <span aria-hidden />
-        <p className="text-center text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+        <p
+          className={`flex items-center justify-center gap-1.5 text-center text-sm font-semibold ${
+            isCurrentDay ? "text-amber-600 dark:text-amber-400" : "text-zinc-700 dark:text-zinc-300"
+          }`}
+        >
+          {isCurrentDay && <span className="h-1.5 w-1.5 rounded-full bg-amber-500" aria-hidden />}
           {day.label}
         </p>
         <button
@@ -43,7 +50,7 @@ export default function DayColumn({
       </header>
 
       <SortableContext id={day.key} items={notes.map((note) => note.id)} strategy={rectSortingStrategy}>
-        <div className="flex flex-1 flex-wrap items-start gap-3">
+        <div className="flex flex-1 flex-wrap items-start justify-center gap-2">
           {notes.length === 0 && !isAdding && (
             <p className="text-xs text-zinc-400 dark:text-zinc-600">No notes yet</p>
           )}

@@ -168,8 +168,17 @@ export default function Board({
         <div className="flex flex-col gap-3 p-4 lg:flex-row">
           <DraftPanel note={notesByDay[DRAFT_CONTAINER][0] ?? null} />
           <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-7">
-            {days.map((day) => (
-              <DayColumn key={day.key} day={day} notes={notesByDay[day.key] ?? []} />
+            {days.map((day, index) => (
+              <div
+                key={day.key}
+                className={
+                  index > 0
+                    ? "shadow-[inset_1px_0_0_rgba(0,0,0,0.1)] dark:shadow-[inset_1px_0_0_rgba(255,255,255,0.08)]"
+                    : ""
+                }
+              >
+                <DayColumn day={day} notes={notesByDay[day.key] ?? []} />
+              </div>
             ))}
           </div>
         </div>

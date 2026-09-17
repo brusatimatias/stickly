@@ -24,3 +24,23 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@keyframes sticker-float {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(var(--sticker-drift-x, 6px), var(--sticker-drift-y, -8px));
+  }
+}
+
+.animate-sticker-float {
+  animation: sticker-float var(--sticker-duration, 6s) ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-sticker-float {
+    animation: none;
+  }
+}
