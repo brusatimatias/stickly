@@ -28,9 +28,11 @@ export async function createNote(input: {
   const dayStart = startOfDay(scheduledAt);
   const dayEnd = addDays(dayStart, 1);
 
-  const position = await prisma.note.count({
+  const maxPosition = await prisma.note.aggregate({
     where: { userId, isDraft: false, scheduledAt: { gte: dayStart, lt: dayEnd } },
+    _max: { position: true },
   });
+  const position = (maxPosition._max.position ?? -1) + 1;
 
   await prisma.note.create({
     data: {

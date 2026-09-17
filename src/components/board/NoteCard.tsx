@@ -23,6 +23,7 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
   const noteStyle = getNoteStyle(note.id);
 
   const style = {
+    ...noteStyle.overlapStyle,
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
@@ -56,7 +57,7 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
       ref={setNodeRef}
       style={style}
       onClick={() => setIsEditing(true)}
-      className={`group relative flex h-44 w-44 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border p-2 text-sm shadow-md transition-transform hover:z-10 hover:scale-105 hover:shadow-lg sm:h-48 sm:w-48 ${noteStyle.rotation} ${noteStyle.bg} ${noteStyle.border} ${noteStyle.text}`}
+      className={`group relative flex h-44 w-44 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border p-2 text-sm shadow-[2px_4px_6px_rgba(0,0,0,0.3)] transition-transform hover:z-10 hover:scale-105 hover:shadow-[3px_6px_10px_rgba(0,0,0,0.35)] dark:shadow-[2px_4px_6px_rgba(0,0,0,0.6)] dark:hover:shadow-[3px_6px_10px_rgba(0,0,0,0.7)] sm:h-48 sm:w-48 ${isDragging ? "z-20" : ""} ${noteStyle.rotation} ${noteStyle.bg} ${noteStyle.border} ${noteStyle.text}`}
     >
       <FoldedCorner />
       <button
@@ -82,12 +83,12 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
         ✕
       </button>
 
-      <div className="mt-4 min-w-0">
+      <div className="mt-4 flex min-w-0 flex-1 flex-col overflow-hidden">
         <p className="flex items-center gap-1 text-xs font-medium opacity-80">
           <span aria-hidden>🕐</span>
           {note.time}
         </p>
-        <p className="line-clamp-3 font-semibold">{note.title}</p>
+        <p className="break-words font-semibold">{note.title}</p>
       </div>
 
       <div className="flex items-end justify-between gap-1">
