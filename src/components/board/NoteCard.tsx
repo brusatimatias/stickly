@@ -10,7 +10,13 @@ import { getNoteStyle } from "@/lib/noteColor";
 import FoldedCorner from "@/components/board/FoldedCorner";
 import NoteForm from "@/components/board/NoteForm";
 import type { NoteDTO } from "@/components/board/types";
-import { CalendarCheckIcon, CalendarIcon, SpinnerIcon } from "@/components/board/icons";
+import {
+  CalendarCheckIcon,
+  CalendarIcon,
+  ClockIcon,
+  LocationIcon,
+  SpinnerIcon,
+} from "@/components/board/icons";
 
 export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) {
   const router = useRouter();
@@ -85,7 +91,7 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
 
       <div className="mt-4 flex min-w-0 flex-1 flex-col overflow-hidden">
         <p className="flex items-center gap-1 text-xs font-medium opacity-80">
-          <span aria-hidden>🕐</span>
+          <ClockIcon className="h-3 w-3 shrink-0" />
           {note.time}
         </p>
         <p className="break-words font-semibold">{note.title}</p>
@@ -94,7 +100,7 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
       <div className="flex items-end justify-between gap-1">
         {note.location ? (
           <p className="flex min-w-0 items-center gap-1 text-xs opacity-70">
-            <span aria-hidden>📍</span>
+            <LocationIcon className="h-3 w-3 shrink-0" />
             <span className="truncate">{note.location}</span>
           </p>
         ) : (
