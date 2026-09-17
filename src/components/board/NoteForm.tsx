@@ -16,7 +16,7 @@ export default function NoteForm({
 }: {
   day: string;
   note?: NoteDTO;
-  onDone: () => void;
+  onDone: (updated?: NoteDTO) => void;
 }) {
   const router = useRouter();
   const [title, setTitle] = useState(note?.title ?? "");
@@ -54,7 +54,11 @@ export default function NoteForm({
       onDone();
       return;
     }
-    onDone();
+    if (note) {
+      onDone({ ...note, title: trimmedTitle, location, time, hasTime: time !== "" });
+    } else {
+      onDone();
+    }
     startTransition(async () => {
       if (note) {
         await updateNote({ id: note.id, title: trimmedTitle, location, time });
