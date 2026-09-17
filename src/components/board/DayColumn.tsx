@@ -2,7 +2,6 @@
 
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
-import { isToday, parseISO } from "date-fns";
 import { useState } from "react";
 import NoteCard from "@/components/board/NoteCard";
 import NoteForm from "@/components/board/NoteForm";
@@ -12,13 +11,15 @@ import { PlusIcon } from "@/components/board/icons";
 export default function DayColumn({
   day,
   notes,
+  todayKey,
 }: {
   day: BoardDay;
   notes: NoteDTO[];
+  todayKey: string;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: day.key });
   const [isAdding, setIsAdding] = useState(false);
-  const isCurrentDay = isToday(parseISO(day.key));
+  const isCurrentDay = day.key === todayKey;
 
   return (
     <div

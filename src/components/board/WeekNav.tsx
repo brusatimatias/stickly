@@ -5,23 +5,23 @@ import Link from "next/link";
 import { useRef } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarIcon, ChevronLeftIcon, ChevronRightIcon } from "@/components/board/icons";
-import { formatWeekParam } from "@/lib/week";
 
 export default function WeekNav({
   weekLabel,
   prevWeekParam,
   nextWeekParam,
   currentWeekParam,
+  todayWeekParam,
 }: {
   weekLabel: string;
   prevWeekParam: string;
   nextWeekParam: string;
   currentWeekParam: string;
+  todayWeekParam: string;
 }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const isoWeekValue = format(parseISO(currentWeekParam), "RRRR-'W'II");
-  const todayWeekParam = formatWeekParam(new Date());
   const isCurrentWeek = currentWeekParam === todayWeekParam;
 
   function handleWeekPick(value: string) {

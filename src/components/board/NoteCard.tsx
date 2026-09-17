@@ -24,9 +24,23 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
   const [isPending, startTransition] = useTransition();
   const [isSyncing, startSyncTransition] = useTransition();
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [optimisticNote, setOptimisticNote] = useState<NoteDTO | null>(null);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: note.id });
   const noteStyle = getNoteStyle(note.id);
+
+  const [lastServerNote, setLastServerNote] = useState(note);
+  if (
+    lastServerNote.title !== note.title ||
+    lastServerNote.location !== note.location ||
+    lastServerNote.time !== note.time ||
+    lastServerNote.hasTime !== note.hasTime ||
+    lastServerNote.googleEventId !== note.googleEventId
+  ) {
+    setLastServerNote(note);
+    if (optimisticNote) setOptimisticNote(null);
+  }
+  const displayNote = optimisticNote ?? note;
 
   const style = {
     ...noteStyle.overlapStyle,
@@ -36,7 +50,16 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
   };
 
   if (isEditing) {
-    return <NoteForm day={day} note={note} onDone={() => setIsEditing(false)} />;
+    return (
+      <NoteForm
+        day={day}
+        note={note}
+        onDone={(updated) => {
+          if (updated) setOptimisticNote(updated);
+          setIsEditing(false);
+        }}
+      />
+    );
   }
 
   function handleDelete() {
@@ -92,16 +115,16 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
       <div className="mt-4 flex min-w-0 flex-1 flex-col overflow-hidden">
         <p className="flex items-center gap-1 text-xs font-medium opacity-80">
           <ClockIcon className="h-3 w-3 shrink-0" />
-          {note.hasTime ? note.time : "--:--"}
+          {displayNote.hasTime ? displayNote.time : "--:--"}
         </p>
-        <p className="break-words font-semibold">{note.title}</p>
+        <p className="break-words font-semibold">{displayNote.title}</p>
       </div>
 
       <div className="flex items-end justify-between gap-1">
-        {note.location ? (
+        {displayNote.location ? (
           <p className="flex min-w-0 items-center gap-1 text-xs opacity-70">
             <LocationIcon className="h-3 w-3 shrink-0" />
-            <span className="truncate">{note.location}</span>
+            <span className="truncate">{displayNote.location}</span>
           </p>
         ) : (
           <span />
@@ -110,9 +133,9 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
           <button
             type="button"
             aria-label={
-              !note.hasTime
+              !displayNote.hasTime
                 ? "Set a time to enable Calendar sync"
-                : note.googleEventId
+                : displayNote.googleEventId
                   ? "Update in Calendar"
                   : "Add to Calendar"
             }
@@ -120,25 +143,25 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
               event.stopPropagation();
               handleSyncToCalendar();
             }}
-            disabled={isSyncing || !note.hasTime}
+            disabled={isSyncing || !displayNote.hasTime}
             className={`rounded-full p-1 opacity-30 transition-opacity group-hover:opacity-70 disabled:opacity-40 ${
-              note.googleEventId ? "text-emerald-600 dark:text-emerald-400" : ""
+              displayNote.googleEventId ? "text-emerald-600 dark:text-emerald-400" : ""
             }`}
           >
             {isSyncing ? (
               <SpinnerIcon className="h-8 w-8 animate-spin" />
-            ) : note.googleEventId ? (
+            ) : displayNote.googleEventId ? (
               <CalendarCheckIcon className="h-8 w-8" />
             ) : (
               <CalendarIcon className="h-8 w-8" />
             )}
           </button>
           <span className="pointer-events-none absolute bottom-full right-0 mb-1 whitespace-nowrap rounded bg-zinc-900 px-1.5 py-0.5 text-[10px] text-white opacity-0 transition-opacity group-hover/sync:opacity-90 dark:bg-zinc-100 dark:text-zinc-900">
-            {!note.hasTime
+            {!displayNote.hasTime
               ? "Set a time to enable sync"
               : isSyncing
                 ? "Syncing…"
-                : note.googleEventId
+                : displayNote.googleEventId
                   ? "Synced — click to update"
                   : "Add to Calendar"}
           </span>

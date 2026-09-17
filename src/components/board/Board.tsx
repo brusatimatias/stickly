@@ -3,6 +3,7 @@
 import {
   DndContext,
   DragOverlay,
+  KeyboardSensor,
   PointerSensor,
   closestCenter,
   useSensor,
@@ -11,6 +12,7 @@ import {
   type DragOverEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
+import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { moveNote, scheduleDraftNote } from "@/app/actions/notes";
@@ -40,6 +42,8 @@ export default function Board({
   prevWeekParam,
   nextWeekParam,
   currentWeekParam,
+  todayWeekParam,
+  todayKey,
 }: {
   days: BoardDay[];
   notesByDay: NotesByDay;
@@ -48,6 +52,8 @@ export default function Board({
   prevWeekParam: string;
   nextWeekParam: string;
   currentWeekParam: string;
+  todayWeekParam: string;
+  todayKey: string;
 }) {
   const router = useRouter();
   function buildNotesByDay(): NotesByDay {
@@ -69,7 +75,8 @@ export default function Board({
   const [activeNote, setActiveNote] = useState<NoteDTO | null>(null);
   const originContainerRef = useRef<string | null>(null);
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
   function handleDragStart(event: DragStartEvent) {
@@ -156,6 +163,7 @@ export default function Board({
         prevWeekParam={prevWeekParam}
         nextWeekParam={nextWeekParam}
         currentWeekParam={currentWeekParam}
+        todayWeekParam={todayWeekParam}
       />
       <DndContext
         sensors={sensors}
@@ -177,7 +185,7 @@ export default function Board({
                     : ""
                 }
               >
-                <DayColumn day={day} notes={notesByDay[day.key] ?? []} />
+                <DayColumn day={day} notes={notesByDay[day.key] ?? []} todayKey={todayKey} />
               </div>
             ))}
           </div>
