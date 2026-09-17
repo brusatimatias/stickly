@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRef } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeftIcon, ChevronRightIcon } from "@/components/board/icons";
+import { formatWeekParam } from "@/lib/week";
 
 export default function WeekNav({
   weekLabel,
@@ -20,6 +21,8 @@ export default function WeekNav({
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const isoWeekValue = format(parseISO(currentWeekParam), "RRRR-'W'II");
+  const todayWeekParam = formatWeekParam(new Date());
+  const isCurrentWeek = currentWeekParam === todayWeekParam;
 
   function handleWeekPick(value: string) {
     if (!value) return;
@@ -40,23 +43,37 @@ export default function WeekNav({
         <ChevronLeftIcon className="h-4 w-4" />
       </Link>
 
-      <div className="relative">
-        <button
-          type="button"
-          onClick={openPicker}
-          className="text-sm font-medium text-zinc-700 hover:underline dark:text-zinc-300"
-        >
-          {weekLabel}
-        </button>
-        <input
-          ref={inputRef}
-          type="week"
-          value={isoWeekValue}
-          onChange={(event) => handleWeekPick(event.target.value)}
-          aria-label="Jump to week"
-          tabIndex={-1}
-          className="pointer-events-none absolute inset-0 opacity-0"
-        />
+      <div className="flex items-center gap-2">
+        <div className="relative">
+          <button
+            type="button"
+            onClick={openPicker}
+            className="text-sm font-medium text-zinc-700 hover:underline dark:text-zinc-300"
+          >
+            {weekLabel}
+          </button>
+          <input
+            ref={inputRef}
+            type="week"
+            value={isoWeekValue}
+            onChange={(event) => handleWeekPick(event.target.value)}
+            aria-label="Jump to week"
+            tabIndex={-1}
+            className="pointer-events-none absolute inset-0 opacity-0"
+          />
+        </div>
+        {isCurrentWeek ? (
+          <span className="rounded-full border border-zinc-200 px-2 py-0.5 text-xs text-zinc-400 dark:border-zinc-800 dark:text-zinc-600">
+            Today
+          </span>
+        ) : (
+          <Link
+            href={`/?week=${todayWeekParam}`}
+            className="rounded-full border border-zinc-300 px-2 py-0.5 text-xs text-zinc-600 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-900"
+          >
+            Today
+          </Link>
+        )}
       </div>
 
       <Link

@@ -66,7 +66,7 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
         onClick={(event) => event.stopPropagation()}
         {...attributes}
         {...listeners}
-        className="absolute left-1 top-1 cursor-grab select-none opacity-0 transition-opacity group-hover:opacity-70 active:cursor-grabbing"
+        className="absolute left-1 top-1 cursor-grab select-none opacity-30 transition-opacity group-hover:opacity-70 active:cursor-grabbing"
       >
         ⠿
       </button>
@@ -78,7 +78,7 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
           handleDelete();
         }}
         disabled={isPending}
-        className="absolute right-1 top-1 opacity-0 transition-opacity group-hover:opacity-70 disabled:opacity-30"
+        className="absolute right-1 top-1 opacity-30 transition-opacity group-hover:opacity-70 disabled:opacity-30"
       >
         ✕
       </button>
@@ -109,7 +109,7 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
               handleSyncToCalendar();
             }}
             disabled={isSyncing}
-            className={`rounded-full p-1 opacity-0 transition-opacity group-hover:opacity-70 disabled:opacity-40 ${
+            className={`rounded-full p-1 opacity-30 transition-opacity group-hover:opacity-70 disabled:opacity-40 ${
               note.googleEventId ? "text-emerald-600 dark:text-emerald-400" : ""
             }`}
           >
