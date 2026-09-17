@@ -21,7 +21,7 @@ export default function NoteForm({
   const router = useRouter();
   const [title, setTitle] = useState(note?.title ?? "");
   const [location, setLocation] = useState(note?.location ?? "");
-  const [time, setTime] = useState(note?.time ?? "09:00");
+  const [time, setTime] = useState(note && !note.hasTime ? "" : (note?.time ?? "09:00"));
   const [, startTransition] = useTransition();
   const containerRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLTextAreaElement>(null);
@@ -94,6 +94,16 @@ export default function NoteForm({
             aria-label="Time"
             className="w-fit bg-transparent outline-none [&::-webkit-calendar-picker-indicator]:hidden"
           />
+          {time && (
+            <button
+              type="button"
+              aria-label="Clear time"
+              onClick={() => setTime("")}
+              className="shrink-0 opacity-50 hover:opacity-90"
+            >
+              ✕
+            </button>
+          )}
         </div>
         <textarea
           ref={titleRef}

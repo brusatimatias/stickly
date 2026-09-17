@@ -3,6 +3,7 @@
 import { addDays, startOfDay } from "date-fns";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
+import { unsyncNoteFromGoogleCalendar } from "@/app/actions/calendar";
 import { combineDayAndTime } from "@/lib/datetime";
 import { insertAtIndex } from "@/lib/ordering";
 import { prisma } from "@/lib/prisma";
@@ -24,7 +25,8 @@ export async function createNote(input: {
   time: string;
 }) {
   const userId = await requireUserId();
-  const scheduledAt = combineDayAndTime(input.day, input.time);
+  const hasTime = input.time !== "";
+  const scheduledAt = combineDayAndTime(input.day, hasTime ? input.time : "00:00");
   const dayStart = startOfDay(scheduledAt);
   const dayEnd = addDays(dayStart, 1);
 
@@ -39,6 +41,7 @@ export async function createNote(input: {
       title: input.title,
       location: input.location || null,
       scheduledAt,
+      hasTime,
       position,
       userId,
     },
@@ -61,12 +64,24 @@ export async function updateNote(input: {
     throw new Error("Note not found");
   }
 
+  const hasTime = input.time !== "";
   const day = existing.scheduledAt.toISOString().slice(0, 10);
-  const scheduledAt = combineDayAndTime(day, input.time);
+  const scheduledAt = combineDayAndTime(day, hasTime ? input.time : "00:00");
+
+  const clearingTime = existing.hasTime && !hasTime && existing.googleEventId;
+  if (clearingTime) {
+    await unsyncNoteFromGoogleCalendar(existing.googleEventId!);
+  }
 
   await prisma.note.updateMany({
     where: { id: input.id, userId },
-    data: { title: input.title, location: input.location || null, scheduledAt },
+    data: {
+      title: input.title,
+      location: input.location || null,
+      scheduledAt,
+      hasTime,
+      ...(clearingTime ? { googleEventId: null } : {}),
+    },
   });
 
   revalidatePath("/");

@@ -47,6 +47,7 @@ export default async function Home({
       title: note.title,
       location: note.location,
       time: format(note.scheduledAt, "HH:mm"),
+      hasTime: note.hasTime,
       googleEventId: note.googleEventId,
     });
   }
@@ -57,6 +58,7 @@ export default async function Home({
         title: draft.title,
         location: draft.location,
         time: "",
+        hasTime: draft.hasTime,
         googleEventId: draft.googleEventId,
       }
     : null;
