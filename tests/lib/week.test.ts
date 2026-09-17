@@ -4,7 +4,7 @@ import {
   getAdjacentWeekStart,
   getWeekRange,
   parseWeekParam,
-} from "./week";
+} from "@/lib/week";
 
 describe("getWeekRange", () => {
   test("returns Monday start and next Monday as exclusive end", () => {
