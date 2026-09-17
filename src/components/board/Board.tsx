@@ -42,6 +42,8 @@ export default function Board({
   prevWeekParam,
   nextWeekParam,
   currentWeekParam,
+  todayWeekParam,
+  todayKey,
 }: {
   days: BoardDay[];
   notesByDay: NotesByDay;
@@ -50,6 +52,8 @@ export default function Board({
   prevWeekParam: string;
   nextWeekParam: string;
   currentWeekParam: string;
+  todayWeekParam: string;
+  todayKey: string;
 }) {
   const router = useRouter();
   function buildNotesByDay(): NotesByDay {
@@ -159,6 +163,7 @@ export default function Board({
         prevWeekParam={prevWeekParam}
         nextWeekParam={nextWeekParam}
         currentWeekParam={currentWeekParam}
+        todayWeekParam={todayWeekParam}
       />
       <DndContext
         sensors={sensors}
@@ -180,7 +185,7 @@ export default function Board({
                     : ""
                 }
               >
-                <DayColumn day={day} notes={notesByDay[day.key] ?? []} />
+                <DayColumn day={day} notes={notesByDay[day.key] ?? []} todayKey={todayKey} />
               </div>
             ))}
           </div>

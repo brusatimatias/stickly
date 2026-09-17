@@ -40,6 +40,9 @@ export default async function Home({
     days.map((day) => day.key)
   );
   const draftNote = toDraftNoteDTO(draft);
+  const now = new Date();
+  const todayKey = format(now, "yyyy-MM-dd");
+  const todayWeekParam = formatWeekParam(now);
 
   return (
     <div className="flex flex-1 flex-col">
@@ -58,6 +61,8 @@ export default async function Home({
         prevWeekParam={formatWeekParam(getAdjacentWeekStart(start, "prev"))}
         nextWeekParam={formatWeekParam(getAdjacentWeekStart(start, "next"))}
         currentWeekParam={format(start, "yyyy-MM-dd")}
+        todayWeekParam={todayWeekParam}
+        todayKey={todayKey}
       />
     </div>
   );
