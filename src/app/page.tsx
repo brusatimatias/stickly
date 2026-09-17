@@ -1,6 +1,6 @@
 import { addDays, format } from "date-fns";
 import { auth } from "@/auth";
-import { getDraftNote, getNotesForWeek } from "@/lib/notes";
+import { getDraftNote, getNotesForWeek, groupNotesByDay, toDraftNoteDTO } from "@/lib/notes";
 import {
   formatWeekParam,
   getAdjacentWeekStart,
@@ -10,7 +10,6 @@ import {
 import SignInScreen from "@/components/auth/SignInScreen";
 import SignOutButton from "@/components/auth/SignOutButton";
 import Board from "@/components/board/Board";
-import type { NoteDTO } from "@/components/board/types";
 
 export default async function Home({
   searchParams,
@@ -36,32 +35,11 @@ export default async function Home({
     return { key: format(date, "yyyy-MM-dd"), label: format(date, "EEE d") };
   });
 
-  const notesByDay: Record<string, NoteDTO[]> = Object.fromEntries(
-    days.map((day) => [day.key, []])
+  const notesByDay = groupNotesByDay(
+    notes,
+    days.map((day) => day.key)
   );
-  for (const note of notes) {
-    if (!note.scheduledAt) continue;
-    const key = format(note.scheduledAt, "yyyy-MM-dd");
-    notesByDay[key]?.push({
-      id: note.id,
-      title: note.title,
-      location: note.location,
-      time: format(note.scheduledAt, "HH:mm"),
-      hasTime: note.hasTime,
-      googleEventId: note.googleEventId,
-    });
-  }
-
-  const draftNote: NoteDTO | null = draft
-    ? {
-        id: draft.id,
-        title: draft.title,
-        location: draft.location,
-        time: "",
-        hasTime: draft.hasTime,
-        googleEventId: draft.googleEventId,
-      }
-    : null;
+  const draftNote = toDraftNoteDTO(draft);
 
   return (
     <div className="flex flex-1 flex-col">
