@@ -21,7 +21,7 @@ export default function NoteForm({
   const router = useRouter();
   const [title, setTitle] = useState(note?.title ?? "");
   const [location, setLocation] = useState(note?.location ?? "");
-  const [time, setTime] = useState(note && !note.hasTime ? "" : (note?.time ?? "09:00"));
+  const [time, setTime] = useState(note && !note.hasTime ? "" : (note?.time ?? ""));
   const [, startTransition] = useTransition();
   const containerRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLTextAreaElement>(null);

@@ -8,8 +8,6 @@ import { combineDayAndTime } from "@/lib/datetime";
 import { insertAtIndex } from "@/lib/ordering";
 import { prisma } from "@/lib/prisma";
 
-const DEFAULT_SCHEDULE_TIME = "09:00";
-
 async function requireUserId(): Promise<string> {
   const session = await auth();
   if (!session?.user?.id) {
@@ -168,7 +166,7 @@ export async function saveDraftNote(input: { title: string; location: string }) 
   revalidatePath("/");
 }
 
-/** Promotes the draft note to a scheduled note on the given day, at a default time. */
+/** Promotes the draft note to a scheduled note on the given day, with no time set. */
 export async function scheduleDraftNote(input: { noteId: string; day: string; index: number }) {
   const userId = await requireUserId();
   const targetDayStart = startOfDay(combineDayAndTime(input.day, "00:00"));
@@ -189,7 +187,7 @@ export async function scheduleDraftNote(input: { noteId: string; day: string; in
 
     const ordered = insertAtIndex(dayNotes, draftNote, input.index);
 
-    const scheduledAt = combineDayAndTime(input.day, DEFAULT_SCHEDULE_TIME);
+    const scheduledAt = combineDayAndTime(input.day, "00:00");
 
     await Promise.all(
       ordered.map((note, position) =>
@@ -197,7 +195,9 @@ export async function scheduleDraftNote(input: { noteId: string; day: string; in
           where: { id: note.id },
           data: {
             position,
-            ...(note.id === input.noteId ? { isDraft: false, scheduledAt } : {}),
+            ...(note.id === input.noteId
+              ? { isDraft: false, scheduledAt, hasTime: false }
+              : {}),
           },
         })
       )
