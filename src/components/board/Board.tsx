@@ -3,6 +3,7 @@
 import {
   DndContext,
   DragOverlay,
+  KeyboardSensor,
   PointerSensor,
   closestCenter,
   useSensor,
@@ -11,6 +12,7 @@ import {
   type DragOverEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
+import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { moveNote, scheduleDraftNote } from "@/app/actions/notes";
@@ -40,6 +42,8 @@ export default function Board({
   prevWeekParam,
   nextWeekParam,
   currentWeekParam,
+  todayWeekParam,
+  todayKey,
 }: {
   days: BoardDay[];
   notesByDay: NotesByDay;
@@ -48,6 +52,8 @@ export default function Board({
   prevWeekParam: string;
   nextWeekParam: string;
   currentWeekParam: string;
+  todayWeekParam: string;
+  todayKey: string;
 }) {
   const router = useRouter();
   function buildNotesByDay(): NotesByDay {
@@ -69,7 +75,8 @@ export default function Board({
   const [activeNote, setActiveNote] = useState<NoteDTO | null>(null);
   const originContainerRef = useRef<string | null>(null);
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
   function handleDragStart(event: DragStartEvent) {
@@ -156,6 +163,7 @@ export default function Board({
         prevWeekParam={prevWeekParam}
         nextWeekParam={nextWeekParam}
         currentWeekParam={currentWeekParam}
+        todayWeekParam={todayWeekParam}
       />
       <DndContext
         sensors={sensors}
@@ -168,8 +176,17 @@ export default function Board({
         <div className="flex flex-col gap-3 p-4 lg:flex-row">
           <DraftPanel note={notesByDay[DRAFT_CONTAINER][0] ?? null} />
           <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-7">
-            {days.map((day) => (
-              <DayColumn key={day.key} day={day} notes={notesByDay[day.key] ?? []} />
+            {days.map((day, index) => (
+              <div
+                key={day.key}
+                className={
+                  index > 0
+                    ? "shadow-[inset_1px_0_0_rgba(0,0,0,0.1)] dark:shadow-[inset_1px_0_0_rgba(255,255,255,0.08)]"
+                    : ""
+                }
+              >
+                <DayColumn day={day} notes={notesByDay[day.key] ?? []} todayKey={todayKey} />
+              </div>
             ))}
           </div>
         </div>

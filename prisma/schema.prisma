@@ -25,6 +25,7 @@ model Note {
   title         String
   location      String?
   scheduledAt   DateTime?
+  hasTime       Boolean   @default(true)
   isDraft       Boolean   @default(false)
   position      Int       @default(0)
   googleEventId String?

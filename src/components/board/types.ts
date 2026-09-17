@@ -3,6 +3,7 @@ export type NoteDTO = {
   title: string;
   location: string | null;
   time: string; // HH:mm
+  hasTime: boolean;
   googleEventId: string | null;
 };
 

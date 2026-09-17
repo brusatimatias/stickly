@@ -8,6 +8,15 @@ const PALETTE = [
 
 const ROTATIONS = ["-rotate-2", "-rotate-1", "rotate-1", "rotate-2", "rotate-3", "-rotate-3"] as const;
 
+const OVERLAPS = [
+  { top: -4, left: -2 },
+  { top: -10, left: 4 },
+  { top: -6, left: -8 },
+  { top: -12, left: 2 },
+  { top: -2, left: -6 },
+  { top: -8, left: 6 },
+] as const;
+
 function hashString(value: string): number {
   let hash = 0;
   for (let i = 0; i < value.length; i++) {
@@ -18,8 +27,13 @@ function hashString(value: string): number {
 
 export function getNoteStyle(id: string) {
   const hash = hashString(id);
+  const overlap = OVERLAPS[hash % OVERLAPS.length];
   return {
     ...PALETTE[hash % PALETTE.length],
     rotation: ROTATIONS[hash % ROTATIONS.length],
+    overlapStyle: {
+      marginTop: `${overlap.top}px`,
+      marginLeft: `${overlap.left}px`,
+    },
   };
 }

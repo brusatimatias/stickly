@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { useTransition } from "react";
 import { createNote, updateNote } from "@/app/actions/notes";
 import FoldedCorner from "@/components/board/FoldedCorner";
+import { ClockIcon, LocationIcon } from "@/components/board/icons";
 import type { NoteDTO } from "@/components/board/types";
 import { getNoteStyle } from "@/lib/noteColor";
 
@@ -15,19 +16,20 @@ export default function NoteForm({
 }: {
   day: string;
   note?: NoteDTO;
-  onDone: () => void;
+  onDone: (updated?: NoteDTO) => void;
 }) {
   const router = useRouter();
   const [title, setTitle] = useState(note?.title ?? "");
   const [location, setLocation] = useState(note?.location ?? "");
-  const [time, setTime] = useState(note?.time ?? "09:00");
+  const [time, setTime] = useState(note && !note.hasTime ? "" : (note?.time ?? ""));
   const [, startTransition] = useTransition();
   const containerRef = useRef<HTMLDivElement>(null);
-  const titleRef = useRef<HTMLInputElement>(null);
+  const titleRef = useRef<HTMLTextAreaElement>(null);
   const savedRef = useRef(false);
   const stateRef = useRef({ title, location, time });
   stateRef.current = { title, location, time };
-  const noteStyle = getNoteStyle(note?.id ?? day);
+  const [newNoteId] = useState(() => note?.id ?? crypto.randomUUID());
+  const noteStyle = getNoteStyle(newNoteId);
 
   useEffect(() => {
     titleRef.current?.focus();
@@ -53,14 +55,18 @@ export default function NoteForm({
       onDone();
       return;
     }
+    if (note) {
+      onDone({ ...note, title: trimmedTitle, location, time, hasTime: time !== "" });
+    } else {
+      onDone();
+    }
     startTransition(async () => {
       if (note) {
         await updateNote({ id: note.id, title: trimmedTitle, location, time });
       } else {
-        await createNote({ title: trimmedTitle, location, day, time });
+        await createNote({ id: newNoteId, title: trimmedTitle, location, day, time });
       }
       router.refresh();
-      onDone();
     });
   }
 
@@ -79,12 +85,13 @@ export default function NoteForm({
     <div
       ref={containerRef}
       onKeyDown={handleKeyDown}
-      className={`relative flex h-44 w-44 flex-col justify-between overflow-hidden rounded-sm border p-2 text-sm shadow-md sm:h-48 sm:w-48 ${noteStyle.rotation} ${noteStyle.bg} ${noteStyle.border} ${noteStyle.text}`}
+      style={noteStyle.overlapStyle}
+      className={`relative flex h-44 w-44 flex-col justify-between overflow-hidden rounded-sm border p-2 text-sm shadow-[2px_4px_6px_rgba(0,0,0,0.3)] dark:shadow-[2px_4px_6px_rgba(0,0,0,0.6)] sm:h-48 sm:w-48 ${noteStyle.rotation} ${noteStyle.bg} ${noteStyle.border} ${noteStyle.text}`}
     >
       <FoldedCorner />
-      <div className="mt-4 min-w-0">
+      <div className="mt-4 flex min-w-0 flex-1 flex-col overflow-hidden">
         <div className="flex items-center gap-1 text-xs font-medium opacity-80">
-          <span aria-hidden>🕐</span>
+          <ClockIcon className="h-3 w-3 shrink-0" />
           <input
             type="time"
             value={time}
@@ -92,19 +99,30 @@ export default function NoteForm({
             aria-label="Time"
             className="w-fit bg-transparent outline-none [&::-webkit-calendar-picker-indicator]:hidden"
           />
+          {time && (
+            <button
+              type="button"
+              aria-label="Clear time"
+              onClick={() => setTime("")}
+              className="shrink-0 opacity-50 hover:opacity-90"
+            >
+              ✕
+            </button>
+          )}
         </div>
-        <input
+        <textarea
           ref={titleRef}
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           placeholder="Title"
           aria-label="Title"
-          className="block w-full bg-transparent font-semibold outline-none placeholder:opacity-50"
+          rows={1}
+          className="block w-full flex-1 resize-none break-words bg-transparent font-semibold outline-none placeholder:opacity-50"
         />
       </div>
 
       <div className="flex items-center gap-1 text-xs opacity-70">
-        <span aria-hidden>📍</span>
+        <LocationIcon className="h-3 w-3 shrink-0" />
         <input
           value={location}
           onChange={(event) => setLocation(event.target.value)}
