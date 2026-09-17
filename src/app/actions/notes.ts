@@ -168,31 +168,42 @@ export async function moveNote(input: { noteId: string; day: string; index: numb
 /**
  * Upserts the single draft note for the current user, per the
  * application-level "one draft per user" rule (see CLAUDE.md).
+ *
+ * The check-then-act (findFirst, then create/update) is wrapped in a
+ * transaction holding a Postgres advisory lock scoped to the user, so two
+ * concurrent calls (double click, two tabs) can't both see "no draft yet"
+ * and create duplicates. This is app-level serialization, not a DB
+ * constraint, matching the documented decision in CLAUDE.md.
  */
 export async function saveDraftNote(input: { title: string; location: string }) {
   const userId = await requireUserId();
   const title = sanitizeTitle(input.title);
   const location = sanitizeLocation(input.location);
-  const existingDraft = await prisma.note.findFirst({
-    where: { userId, isDraft: true },
-  });
 
-  if (existingDraft) {
-    await prisma.note.update({
-      where: { id: existingDraft.id },
-      data: { title, location },
+  await prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${userId})::bigint)`;
+
+    const existingDraft = await tx.note.findFirst({
+      where: { userId, isDraft: true },
     });
-  } else {
-    await prisma.note.create({
-      data: {
-        title,
-        location,
-        userId,
-        isDraft: true,
-        scheduledAt: null,
-      },
-    });
-  }
+
+    if (existingDraft) {
+      await tx.note.update({
+        where: { id: existingDraft.id },
+        data: { title, location },
+      });
+    } else {
+      await tx.note.create({
+        data: {
+          title,
+          location,
+          userId,
+          isDraft: true,
+          scheduledAt: null,
+        },
+      });
+    }
+  });
 
   revalidatePath("/");
 }
