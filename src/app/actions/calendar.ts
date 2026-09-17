@@ -7,6 +7,19 @@ import { prisma } from "@/lib/prisma";
 
 const EVENT_DURATION_MS = 60 * 60 * 1000; // 1 hour
 
+function getCalendarClient(accessToken: string) {
+  const oauth2Client = new google.auth.OAuth2();
+  oauth2Client.setCredentials({ access_token: accessToken });
+  return google.calendar({ version: "v3", auth: oauth2Client });
+}
+
+function isAuthError(error: unknown): boolean {
+  const status =
+    (error as { response?: { status?: number } })?.response?.status ??
+    (error as { code?: number })?.code;
+  return status === 401;
+}
+
 /**
  * Creates (or updates, if already synced) a Google Calendar event for a
  * scheduled note, and persists the resulting googleEventId.
@@ -30,9 +43,7 @@ export async function addNoteToGoogleCalendar(noteId: string) {
     throw new Error("Set a time for this note before syncing to Calendar.");
   }
 
-  const oauth2Client = new google.auth.OAuth2();
-  oauth2Client.setCredentials({ access_token: session.accessToken });
-  const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+  const calendar = getCalendarClient(session.accessToken);
 
   const requestBody = {
     summary: note.title,
@@ -43,17 +54,33 @@ export async function addNoteToGoogleCalendar(noteId: string) {
     },
   };
 
-  const response = note.googleEventId
-    ? await calendar.events.update({
-        calendarId: "primary",
-        eventId: note.googleEventId,
-        requestBody,
-      })
-    : await calendar.events.insert({ calendarId: "primary", requestBody });
+  let googleEventId: string | null | undefined;
+  try {
+    const response = note.googleEventId
+      ? await calendar.events.update({
+          calendarId: "primary",
+          eventId: note.googleEventId,
+          requestBody,
+        })
+      : await calendar.events.insert({ calendarId: "primary", requestBody });
+    googleEventId = response.data.id;
+  } catch (error) {
+    if (isAuthError(error)) {
+      throw new Error("Your Google session expired. Sign out and back in to reconnect Calendar.");
+    }
+    throw error;
+  }
 
-  const googleEventId = response.data.id;
   if (googleEventId && googleEventId !== note.googleEventId) {
-    await prisma.note.update({ where: { id: note.id }, data: { googleEventId } });
+    try {
+      await prisma.note.update({ where: { id: note.id }, data: { googleEventId } });
+    } catch (error) {
+      console.error(
+        `Created Calendar event ${googleEventId} for note ${note.id} but failed to save it`,
+        error
+      );
+      throw new Error("Event created in Calendar, but failed to save. Try syncing again.");
+    }
   }
 
   revalidatePath("/");
@@ -71,9 +98,7 @@ export async function unsyncNoteFromGoogleCalendar(googleEventId: string): Promi
   }
 
   try {
-    const oauth2Client = new google.auth.OAuth2();
-    oauth2Client.setCredentials({ access_token: session.accessToken });
-    const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+    const calendar = getCalendarClient(session.accessToken);
     await calendar.events.delete({ calendarId: "primary", eventId: googleEventId });
   } catch {
     // Known/accepted edge case: event may already be gone, token may be stale.
