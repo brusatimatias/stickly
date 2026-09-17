@@ -26,6 +26,9 @@ export async function addNoteToGoogleCalendar(noteId: string) {
   if (!note?.scheduledAt) {
     throw new Error("Note not found");
   }
+  if (!note.hasTime) {
+    throw new Error("Set a time for this note before syncing to Calendar.");
+  }
 
   const oauth2Client = new google.auth.OAuth2();
   oauth2Client.setCredentials({ access_token: session.accessToken });
@@ -54,4 +57,25 @@ export async function addNoteToGoogleCalendar(noteId: string) {
   }
 
   revalidatePath("/");
+}
+
+/**
+ * Best-effort delete of a note's Google Calendar event. Never throws: a
+ * stale token or an already-deleted event must not block the caller from
+ * saving the note itself.
+ */
+export async function unsyncNoteFromGoogleCalendar(googleEventId: string): Promise<void> {
+  const session = await auth();
+  if (!session?.user?.id || !session.accessToken) {
+    return;
+  }
+
+  try {
+    const oauth2Client = new google.auth.OAuth2();
+    oauth2Client.setCredentials({ access_token: session.accessToken });
+    const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+    await calendar.events.delete({ calendarId: "primary", eventId: googleEventId });
+  } catch {
+    // Known/accepted edge case: event may already be gone, token may be stale.
+  }
 }
