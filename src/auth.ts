@@ -98,6 +98,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.userId as string;
+        session.user.image = (token.picture as string | undefined) ?? null;
       }
       session.accessToken = token.accessToken as string | undefined;
 

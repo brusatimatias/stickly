@@ -1,4 +1,5 @@
 import { addDays, format } from "date-fns";
+import Image from "next/image";
 import { auth } from "@/auth";
 import { getDraftNote, getNotesForWeek, groupNotesByDay, toDraftNoteDTO } from "@/lib/notes";
 import {
@@ -50,7 +51,18 @@ export default async function Home({
         <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
           stickly
         </h1>
-        <SignOutButton />
+        <div className="flex items-center gap-3">
+          {session.user.image ? (
+            <Image
+              src={session.user.image}
+              alt={session.user.name ?? "Your avatar"}
+              width={32}
+              height={32}
+              className="rounded-full"
+            />
+          ) : null}
+          <SignOutButton />
+        </div>
       </header>
       <Board
         key={format(start, "yyyy-MM-dd")}
