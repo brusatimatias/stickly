@@ -1,12 +1,9 @@
+import { getTranslations } from "next-intl/server";
 import type { CSSProperties } from "react";
 import { signIn } from "@/auth";
+import CredentialsSignInForm from "@/components/auth/CredentialsSignInForm";
 import FoldedCorner from "@/components/board/FoldedCorner";
-
-const FEATURES = [
-  "Drop notes on a weekly, whiteboard-style board",
-  "Drag and reorder them across days in seconds",
-  "Sync any note straight to Google Calendar",
-];
+import LocaleSwitcher from "@/components/LocaleSwitcher";
 
 const STICKER_PALETTE = [
   { bg: "bg-yellow-200", border: "border-yellow-300" },
@@ -55,11 +52,16 @@ function buildStickers() {
   });
 }
 
-export default function SignInScreen() {
+export default async function SignInScreen() {
+  const t = await getTranslations("auth");
   const stickers = buildStickers();
+  const features = [t("featureBoard"), t("featureDrag"), t("featureCalendar")];
 
   return (
     <div className="relative flex flex-1 flex-col items-center justify-center gap-8 overflow-hidden bg-zinc-50 px-6 py-16 dark:bg-black">
+      <div className="absolute right-4 top-4 z-10">
+        <LocaleSwitcher />
+      </div>
       {stickers.map((sticker) => (
         <div
           key={sticker.key}
@@ -90,14 +92,14 @@ export default function SignInScreen() {
 
       <div className="relative z-10 flex w-full max-w-sm flex-col items-center gap-6 rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-xl dark:border-zinc-800 dark:bg-zinc-950">
         <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-          stickly
+          Stickly
         </h1>
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          Your week, organized like a corkboard full of sticky notes.
+          {t("tagline")}
         </p>
 
         <ul className="w-full space-y-2 text-left text-sm text-zinc-600 dark:text-zinc-300">
-          {FEATURES.map((feature) => (
+          {features.map((feature) => (
             <li key={feature} className="flex items-start gap-2">
               <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
               {feature}
@@ -134,9 +136,17 @@ export default function SignInScreen() {
                 d="M12 4.75c1.76 0 3.34.61 4.58 1.8l3.43-3.43C17.95 1.19 15.24 0 12 0A12 12 0 0 0 1.29 6.6l4 3.1C6.23 6.86 8.88 4.75 12 4.75z"
               />
             </svg>
-            Sign in with Google
+            {t("signInWithGoogle")}
           </button>
         </form>
+
+        <div className="flex w-full items-center gap-3 text-xs text-zinc-400 dark:text-zinc-500">
+          <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+          {t("or")}
+          <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+        </div>
+
+        <CredentialsSignInForm />
       </div>
     </div>
   );

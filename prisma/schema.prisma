@@ -16,6 +16,8 @@ model User {
   email     String   @unique
   name      String?
   imageUrl  String?
+  avatarUrl String?
+  password  String?
   notes     Note[]
   createdAt DateTime @default(now())
 }
