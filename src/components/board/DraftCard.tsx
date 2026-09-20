@@ -2,6 +2,7 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { deleteNote } from "@/app/actions/notes";
@@ -10,6 +11,7 @@ import FoldedCorner from "@/components/board/FoldedCorner";
 import type { NoteDTO } from "@/components/board/types";
 
 export default function DraftCard({ note }: { note: NoteDTO }) {
+  const t = useTranslations("board");
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -43,7 +45,7 @@ export default function DraftCard({ note }: { note: NoteDTO }) {
       <FoldedCorner />
       <button
         type="button"
-        aria-label="Drag to schedule"
+        aria-label={t("dragToSchedule")}
         onClick={(event) => event.stopPropagation()}
         {...attributes}
         {...listeners}
@@ -53,7 +55,7 @@ export default function DraftCard({ note }: { note: NoteDTO }) {
       </button>
       <button
         type="button"
-        aria-label="Delete note"
+        aria-label={t("deleteNote")}
         onClick={(event) => {
           event.stopPropagation();
           handleDelete();
@@ -77,7 +79,7 @@ export default function DraftCard({ note }: { note: NoteDTO }) {
         ) : (
           <span />
         )}
-        <span className="shrink-0 text-[10px] opacity-70">Drag →</span>
+        <span className="shrink-0 text-[10px] opacity-70">{t("dragArrow")}</span>
       </div>
     </div>
   );

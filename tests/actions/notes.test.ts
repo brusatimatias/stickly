@@ -50,14 +50,14 @@ describe("createNote", () => {
     mockAuth.mockResolvedValue(null);
     await expect(
       createNote({ id: "id-1", title: "Title", location: "", day: "2026-09-16", time: "10:00" })
-    ).rejects.toThrow("Unauthorized");
+    ).rejects.toThrow("UNAUTHORIZED");
   });
 
   test("rejects an empty or oversized client id", async () => {
     mockPrisma.note.aggregate.mockResolvedValue({ _max: { position: null } });
     await expect(
       createNote({ id: "", title: "Title", location: "", day: "2026-09-16", time: "10:00" })
-    ).rejects.toThrow("Invalid note id");
+    ).rejects.toThrow("INVALID_NOTE_ID");
     await expect(
       createNote({
         id: "x".repeat(65),
@@ -66,14 +66,14 @@ describe("createNote", () => {
         day: "2026-09-16",
         time: "10:00",
       })
-    ).rejects.toThrow("Invalid note id");
+    ).rejects.toThrow("INVALID_NOTE_ID");
   });
 
   test("rejects a blank title", async () => {
     mockPrisma.note.aggregate.mockResolvedValue({ _max: { position: null } });
     await expect(
       createNote({ id: "id-1", title: "   ", location: "", day: "2026-09-16", time: "10:00" })
-    ).rejects.toThrow("Title is required");
+    ).rejects.toThrow("TITLE_REQUIRED");
   });
 
   test("creates a note with hasTime true and the next position", async () => {
@@ -116,7 +116,7 @@ describe("updateNote", () => {
     mockPrisma.note.findFirst.mockResolvedValue(null);
     await expect(
       updateNote({ id: "id-1", title: "Title", location: "", time: "10:00" })
-    ).rejects.toThrow("Note not found");
+    ).rejects.toThrow("NOTE_NOT_FOUND");
   });
 
   test("unsyncs from Calendar and clears googleEventId when time is cleared", async () => {
@@ -204,6 +204,6 @@ describe("scheduleDraftNote", () => {
     mockPrisma.note.findFirst.mockResolvedValue(null);
     await expect(
       scheduleDraftNote({ noteId: "draft-1", day: "2026-09-16", index: 0 })
-    ).rejects.toThrow("Draft note not found");
+    ).rejects.toThrow("DRAFT_NOTE_NOT_FOUND");
   });
 });

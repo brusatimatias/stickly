@@ -27,20 +27,20 @@ function isAuthError(error: unknown): boolean {
 export async function addNoteToGoogleCalendar(noteId: string) {
   const session = await auth();
   if (!session?.user?.id) {
-    throw new Error("Unauthorized");
+    throw new Error("UNAUTHORIZED");
   }
   if (!session.accessToken) {
-    throw new Error("Missing Google access token. Please sign in again.");
+    throw new Error("MISSING_GOOGLE_TOKEN");
   }
 
   const note = await prisma.note.findFirst({
     where: { id: noteId, userId: session.user.id, isDraft: false },
   });
   if (!note?.scheduledAt) {
-    throw new Error("Note not found");
+    throw new Error("NOTE_NOT_FOUND");
   }
   if (!note.hasTime) {
-    throw new Error("Set a time for this note before syncing to Calendar.");
+    throw new Error("TIME_REQUIRED_FOR_SYNC");
   }
 
   const calendar = getCalendarClient(session.accessToken);
@@ -66,7 +66,7 @@ export async function addNoteToGoogleCalendar(noteId: string) {
     googleEventId = response.data.id;
   } catch (error) {
     if (isAuthError(error)) {
-      throw new Error("Your Google session expired. Sign out and back in to reconnect Calendar.");
+      throw new Error("GOOGLE_SESSION_EXPIRED");
     }
     throw error;
   }
@@ -79,7 +79,7 @@ export async function addNoteToGoogleCalendar(noteId: string) {
         `Created Calendar event ${googleEventId} for note ${note.id} but failed to save it`,
         error
       );
-      throw new Error("Event created in Calendar, but failed to save. Try syncing again.");
+      throw new Error("CALENDAR_SAVE_FAILED");
     }
   }
 

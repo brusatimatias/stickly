@@ -2,6 +2,7 @@
 
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import NoteCard from "@/components/board/NoteCard";
 import NoteForm from "@/components/board/NoteForm";
@@ -17,6 +18,7 @@ export default function DayColumn({
   notes: NoteDTO[];
   todayKey: string;
 }) {
+  const t = useTranslations("board");
   const { setNodeRef, isOver } = useDroppable({ id: day.key });
   const [isAdding, setIsAdding] = useState(false);
   const isCurrentDay = day.key === todayKey;
@@ -43,7 +45,7 @@ export default function DayColumn({
         <button
           type="button"
           onClick={() => setIsAdding(true)}
-          aria-label="Add note"
+          aria-label={t("addNote")}
           className="justify-self-end rounded-full p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:text-zinc-600 dark:hover:bg-zinc-900 dark:hover:text-zinc-300"
         >
           <PlusIcon className="h-3.5 w-3.5" />
@@ -53,7 +55,7 @@ export default function DayColumn({
       <SortableContext id={day.key} items={notes.map((note) => note.id)} strategy={rectSortingStrategy}>
         <div className="flex flex-1 flex-wrap items-start justify-center gap-2">
           {notes.length === 0 && !isAdding && (
-            <p className="text-xs text-zinc-400 dark:text-zinc-600">No notes yet</p>
+            <p className="text-xs text-zinc-400 dark:text-zinc-600">{t("noNotesYet")}</p>
           )}
           {notes.map((note) => (
             <NoteCard key={note.id} day={day.key} note={note} />

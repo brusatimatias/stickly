@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { useTransition } from "react";
@@ -14,6 +15,7 @@ export default function DraftForm({
   note?: NoteDTO;
   onDone: () => void;
 }) {
+  const t = useTranslations("board");
   const router = useRouter();
   const [title, setTitle] = useState(note?.title ?? "");
   const [location, setLocation] = useState(note?.location ?? "");
@@ -78,8 +80,8 @@ export default function DraftForm({
           ref={titleRef}
           value={title}
           onChange={(event) => setTitle(event.target.value)}
-          placeholder="Title"
-          aria-label="Title"
+          placeholder={t("titlePlaceholder")}
+          aria-label={t("titlePlaceholder")}
           className="block w-full bg-transparent font-semibold outline-none placeholder:opacity-50"
         />
       </div>
@@ -90,12 +92,12 @@ export default function DraftForm({
           <input
             value={location}
             onChange={(event) => setLocation(event.target.value)}
-            placeholder="Location"
-            aria-label="Location"
+            placeholder={t("locationPlaceholder")}
+            aria-label={t("locationPlaceholder")}
             className="w-full bg-transparent outline-none placeholder:opacity-40"
           />
         </div>
-        <span className="shrink-0 text-[10px] opacity-60">Click outside</span>
+        <span className="shrink-0 text-[10px] opacity-60">{t("clickOutside")}</span>
       </div>
     </div>
   );

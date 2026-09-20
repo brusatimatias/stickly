@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { useTransition } from "react";
@@ -18,6 +19,7 @@ export default function NoteForm({
   note?: NoteDTO;
   onDone: (updated?: NoteDTO) => void;
 }) {
+  const t = useTranslations("board");
   const router = useRouter();
   const [title, setTitle] = useState(note?.title ?? "");
   const [location, setLocation] = useState(note?.location ?? "");
@@ -96,13 +98,13 @@ export default function NoteForm({
             type="time"
             value={time}
             onChange={(event) => setTime(event.target.value)}
-            aria-label="Time"
+            aria-label={t("time")}
             className="w-fit bg-transparent outline-none [&::-webkit-calendar-picker-indicator]:hidden"
           />
           {time && (
             <button
               type="button"
-              aria-label="Clear time"
+              aria-label={t("clearTime")}
               onClick={() => setTime("")}
               className="shrink-0 opacity-50 hover:opacity-90"
             >
@@ -114,8 +116,8 @@ export default function NoteForm({
           ref={titleRef}
           value={title}
           onChange={(event) => setTitle(event.target.value)}
-          placeholder="Title"
-          aria-label="Title"
+          placeholder={t("titlePlaceholder")}
+          aria-label={t("titlePlaceholder")}
           rows={1}
           className="block w-full flex-1 resize-none break-words bg-transparent font-semibold outline-none placeholder:opacity-50"
         />
@@ -126,8 +128,8 @@ export default function NoteForm({
         <input
           value={location}
           onChange={(event) => setLocation(event.target.value)}
-          placeholder="Location"
-          aria-label="Location"
+          placeholder={t("locationPlaceholder")}
+          aria-label={t("locationPlaceholder")}
           className="w-full bg-transparent outline-none placeholder:opacity-40"
         />
       </div>
