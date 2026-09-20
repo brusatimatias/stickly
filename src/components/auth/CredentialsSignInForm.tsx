@@ -1,10 +1,12 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { type FormEvent, useState, useTransition } from "react";
 
 export default function CredentialsSignInForm() {
+  const t = useTranslations("auth");
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -17,7 +19,7 @@ export default function CredentialsSignInForm() {
     startTransition(async () => {
       const result = await signIn("credentials", { email, password, redirect: false });
       if (result?.error) {
-        setError("Invalid email or password");
+        setError(t("invalidCredentials"));
         return;
       }
       router.push("/");
@@ -31,7 +33,7 @@ export default function CredentialsSignInForm() {
         type="email"
         value={email}
         onChange={(event) => setEmail(event.target.value)}
-        placeholder="Email"
+        placeholder={t("emailPlaceholder")}
         required
         className="rounded-lg border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-amber-500 dark:border-zinc-700 dark:bg-zinc-900"
       />
@@ -39,7 +41,7 @@ export default function CredentialsSignInForm() {
         type="password"
         value={password}
         onChange={(event) => setPassword(event.target.value)}
-        placeholder="Password"
+        placeholder={t("passwordPlaceholder")}
         required
         className="rounded-lg border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-amber-500 dark:border-zinc-700 dark:bg-zinc-900"
       />
@@ -49,7 +51,7 @@ export default function CredentialsSignInForm() {
         disabled={isPending}
         className="rounded-full border border-zinc-300 px-5 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:opacity-60 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
       >
-        Sign in with password
+        {t("signInWithPassword")}
       </button>
     </form>
   );

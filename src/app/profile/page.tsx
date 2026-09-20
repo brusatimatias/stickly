@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import ProfileForm from "@/components/profile/ProfileForm";
+import LocaleSwitcher from "@/components/LocaleSwitcher";
 
 export default async function ProfilePage() {
   const session = await auth();
@@ -17,13 +18,14 @@ export default async function ProfilePage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="flex items-center border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
+      <header className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
         <Link
           href="/"
           className="text-lg font-semibold text-zinc-900 dark:text-zinc-50"
         >
           Stickly
         </Link>
+        <LocaleSwitcher />
       </header>
       <div className="flex flex-1 justify-center bg-zinc-50 px-4 py-10 dark:bg-black">
         <ProfileForm

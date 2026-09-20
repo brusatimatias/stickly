@@ -55,20 +55,20 @@ beforeEach(() => {
 describe("addNoteToGoogleCalendar", () => {
   test("throws when unauthenticated", async () => {
     mockAuth.mockResolvedValue(null);
-    await expect(addNoteToGoogleCalendar("note-1")).rejects.toThrow("Unauthorized");
+    await expect(addNoteToGoogleCalendar("note-1")).rejects.toThrow("UNAUTHORIZED");
   });
 
   test("throws when there's no Google access token", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } });
     await expect(addNoteToGoogleCalendar("note-1")).rejects.toThrow(
-      "Missing Google access token"
+      "MISSING_GOOGLE_TOKEN"
     );
   });
 
   test("throws when the note has no time set", async () => {
     mockPrisma.note.findFirst.mockResolvedValue({ ...SCHEDULED_NOTE, hasTime: false });
     await expect(addNoteToGoogleCalendar("note-1")).rejects.toThrow(
-      "Set a time for this note before syncing to Calendar."
+      "TIME_REQUIRED_FOR_SYNC"
     );
   });
 
@@ -106,7 +106,7 @@ describe("addNoteToGoogleCalendar", () => {
     mockEventsInsert.mockRejectedValue({ response: { status: 401 } });
 
     await expect(addNoteToGoogleCalendar("note-1")).rejects.toThrow(
-      "Your Google session expired"
+      "GOOGLE_SESSION_EXPIRED"
     );
   });
 

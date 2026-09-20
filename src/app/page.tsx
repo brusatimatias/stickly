@@ -1,4 +1,5 @@
 import { addDays, format } from "date-fns";
+import { getTranslations } from "next-intl/server";
 import Image from "next/image";
 import Link from "next/link";
 import { auth } from "@/auth";
@@ -13,6 +14,7 @@ import {
 import SignInScreen from "@/components/auth/SignInScreen";
 import SignOutButton from "@/components/auth/SignOutButton";
 import Board from "@/components/board/Board";
+import LocaleSwitcher from "@/components/LocaleSwitcher";
 
 export default async function Home({
   searchParams,
@@ -28,13 +30,14 @@ export default async function Home({
   const reference = parseWeekParam(week);
   const { start, end } = getWeekRange(reference);
 
-  const [notes, draft, user] = await Promise.all([
+  const [notes, draft, user, t] = await Promise.all([
     getNotesForWeek(session.user.id, start, end),
     getDraftNote(session.user.id),
     prisma.user.findUnique({
       where: { id: session.user.id },
       select: { name: true, avatarUrl: true, imageUrl: true },
     }),
+    getTranslations("common"),
   ]);
   const avatarSrc = user?.avatarUrl ?? user?.imageUrl;
 
@@ -66,7 +69,7 @@ export default async function Home({
             {avatarSrc ? (
               <Image
                 src={avatarSrc}
-                alt={user?.name ?? "Your avatar"}
+                alt={user?.name ?? t("yourAvatar")}
                 width={32}
                 height={32}
                 unoptimized={avatarSrc.startsWith("data:")}
@@ -75,6 +78,7 @@ export default async function Home({
             ) : null}
             {user?.name ? <span>{user.name}</span> : null}
           </Link>
+          <LocaleSwitcher />
           <SignOutButton />
         </div>
       </header>

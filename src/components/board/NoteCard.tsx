@@ -2,6 +2,7 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { addNoteToGoogleCalendar } from "@/app/actions/calendar";
@@ -19,6 +20,8 @@ import {
 } from "@/components/board/icons";
 
 export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) {
+  const t = useTranslations("board");
+  const tErrors = useTranslations("errors");
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -76,7 +79,8 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
         await addNoteToGoogleCalendar(note.id);
         router.refresh();
       } catch (error) {
-        setSyncError(error instanceof Error ? error.message : "Failed to sync.");
+        const code = error instanceof Error ? error.message : undefined;
+        setSyncError(code && tErrors.has(code) ? tErrors(code) : tErrors("GENERIC"));
       }
     });
   }
@@ -91,7 +95,7 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
       <FoldedCorner />
       <button
         type="button"
-        aria-label="Drag to reorder"
+        aria-label={t("dragToReorder")}
         onClick={(event) => event.stopPropagation()}
         {...attributes}
         {...listeners}
@@ -101,7 +105,7 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
       </button>
       <button
         type="button"
-        aria-label="Delete note"
+        aria-label={t("deleteNote")}
         onClick={(event) => {
           event.stopPropagation();
           handleDelete();
@@ -134,10 +138,10 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
             type="button"
             aria-label={
               !displayNote.hasTime
-                ? "Set a time to enable Calendar sync"
+                ? t("setTimeToSync")
                 : displayNote.googleEventId
-                  ? "Update in Calendar"
-                  : "Add to Calendar"
+                  ? t("updateInCalendar")
+                  : t("addToCalendar")
             }
             onClick={(event) => {
               event.stopPropagation();
@@ -158,12 +162,12 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
           </button>
           <span className="pointer-events-none absolute bottom-full right-0 mb-1 whitespace-nowrap rounded bg-zinc-900 px-1.5 py-0.5 text-[10px] text-white opacity-0 transition-opacity group-hover/sync:opacity-90 dark:bg-zinc-100 dark:text-zinc-900">
             {!displayNote.hasTime
-              ? "Set a time to enable sync"
+              ? t("setTimeToSyncShort")
               : isSyncing
-                ? "Syncing…"
+                ? t("syncing")
                 : displayNote.googleEventId
-                  ? "Synced — click to update"
-                  : "Add to Calendar"}
+                  ? t("syncedClickToUpdate")
+                  : t("addToCalendar")}
           </span>
         </div>
       </div>

@@ -7,7 +7,7 @@ describe("sanitizeName", () => {
   });
 
   test("throws when blank", () => {
-    expect(() => sanitizeName("   ")).toThrow("Name is required");
+    expect(() => sanitizeName("   ")).toThrow("NAME_REQUIRED");
   });
 
   test("truncates to the max length", () => {
@@ -26,19 +26,19 @@ describe("validateAvatarDataUrl", () => {
 
   test("rejects a non-data-URL string", () => {
     expect(() => validateAvatarDataUrl("https://example.com/avatar.png")).toThrow(
-      "Invalid image format"
+      "INVALID_IMAGE_FORMAT"
     );
   });
 
   test("rejects an unsupported image type", () => {
     expect(() => validateAvatarDataUrl("data:image/gif;base64,AAAA")).toThrow(
-      "Invalid image format"
+      "INVALID_IMAGE_FORMAT"
     );
   });
 
   test("rejects an image over the size limit", () => {
     const oversized = `data:image/png;base64,${"A".repeat(300_000)}`;
-    expect(() => validateAvatarDataUrl(oversized)).toThrow("Image is too large");
+    expect(() => validateAvatarDataUrl(oversized)).toThrow("IMAGE_TOO_LARGE");
   });
 });
 
@@ -49,7 +49,7 @@ describe("validatePasswordLength", () => {
 
   test("rejects a password shorter than the minimum", () => {
     expect(() => validatePasswordLength("short")).toThrow(
-      "Password must be at least 8 characters"
+      "PASSWORD_TOO_SHORT"
     );
   });
 });

@@ -14,7 +14,7 @@ const MAX_LOCATION_LENGTH = 200;
 function sanitizeTitle(title: string): string {
   const trimmed = title.trim().slice(0, MAX_TITLE_LENGTH);
   if (!trimmed) {
-    throw new Error("Title is required");
+    throw new Error("TITLE_REQUIRED");
   }
   return trimmed;
 }
@@ -27,7 +27,7 @@ const MAX_ID_LENGTH = 64;
 
 function sanitizeClientId(id: string): string {
   if (!id || id.length > MAX_ID_LENGTH) {
-    throw new Error("Invalid note id");
+    throw new Error("INVALID_NOTE_ID");
   }
   return id;
 }
@@ -78,7 +78,7 @@ export async function updateNote(input: {
     where: { id: input.id, userId },
   });
   if (!existing?.scheduledAt) {
-    throw new Error("Note not found");
+    throw new Error("NOTE_NOT_FOUND");
   }
 
   const title = sanitizeTitle(input.title);
@@ -122,7 +122,7 @@ export async function moveNote(input: { noteId: string; day: string; index: numb
       where: { id: input.noteId, userId },
     });
     if (!movingNote) {
-      throw new Error("Note not found");
+      throw new Error("NOTE_NOT_FOUND");
     }
 
     const dayNotes = await tx.note.findMany({
@@ -211,7 +211,7 @@ export async function scheduleDraftNote(input: { noteId: string; day: string; in
       where: { id: input.noteId, userId, isDraft: true },
     });
     if (!draftNote) {
-      throw new Error("Draft note not found");
+      throw new Error("DRAFT_NOTE_NOT_FOUND");
     }
 
     const dayNotes = await tx.note.findMany({

@@ -6,7 +6,7 @@ const AVATAR_DATA_URL_PATTERN = /^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9
 export function sanitizeName(name: string): string {
   const trimmed = name.trim().slice(0, MAX_NAME_LENGTH);
   if (!trimmed) {
-    throw new Error("Name is required");
+    throw new Error("NAME_REQUIRED");
   }
   return trimmed;
 }
@@ -14,17 +14,17 @@ export function sanitizeName(name: string): string {
 export function validateAvatarDataUrl(dataUrl: string): void {
   const match = AVATAR_DATA_URL_PATTERN.exec(dataUrl);
   if (!match) {
-    throw new Error("Invalid image format");
+    throw new Error("INVALID_IMAGE_FORMAT");
   }
 
   const decodedSize = Buffer.from(match[2], "base64").length;
   if (decodedSize > MAX_AVATAR_BYTES) {
-    throw new Error("Image is too large");
+    throw new Error("IMAGE_TOO_LARGE");
   }
 }
 
 export function validatePasswordLength(password: string): void {
   if (password.length < MIN_PASSWORD_LENGTH) {
-    throw new Error(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
+    throw new Error("PASSWORD_TOO_SHORT");
   }
 }
