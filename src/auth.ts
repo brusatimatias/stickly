@@ -1,4 +1,6 @@
+import bcrypt from "bcryptjs";
 import NextAuth from "next-auth";
+import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import { prisma } from "@/lib/prisma";
 
@@ -46,11 +48,42 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         },
       },
     }),
+    Credentials({
+      credentials: {
+        email: {},
+        password: {},
+      },
+      async authorize(credentials) {
+        const email = credentials?.email as string | undefined;
+        const password = credentials?.password as string | undefined;
+        if (!email || !password) {
+          return null;
+        }
+
+        const user = await prisma.user.findUnique({ where: { email } });
+        if (!user?.password) {
+          return null;
+        }
+
+        const passwordMatches = await bcrypt.compare(password, user.password);
+        if (!passwordMatches) {
+          return null;
+        }
+
+        return { id: user.id };
+      },
+    }),
   ],
   callbacks: {
-    async jwt({ token, account, profile }) {
-      // Initial sign in: upsert our own User record and persist Google tokens.
-      if (account && profile) {
+    async jwt({ token, account, profile, user }) {
+      // Password login: no Google tokens available in this session.
+      if (account?.provider === "credentials") {
+        token.userId = user!.id;
+        return token;
+      }
+
+      // Initial Google sign in: upsert our own User record and persist Google tokens.
+      if (account?.provider === "google" && profile) {
         const user = await prisma.user.upsert({
           where: { googleId: profile.sub as string },
           update: {

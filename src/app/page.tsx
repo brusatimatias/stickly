@@ -1,7 +1,9 @@
 import { addDays, format } from "date-fns";
 import Image from "next/image";
+import Link from "next/link";
 import { auth } from "@/auth";
 import { getDraftNote, getNotesForWeek, groupNotesByDay, toDraftNoteDTO } from "@/lib/notes";
+import { prisma } from "@/lib/prisma";
 import {
   formatWeekParam,
   getAdjacentWeekStart,
@@ -26,10 +28,15 @@ export default async function Home({
   const reference = parseWeekParam(week);
   const { start, end } = getWeekRange(reference);
 
-  const [notes, draft] = await Promise.all([
+  const [notes, draft, user] = await Promise.all([
     getNotesForWeek(session.user.id, start, end),
     getDraftNote(session.user.id),
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { name: true, avatarUrl: true, imageUrl: true },
+    }),
   ]);
+  const avatarSrc = user?.avatarUrl ?? user?.imageUrl;
 
   const days = Array.from({ length: 7 }, (_, index) => {
     const date = addDays(start, index);
@@ -49,18 +56,25 @@ export default async function Home({
     <div className="flex flex-1 flex-col">
       <header className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
         <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-          stickly
+          Stickly
         </h1>
         <div className="flex items-center gap-3">
-          {session.user.image ? (
-            <Image
-              src={session.user.image}
-              alt={session.user.name ?? "Your avatar"}
-              width={32}
-              height={32}
-              className="rounded-full"
-            />
-          ) : null}
+          <Link
+            href="/profile"
+            className="flex items-center gap-2 text-sm font-medium text-zinc-700 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100"
+          >
+            {avatarSrc ? (
+              <Image
+                src={avatarSrc}
+                alt={user?.name ?? "Your avatar"}
+                width={32}
+                height={32}
+                unoptimized={avatarSrc.startsWith("data:")}
+                className="rounded-full"
+              />
+            ) : null}
+            {user?.name ? <span>{user.name}</span> : null}
+          </Link>
           <SignOutButton />
         </div>
       </header>

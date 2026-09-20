@@ -2,19 +2,11 @@
 
 import { addDays, startOfDay } from "date-fns";
 import { revalidatePath } from "next/cache";
-import { auth } from "@/auth";
 import { unsyncNoteFromGoogleCalendar } from "@/app/actions/calendar";
 import { combineDayAndTime } from "@/lib/datetime";
 import { insertAtIndex } from "@/lib/ordering";
 import { prisma } from "@/lib/prisma";
-
-async function requireUserId(): Promise<string> {
-  const session = await auth();
-  if (!session?.user?.id) {
-    throw new Error("Unauthorized");
-  }
-  return session.user.id;
-}
+import { requireUserId } from "@/lib/session";
 
 const MAX_TITLE_LENGTH = 200;
 const MAX_LOCATION_LENGTH = 200;

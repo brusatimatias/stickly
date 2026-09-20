@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "stickly",
+  title: "Stickly",
   description: "A whiteboard-style weekly board for notes and reminders.",
 };
 

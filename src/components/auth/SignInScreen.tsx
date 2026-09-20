@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import { signIn } from "@/auth";
+import CredentialsSignInForm from "@/components/auth/CredentialsSignInForm";
 import FoldedCorner from "@/components/board/FoldedCorner";
 
 const FEATURES = [
@@ -90,7 +91,7 @@ export default function SignInScreen() {
 
       <div className="relative z-10 flex w-full max-w-sm flex-col items-center gap-6 rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-xl dark:border-zinc-800 dark:bg-zinc-950">
         <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-          stickly
+          Stickly
         </h1>
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
           Your week, organized like a corkboard full of sticky notes.
@@ -137,6 +138,14 @@ export default function SignInScreen() {
             Sign in with Google
           </button>
         </form>
+
+        <div className="flex w-full items-center gap-3 text-xs text-zinc-400 dark:text-zinc-500">
+          <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+          or
+          <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+        </div>
+
+        <CredentialsSignInForm />
       </div>
     </div>
   );
