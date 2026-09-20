@@ -38,6 +38,8 @@
     "passwordPlaceholder": "Contraseña",
     "invalidCredentials": "Correo o contraseña inválidos",
     "signInWithPassword": "Iniciar sesión con contraseña",
+    "showPassword": "Mostrar contraseña",
+    "hidePassword": "Ocultar contraseña",
     "signOut": "Cerrar sesión"
   },
   "profile": {

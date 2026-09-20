@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { type FormEvent, useState, useTransition } from "react";
+import { EyeIcon, EyeOffIcon } from "@/components/profile/icons";
 
 export default function CredentialsSignInForm() {
   const t = useTranslations("auth");
@@ -11,6 +12,7 @@ export default function CredentialsSignInForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   function handleSubmit(event: FormEvent) {
@@ -37,14 +39,24 @@ export default function CredentialsSignInForm() {
         required
         className="rounded-lg border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-amber-500 dark:border-zinc-700 dark:bg-zinc-900"
       />
-      <input
-        type="password"
-        value={password}
-        onChange={(event) => setPassword(event.target.value)}
-        placeholder={t("passwordPlaceholder")}
-        required
-        className="rounded-lg border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-amber-500 dark:border-zinc-700 dark:bg-zinc-900"
-      />
+      <div className="relative">
+        <input
+          type={showPassword ? "text" : "password"}
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          placeholder={t("passwordPlaceholder")}
+          required
+          className="w-full rounded-lg border border-zinc-300 px-3 py-2 pr-9 text-sm outline-none focus:border-amber-500 dark:border-zinc-700 dark:bg-zinc-900"
+        />
+        <button
+          type="button"
+          onClick={() => setShowPassword((value) => !value)}
+          aria-label={showPassword ? t("hidePassword") : t("showPassword")}
+          className="absolute inset-y-0 right-2 flex items-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+        >
+          {showPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+        </button>
+      </div>
       {error && <p className="text-xs text-red-500">{error}</p>}
       <button
         type="submit"

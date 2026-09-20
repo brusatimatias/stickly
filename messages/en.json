@@ -38,6 +38,8 @@
     "passwordPlaceholder": "Password",
     "invalidCredentials": "Invalid email or password",
     "signInWithPassword": "Sign in with password",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
     "signOut": "Sign out"
   },
   "profile": {
