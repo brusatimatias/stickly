@@ -164,7 +164,7 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
           {displayNote.title}
         </p>
         {displayNote.description && (
-          <p className="mt-0.5 line-clamp-2 break-words text-[11px] leading-snug opacity-80">
+          <p className="mt-0.5 flex-1 overflow-hidden whitespace-pre-wrap break-words text-[11px] leading-snug opacity-80">
             {displayNote.description}
           </p>
         )}

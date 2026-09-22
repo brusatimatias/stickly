@@ -28,6 +28,7 @@ export default function NoteForm({
   const [, startTransition] = useTransition();
   const containerRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLTextAreaElement>(null);
+  const descriptionRef = useRef<HTMLTextAreaElement>(null);
   const savedRef = useRef(false);
   const stateRef = useRef({ title, location, description, time });
   stateRef.current = { title, location, description, time };
@@ -82,6 +83,17 @@ export default function NoteForm({
 
   function handleKeyDown(event: KeyboardEvent) {
     if (event.key === "Enter") {
+      const textarea = descriptionRef.current;
+      if (textarea && event.target === textarea && (event.ctrlKey || event.metaKey)) {
+        event.preventDefault();
+        const { selectionStart, selectionEnd, value } = textarea;
+        const cursor = selectionStart + 1;
+        setDescription(value.slice(0, selectionStart) + "\n" + value.slice(selectionEnd));
+        requestAnimationFrame(() => {
+          textarea.selectionStart = textarea.selectionEnd = cursor;
+        });
+        return;
+      }
       event.preventDefault();
       save();
     }
@@ -130,6 +142,7 @@ export default function NoteForm({
           className="block w-full resize-none break-words bg-transparent font-semibold outline-none placeholder:opacity-50"
         />
         <textarea
+          ref={descriptionRef}
           value={description}
           onChange={(event) => setDescription(event.target.value)}
           placeholder={t("descriptionPlaceholder")}
