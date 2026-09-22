@@ -68,6 +68,11 @@ export default function DraftCard({ note }: { note: NoteDTO }) {
 
       <div className="mt-4 min-w-0">
         <p className="line-clamp-3 font-semibold">{note.title}</p>
+        {note.description && (
+          <p className="mt-0.5 line-clamp-2 break-words text-xs font-normal opacity-70">
+            {note.description}
+          </p>
+        )}
       </div>
 
       <div className="flex items-end justify-between gap-1">

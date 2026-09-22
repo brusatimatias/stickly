@@ -26,9 +26,11 @@ model Note {
   id            String    @id @default(cuid())
   title         String
   location      String?
+  description   String?
   scheduledAt   DateTime?
   hasTime       Boolean   @default(true)
   isDraft       Boolean   @default(false)
+  isDone        Boolean   @default(false)
   position      Int       @default(0)
   googleEventId String?
   userId        String

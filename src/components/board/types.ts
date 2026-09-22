@@ -2,8 +2,10 @@ export type NoteDTO = {
   id: string;
   title: string;
   location: string | null;
+  description: string | null;
   time: string; // HH:mm
   hasTime: boolean;
+  isDone: boolean;
   googleEventId: string | null;
 };
 

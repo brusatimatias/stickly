@@ -13,6 +13,7 @@
     "newDraftNote": "Nueva nota borrador",
     "titlePlaceholder": "Título",
     "locationPlaceholder": "Ubicación",
+    "descriptionPlaceholder": "Agregar detalles...",
     "clickOutside": "Clic afuera para guardar",
     "time": "Hora",
     "clearTime": "Borrar hora",
@@ -22,10 +23,12 @@
     "updateInCalendar": "Actualizar en Calendar",
     "addToCalendar": "Agregar a Calendar",
     "setTimeToSyncShort": "Definí una hora para sincronizar",
-    "syncing": "Sincronizando…",
+    "syncing": "Sincronizando...",
     "syncedClickToUpdate": "Sincronizado — clic para actualizar",
     "dragToSchedule": "Arrastrar para programar",
-    "dragArrow": "Arrastrar →"
+    "dragArrow": "Arrastrar →",
+    "markAsDone": "Marcar como hecha",
+    "markAsPending": "Marcar como pendiente"
   },
   "auth": {
     "tagline": "Tu semana, organizada como un corcho lleno de notas adhesivas.",
@@ -45,9 +48,9 @@
   "profile": {
     "name": "Nombre",
     "save": "Guardar",
-    "saving": "Guardando…",
+    "saving": "Guardando...",
     "changeAvatar": "Cambiar avatar",
-    "uploading": "Subiendo…",
+    "uploading": "Subiendo...",
     "couldNotProcessImage": "No se pudo procesar esa imagen",
     "changePassword": "Cambiar contraseña",
     "setPassword": "Definir una contraseña",

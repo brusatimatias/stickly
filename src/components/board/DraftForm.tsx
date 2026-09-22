@@ -19,12 +19,13 @@ export default function DraftForm({
   const router = useRouter();
   const [title, setTitle] = useState(note?.title ?? "");
   const [location, setLocation] = useState(note?.location ?? "");
+  const [description, setDescription] = useState(note?.description ?? "");
   const [, startTransition] = useTransition();
   const containerRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
   const savedRef = useRef(false);
-  const stateRef = useRef({ title, location });
-  stateRef.current = { title, location };
+  const stateRef = useRef({ title, location, description });
+  stateRef.current = { title, location, description };
 
   useEffect(() => {
     titleRef.current?.focus();
@@ -44,14 +45,14 @@ export default function DraftForm({
   function save() {
     if (savedRef.current) return;
     savedRef.current = true;
-    const { title, location } = stateRef.current;
+    const { title, location, description } = stateRef.current;
     const trimmedTitle = title.trim();
     if (!trimmedTitle) {
       onDone();
       return;
     }
     startTransition(async () => {
-      await saveDraftNote({ title: trimmedTitle, location });
+      await saveDraftNote({ title: trimmedTitle, location, description });
       router.refresh();
       onDone();
     });
@@ -75,7 +76,7 @@ export default function DraftForm({
       className="relative flex h-44 w-44 -rotate-1 flex-col justify-between overflow-hidden rounded-sm border border-orange-300 bg-orange-200 p-2 text-sm text-orange-950 shadow-md sm:h-48 sm:w-48"
     >
       <FoldedCorner />
-      <div className="mt-4 min-w-0">
+      <div className="mt-4 flex min-w-0 flex-1 flex-col overflow-hidden">
         <input
           ref={titleRef}
           value={title}
@@ -83,6 +84,14 @@ export default function DraftForm({
           placeholder={t("titlePlaceholder")}
           aria-label={t("titlePlaceholder")}
           className="block w-full bg-transparent font-semibold outline-none placeholder:opacity-50"
+        />
+        <textarea
+          value={description}
+          onChange={(event) => setDescription(event.target.value)}
+          placeholder={t("descriptionPlaceholder")}
+          aria-label={t("descriptionPlaceholder")}
+          rows={2}
+          className="mt-0.5 block w-full flex-1 resize-none bg-transparent text-[11px] leading-snug opacity-80 outline-none placeholder:opacity-40"
         />
       </div>
 

@@ -26,15 +26,19 @@ type ScheduledNote = {
   id: string;
   title: string;
   location: string | null;
+  description: string | null;
   scheduledAt: Date | null;
   hasTime: boolean;
+  isDone: boolean;
   googleEventId: string | null;
 };
 
 /**
  * Groups scheduled notes by their yyyy-MM-dd day key, seeding every day in
  * `dayKeys` (even ones with no notes). Notes without a `scheduledAt` (i.e.
- * drafts) or whose day isn't in `dayKeys` are skipped.
+ * drafts) or whose day isn't in `dayKeys` are skipped. Within a day, pending
+ * notes are sorted before done ones (stable, so their relative order from
+ * the query is otherwise preserved).
  */
 export function groupNotesByDay(
   notes: ScheduledNote[],
@@ -50,10 +54,15 @@ export function groupNotesByDay(
       id: note.id,
       title: note.title,
       location: note.location,
+      description: note.description,
       time: format(note.scheduledAt, "HH:mm"),
       hasTime: note.hasTime,
+      isDone: note.isDone,
       googleEventId: note.googleEventId,
     });
+  }
+  for (const key of Object.keys(notesByDay)) {
+    notesByDay[key].sort((a, b) => Number(a.isDone) - Number(b.isDone));
   }
   return notesByDay;
 }
@@ -65,8 +74,10 @@ export function toDraftNoteDTO(draft: ScheduledNote | null): NoteDTO | null {
     id: draft.id,
     title: draft.title,
     location: draft.location,
+    description: draft.description,
     time: "",
     hasTime: draft.hasTime,
+    isDone: draft.isDone,
     googleEventId: draft.googleEventId,
   };
 }
