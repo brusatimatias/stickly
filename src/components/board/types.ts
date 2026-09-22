@@ -5,6 +5,7 @@ export type NoteDTO = {
   description: string | null;
   time: string; // HH:mm
   hasTime: boolean;
+  isDone: boolean;
   googleEventId: string | null;
 };
 

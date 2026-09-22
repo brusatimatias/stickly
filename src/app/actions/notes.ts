@@ -116,6 +116,12 @@ export async function updateNote(input: {
   revalidatePath("/");
 }
 
+export async function toggleNoteDone(id: string, isDone: boolean) {
+  const userId = await requireUserId();
+  await prisma.note.updateMany({ where: { id, userId }, data: { isDone } });
+  revalidatePath("/");
+}
+
 export async function deleteNote(id: string) {
   const userId = await requireUserId();
   await prisma.note.deleteMany({ where: { id, userId } });
