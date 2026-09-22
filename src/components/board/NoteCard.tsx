@@ -103,19 +103,42 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
       ref={setNodeRef}
       style={style}
       onClick={() => setIsEditing(true)}
-      className={`group relative flex h-44 w-44 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border p-2 text-sm shadow-[2px_4px_6px_rgba(0,0,0,0.3)] transition-transform hover:z-10 hover:scale-105 hover:shadow-[3px_6px_10px_rgba(0,0,0,0.35)] dark:shadow-[2px_4px_6px_rgba(0,0,0,0.6)] dark:hover:shadow-[3px_6px_10px_rgba(0,0,0,0.7)] sm:h-48 sm:w-48 ${isDragging ? "z-20" : ""} ${displayNote.isDone ? "opacity-60" : ""} ${noteStyle.rotation} ${noteStyle.bg} ${noteStyle.border} ${noteStyle.text}`}
+      className={`group relative flex h-44 w-44 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border p-2 text-sm shadow-[2px_4px_6px_rgba(0,0,0,0.3)] transition-transform hover:z-10 hover:scale-105 hover:shadow-[3px_6px_10px_rgba(0,0,0,0.35)] dark:shadow-[2px_4px_6px_rgba(0,0,0,0.6)] dark:hover:shadow-[3px_6px_10px_rgba(0,0,0,0.7)] sm:h-48 sm:w-48 ${isDragging ? "z-20" : ""} ${displayNote.isDone ? "opacity-60 saturate-50" : ""} ${noteStyle.rotation} ${noteStyle.bg} ${noteStyle.border} ${noteStyle.text}`}
     >
       <FoldedCorner />
-      <button
-        type="button"
-        aria-label={t("dragToReorder")}
-        onClick={(event) => event.stopPropagation()}
-        {...attributes}
-        {...listeners}
-        className="absolute left-1 top-1 cursor-grab select-none opacity-30 transition-opacity group-hover:opacity-70 active:cursor-grabbing"
-      >
-        ⠿
-      </button>
+      <div className="absolute left-1 top-1 flex items-center gap-1">
+        <button
+          type="button"
+          aria-label={t("dragToReorder")}
+          onClick={(event) => event.stopPropagation()}
+          {...attributes}
+          {...listeners}
+          className="cursor-grab select-none opacity-30 transition-opacity group-hover:opacity-70 active:cursor-grabbing"
+        >
+          ⠿
+        </button>
+        <div className="group/done relative">
+          <button
+            type="button"
+            aria-label={displayNote.isDone ? t("markAsPending") : t("markAsDone")}
+            onClick={(event) => {
+              event.stopPropagation();
+              handleToggleDone();
+            }}
+            disabled={isToggling}
+            className="opacity-30 transition-opacity group-hover:opacity-70 disabled:opacity-40"
+          >
+            {displayNote.isDone ? (
+              <CheckSquareIcon className="h-3.5 w-3.5" />
+            ) : (
+              <SquareIcon className="h-3.5 w-3.5" />
+            )}
+          </button>
+          <span className="pointer-events-none absolute left-0 top-full mt-1 whitespace-nowrap rounded bg-zinc-900 px-1.5 py-0.5 text-[10px] text-white opacity-0 transition-opacity group-hover/done:opacity-90 dark:bg-zinc-100 dark:text-zinc-900">
+            {displayNote.isDone ? t("markAsPending") : t("markAsDone")}
+          </span>
+        </div>
+      </div>
       <button
         type="button"
         aria-label={t("deleteNote")}
@@ -130,26 +153,10 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
       </button>
 
       <div className="mt-4 flex min-w-0 flex-1 flex-col overflow-hidden">
-        <div className="flex items-center gap-1 text-xs font-medium opacity-80">
-          <button
-            type="button"
-            aria-label={displayNote.isDone ? t("markAsPending") : t("markAsDone")}
-            onClick={(event) => {
-              event.stopPropagation();
-              handleToggleDone();
-            }}
-            disabled={isToggling}
-            className="shrink-0 disabled:opacity-40"
-          >
-            {displayNote.isDone ? (
-              <CheckSquareIcon className="h-3.5 w-3.5" />
-            ) : (
-              <SquareIcon className="h-3.5 w-3.5" />
-            )}
-          </button>
+        <p className="flex items-center gap-1 text-xs font-medium opacity-80">
           <ClockIcon className="h-3 w-3 shrink-0" />
           {displayNote.hasTime ? displayNote.time : "--:--"}
-        </div>
+        </p>
         <p className={`break-words font-semibold ${displayNote.isDone ? "line-through" : ""}`}>
           {displayNote.title}
         </p>
