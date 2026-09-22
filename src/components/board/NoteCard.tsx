@@ -103,8 +103,11 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
       ref={setNodeRef}
       style={style}
       onClick={() => setIsEditing(true)}
-      className={`group relative flex h-44 w-44 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border p-2 text-sm shadow-[2px_4px_6px_rgba(0,0,0,0.3)] transition-transform hover:z-10 hover:scale-105 hover:shadow-[3px_6px_10px_rgba(0,0,0,0.35)] dark:shadow-[2px_4px_6px_rgba(0,0,0,0.6)] dark:hover:shadow-[3px_6px_10px_rgba(0,0,0,0.7)] sm:h-48 sm:w-48 ${isDragging ? "z-20" : ""} ${displayNote.isDone ? "opacity-60 saturate-50" : ""} ${noteStyle.rotation} ${noteStyle.bg} ${noteStyle.border} ${noteStyle.text}`}
+      className={`group relative flex h-44 w-44 transform-gpu cursor-pointer flex-col justify-between overflow-hidden rounded-sm border p-2 text-sm shadow-[2px_4px_6px_rgba(0,0,0,0.3)] transition-transform will-change-transform [backface-visibility:hidden] hover:z-10 hover:scale-105 hover:shadow-[3px_6px_10px_rgba(0,0,0,0.35)] dark:shadow-[2px_4px_6px_rgba(0,0,0,0.6)] dark:hover:shadow-[3px_6px_10px_rgba(0,0,0,0.7)] sm:h-48 sm:w-48 ${isDragging ? "z-20" : ""} ${noteStyle.rotation} ${noteStyle.bg} ${noteStyle.border} ${noteStyle.text}`}
     >
+      {displayNote.isDone && (
+        <div className="pointer-events-none absolute inset-0 bg-zinc-500/40 mix-blend-multiply dark:bg-zinc-400/30" />
+      )}
       <FoldedCorner />
       <div className="absolute left-1 top-1 flex items-center gap-1">
         <button
@@ -161,7 +164,7 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
           {displayNote.title}
         </p>
         {displayNote.description && (
-          <p className="mt-0.5 line-clamp-2 break-words text-xs font-normal opacity-70">
+          <p className="mt-0.5 line-clamp-2 break-words text-[11px] leading-snug opacity-80">
             {displayNote.description}
           </p>
         )}
