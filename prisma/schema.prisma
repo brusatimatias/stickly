@@ -30,6 +30,7 @@ model Note {
   scheduledAt   DateTime?
   hasTime       Boolean   @default(true)
   isDraft       Boolean   @default(false)
+  isDone        Boolean   @default(false)
   position      Int       @default(0)
   googleEventId String?
   userId        String

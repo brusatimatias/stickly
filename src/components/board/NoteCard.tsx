@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { addNoteToGoogleCalendar } from "@/app/actions/calendar";
-import { deleteNote } from "@/app/actions/notes";
+import { deleteNote, toggleNoteDone } from "@/app/actions/notes";
 import { getNoteStyle } from "@/lib/noteColor";
 import FoldedCorner from "@/components/board/FoldedCorner";
 import NoteForm from "@/components/board/NoteForm";
@@ -14,9 +14,11 @@ import type { NoteDTO } from "@/components/board/types";
 import {
   CalendarCheckIcon,
   CalendarIcon,
+  CheckSquareIcon,
   ClockIcon,
   LocationIcon,
   SpinnerIcon,
+  SquareIcon,
 } from "@/components/board/icons";
 
 export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) {
@@ -26,6 +28,7 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
   const [isEditing, setIsEditing] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [isSyncing, startSyncTransition] = useTransition();
+  const [isToggling, startToggleTransition] = useTransition();
   const [syncError, setSyncError] = useState<string | null>(null);
   const [optimisticNote, setOptimisticNote] = useState<NoteDTO | null>(null);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
@@ -38,6 +41,7 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
     lastServerNote.location !== note.location ||
     lastServerNote.time !== note.time ||
     lastServerNote.hasTime !== note.hasTime ||
+    lastServerNote.isDone !== note.isDone ||
     lastServerNote.googleEventId !== note.googleEventId
   ) {
     setLastServerNote(note);
@@ -72,6 +76,15 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
     });
   }
 
+  function handleToggleDone() {
+    const nextIsDone = !displayNote.isDone;
+    setOptimisticNote({ ...displayNote, isDone: nextIsDone });
+    startToggleTransition(async () => {
+      await toggleNoteDone(note.id, nextIsDone);
+      router.refresh();
+    });
+  }
+
   function handleSyncToCalendar() {
     setSyncError(null);
     startSyncTransition(async () => {
@@ -90,7 +103,7 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
       ref={setNodeRef}
       style={style}
       onClick={() => setIsEditing(true)}
-      className={`group relative flex h-44 w-44 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border p-2 text-sm shadow-[2px_4px_6px_rgba(0,0,0,0.3)] transition-transform hover:z-10 hover:scale-105 hover:shadow-[3px_6px_10px_rgba(0,0,0,0.35)] dark:shadow-[2px_4px_6px_rgba(0,0,0,0.6)] dark:hover:shadow-[3px_6px_10px_rgba(0,0,0,0.7)] sm:h-48 sm:w-48 ${isDragging ? "z-20" : ""} ${noteStyle.rotation} ${noteStyle.bg} ${noteStyle.border} ${noteStyle.text}`}
+      className={`group relative flex h-44 w-44 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border p-2 text-sm shadow-[2px_4px_6px_rgba(0,0,0,0.3)] transition-transform hover:z-10 hover:scale-105 hover:shadow-[3px_6px_10px_rgba(0,0,0,0.35)] dark:shadow-[2px_4px_6px_rgba(0,0,0,0.6)] dark:hover:shadow-[3px_6px_10px_rgba(0,0,0,0.7)] sm:h-48 sm:w-48 ${isDragging ? "z-20" : ""} ${displayNote.isDone ? "opacity-60" : ""} ${noteStyle.rotation} ${noteStyle.bg} ${noteStyle.border} ${noteStyle.text}`}
     >
       <FoldedCorner />
       <button
@@ -117,11 +130,29 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
       </button>
 
       <div className="mt-4 flex min-w-0 flex-1 flex-col overflow-hidden">
-        <p className="flex items-center gap-1 text-xs font-medium opacity-80">
+        <div className="flex items-center gap-1 text-xs font-medium opacity-80">
+          <button
+            type="button"
+            aria-label={displayNote.isDone ? t("markAsPending") : t("markAsDone")}
+            onClick={(event) => {
+              event.stopPropagation();
+              handleToggleDone();
+            }}
+            disabled={isToggling}
+            className="shrink-0 disabled:opacity-40"
+          >
+            {displayNote.isDone ? (
+              <CheckSquareIcon className="h-3.5 w-3.5" />
+            ) : (
+              <SquareIcon className="h-3.5 w-3.5" />
+            )}
+          </button>
           <ClockIcon className="h-3 w-3 shrink-0" />
           {displayNote.hasTime ? displayNote.time : "--:--"}
+        </div>
+        <p className={`break-words font-semibold ${displayNote.isDone ? "line-through" : ""}`}>
+          {displayNote.title}
         </p>
-        <p className="break-words font-semibold">{displayNote.title}</p>
         {displayNote.description && (
           <p className="mt-0.5 line-clamp-2 break-words text-xs font-normal opacity-70">
             {displayNote.description}

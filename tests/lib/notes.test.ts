@@ -17,6 +17,7 @@ describe("groupNotesByDay", () => {
           description: null,
           scheduledAt: new Date(2026, 8, 14, 9, 30),
           hasTime: true,
+          isDone: false,
           googleEventId: "gcal-1",
         },
       ],
@@ -31,6 +32,7 @@ describe("groupNotesByDay", () => {
         description: null,
         time: "09:30",
         hasTime: true,
+        isDone: false,
         googleEventId: "gcal-1",
       },
     ]);
@@ -47,6 +49,7 @@ describe("groupNotesByDay", () => {
           description: null,
           scheduledAt: new Date(2026, 8, 14, 8, 0),
           hasTime: true,
+          isDone: false,
           googleEventId: null,
         },
         {
@@ -56,6 +59,7 @@ describe("groupNotesByDay", () => {
           description: null,
           scheduledAt: new Date(2026, 8, 14, 9, 0),
           hasTime: true,
+          isDone: false,
           googleEventId: null,
         },
       ],
@@ -63,6 +67,61 @@ describe("groupNotesByDay", () => {
     );
 
     expect(result["2026-09-14"].map((note) => note.id)).toEqual(["note-a", "note-b"]);
+  });
+
+  test("sorts pending notes before done notes, keeping relative order within each group", () => {
+    const result = groupNotesByDay(
+      [
+        {
+          id: "note-a",
+          title: "A",
+          location: null,
+          description: null,
+          scheduledAt: new Date(2026, 8, 14, 8, 0),
+          hasTime: true,
+          isDone: true,
+          googleEventId: null,
+        },
+        {
+          id: "note-b",
+          title: "B",
+          location: null,
+          description: null,
+          scheduledAt: new Date(2026, 8, 14, 9, 0),
+          hasTime: true,
+          isDone: false,
+          googleEventId: null,
+        },
+        {
+          id: "note-c",
+          title: "C",
+          location: null,
+          description: null,
+          scheduledAt: new Date(2026, 8, 14, 10, 0),
+          hasTime: true,
+          isDone: true,
+          googleEventId: null,
+        },
+        {
+          id: "note-d",
+          title: "D",
+          location: null,
+          description: null,
+          scheduledAt: new Date(2026, 8, 14, 11, 0),
+          hasTime: true,
+          isDone: false,
+          googleEventId: null,
+        },
+      ],
+      ["2026-09-14"]
+    );
+
+    expect(result["2026-09-14"].map((note) => note.id)).toEqual([
+      "note-b",
+      "note-d",
+      "note-a",
+      "note-c",
+    ]);
   });
 
   test("skips notes with no scheduledAt", () => {
@@ -75,6 +134,7 @@ describe("groupNotesByDay", () => {
           description: null,
           scheduledAt: null,
           hasTime: true,
+          isDone: false,
           googleEventId: null,
         },
       ],
@@ -94,6 +154,7 @@ describe("groupNotesByDay", () => {
           description: null,
           scheduledAt: new Date(2026, 0, 1),
           hasTime: true,
+          isDone: false,
           googleEventId: null,
         },
       ],
@@ -117,6 +178,7 @@ describe("toDraftNoteDTO", () => {
       description: null,
       scheduledAt: null,
       hasTime: true,
+      isDone: false,
       googleEventId: null,
     });
 
@@ -127,6 +189,7 @@ describe("toDraftNoteDTO", () => {
       description: null,
       time: "",
       hasTime: true,
+      isDone: false,
       googleEventId: null,
     });
   });

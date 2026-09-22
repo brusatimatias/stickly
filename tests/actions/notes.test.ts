@@ -30,6 +30,7 @@ import {
   deleteNote,
   saveDraftNote,
   scheduleDraftNote,
+  toggleNoteDone,
   updateNote,
 } from "@/app/actions/notes";
 
@@ -151,6 +152,17 @@ describe("updateNote", () => {
       where: { id: "id-1", userId: "user-1" },
       data: expect.objectContaining({ hasTime: true }),
     });
+  });
+});
+
+describe("toggleNoteDone", () => {
+  test("scopes the update to the current user", async () => {
+    await toggleNoteDone("id-1", true);
+    expect(mockPrisma.note.updateMany).toHaveBeenCalledWith({
+      where: { id: "id-1", userId: "user-1" },
+      data: { isDone: true },
+    });
+    expect(mockRevalidatePath).toHaveBeenCalledWith("/");
   });
 });
 

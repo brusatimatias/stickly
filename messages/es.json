@@ -26,7 +26,9 @@
     "syncing": "Sincronizando...",
     "syncedClickToUpdate": "Sincronizado — clic para actualizar",
     "dragToSchedule": "Arrastrar para programar",
-    "dragArrow": "Arrastrar →"
+    "dragArrow": "Arrastrar →",
+    "markAsDone": "Marcar como hecha",
+    "markAsPending": "Marcar como pendiente"
   },
   "auth": {
     "tagline": "Tu semana, organizada como un corcho lleno de notas adhesivas.",
