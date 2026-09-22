@@ -19,12 +19,13 @@ export default function DraftForm({
   const router = useRouter();
   const [title, setTitle] = useState(note?.title ?? "");
   const [location, setLocation] = useState(note?.location ?? "");
+  const [description, setDescription] = useState(note?.description ?? "");
   const [, startTransition] = useTransition();
   const containerRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
   const savedRef = useRef(false);
-  const stateRef = useRef({ title, location });
-  stateRef.current = { title, location };
+  const stateRef = useRef({ title, location, description });
+  stateRef.current = { title, location, description };
 
   useEffect(() => {
     titleRef.current?.focus();
@@ -44,14 +45,14 @@ export default function DraftForm({
   function save() {
     if (savedRef.current) return;
     savedRef.current = true;
-    const { title, location } = stateRef.current;
+    const { title, location, description } = stateRef.current;
     const trimmedTitle = title.trim();
     if (!trimmedTitle) {
       onDone();
       return;
     }
     startTransition(async () => {
-      await saveDraftNote({ title: trimmedTitle, location });
+      await saveDraftNote({ title: trimmedTitle, location, description });
       router.refresh();
       onDone();
     });
@@ -86,18 +87,28 @@ export default function DraftForm({
         />
       </div>
 
-      <div className="flex items-end justify-between gap-1">
-        <div className="flex min-w-0 items-center gap-1 text-xs opacity-70">
-          <span aria-hidden>📍</span>
-          <input
-            value={location}
-            onChange={(event) => setLocation(event.target.value)}
-            placeholder={t("locationPlaceholder")}
-            aria-label={t("locationPlaceholder")}
-            className="w-full bg-transparent outline-none placeholder:opacity-40"
-          />
+      <div className="flex flex-col gap-1">
+        <div className="flex items-end justify-between gap-1">
+          <div className="flex min-w-0 items-center gap-1 text-xs opacity-70">
+            <span aria-hidden>📍</span>
+            <input
+              value={location}
+              onChange={(event) => setLocation(event.target.value)}
+              placeholder={t("locationPlaceholder")}
+              aria-label={t("locationPlaceholder")}
+              className="w-full bg-transparent outline-none placeholder:opacity-40"
+            />
+          </div>
+          <span className="shrink-0 text-[10px] opacity-60">{t("clickOutside")}</span>
         </div>
-        <span className="shrink-0 text-[10px] opacity-60">{t("clickOutside")}</span>
+        <textarea
+          value={description}
+          onChange={(event) => setDescription(event.target.value)}
+          placeholder={t("descriptionPlaceholder")}
+          aria-label={t("descriptionPlaceholder")}
+          rows={2}
+          className="block w-full resize-none bg-transparent text-[11px] leading-snug opacity-80 outline-none placeholder:opacity-40"
+        />
       </div>
     </div>
   );

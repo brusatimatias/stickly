@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { deleteNote } from "@/app/actions/notes";
+import DescriptionIndicator from "@/components/board/DescriptionIndicator";
 import DraftForm from "@/components/board/DraftForm";
 import FoldedCorner from "@/components/board/FoldedCorner";
 import type { NoteDTO } from "@/components/board/types";
@@ -66,8 +67,9 @@ export default function DraftCard({ note }: { note: NoteDTO }) {
         ✕
       </button>
 
-      <div className="mt-4 min-w-0">
+      <div className="mt-4 flex min-w-0 items-start justify-between gap-1">
         <p className="line-clamp-3 font-semibold">{note.title}</p>
+        {note.description && <DescriptionIndicator description={note.description} />}
       </div>
 
       <div className="flex items-end justify-between gap-1">

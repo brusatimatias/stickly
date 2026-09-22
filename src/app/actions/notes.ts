@@ -10,6 +10,7 @@ import { requireUserId } from "@/lib/session";
 
 const MAX_TITLE_LENGTH = 200;
 const MAX_LOCATION_LENGTH = 200;
+const MAX_DESCRIPTION_LENGTH = 2000;
 
 function sanitizeTitle(title: string): string {
   const trimmed = title.trim().slice(0, MAX_TITLE_LENGTH);
@@ -21,6 +22,10 @@ function sanitizeTitle(title: string): string {
 
 function sanitizeLocation(location: string): string | null {
   return location.trim().slice(0, MAX_LOCATION_LENGTH) || null;
+}
+
+function sanitizeDescription(description: string): string | null {
+  return description.trim().slice(0, MAX_DESCRIPTION_LENGTH) || null;
 }
 
 const MAX_ID_LENGTH = 64;
@@ -36,6 +41,7 @@ export async function createNote(input: {
   id: string;
   title: string;
   location: string;
+  description: string;
   day: string;
   time: string;
 }) {
@@ -57,6 +63,7 @@ export async function createNote(input: {
       id,
       title: sanitizeTitle(input.title),
       location: sanitizeLocation(input.location),
+      description: sanitizeDescription(input.description),
       scheduledAt,
       hasTime,
       position,
@@ -71,6 +78,7 @@ export async function updateNote(input: {
   id: string;
   title: string;
   location: string;
+  description: string;
   time: string;
 }) {
   const userId = await requireUserId();
@@ -83,6 +91,7 @@ export async function updateNote(input: {
 
   const title = sanitizeTitle(input.title);
   const location = sanitizeLocation(input.location);
+  const description = sanitizeDescription(input.description);
   const hasTime = input.time !== "";
   const day = existing.scheduledAt.toISOString().slice(0, 10);
   const scheduledAt = combineDayAndTime(day, hasTime ? input.time : "00:00");
@@ -97,6 +106,7 @@ export async function updateNote(input: {
     data: {
       title,
       location,
+      description,
       scheduledAt,
       hasTime,
       ...(clearingTime ? { googleEventId: null } : {}),
@@ -167,10 +177,15 @@ export async function moveNote(input: { noteId: string; day: string; index: numb
  * and create duplicates. This is app-level serialization, not a DB
  * constraint, matching the documented decision in CLAUDE.md.
  */
-export async function saveDraftNote(input: { title: string; location: string }) {
+export async function saveDraftNote(input: {
+  title: string;
+  location: string;
+  description: string;
+}) {
   const userId = await requireUserId();
   const title = sanitizeTitle(input.title);
   const location = sanitizeLocation(input.location);
+  const description = sanitizeDescription(input.description);
 
   await prisma.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${userId})::bigint)`;
@@ -182,13 +197,14 @@ export async function saveDraftNote(input: { title: string; location: string }) 
     if (existingDraft) {
       await tx.note.update({
         where: { id: existingDraft.id },
-        data: { title, location },
+        data: { title, location, description },
       });
     } else {
       await tx.note.create({
         data: {
           title,
           location,
+          description,
           userId,
           isDraft: true,
           scheduledAt: null,

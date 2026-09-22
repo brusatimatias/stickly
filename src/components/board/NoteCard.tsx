@@ -8,6 +8,7 @@ import { useState, useTransition } from "react";
 import { addNoteToGoogleCalendar } from "@/app/actions/calendar";
 import { deleteNote } from "@/app/actions/notes";
 import { getNoteStyle } from "@/lib/noteColor";
+import DescriptionIndicator from "@/components/board/DescriptionIndicator";
 import FoldedCorner from "@/components/board/FoldedCorner";
 import NoteForm from "@/components/board/NoteForm";
 import type { NoteDTO } from "@/components/board/types";
@@ -120,6 +121,11 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
         <p className="flex items-center gap-1 text-xs font-medium opacity-80">
           <ClockIcon className="h-3 w-3 shrink-0" />
           {displayNote.hasTime ? displayNote.time : "--:--"}
+          {displayNote.description && (
+            <span className="ml-auto">
+              <DescriptionIndicator description={displayNote.description} />
+            </span>
+          )}
         </p>
         <p className="break-words font-semibold">{displayNote.title}</p>
       </div>

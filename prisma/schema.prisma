@@ -26,6 +26,7 @@ model Note {
   id            String    @id @default(cuid())
   title         String
   location      String?
+  description   String?
   scheduledAt   DateTime?
   hasTime       Boolean   @default(true)
   isDraft       Boolean   @default(false)

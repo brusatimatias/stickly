@@ -23,13 +23,14 @@ export default function NoteForm({
   const router = useRouter();
   const [title, setTitle] = useState(note?.title ?? "");
   const [location, setLocation] = useState(note?.location ?? "");
+  const [description, setDescription] = useState(note?.description ?? "");
   const [time, setTime] = useState(note && !note.hasTime ? "" : (note?.time ?? ""));
   const [, startTransition] = useTransition();
   const containerRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLTextAreaElement>(null);
   const savedRef = useRef(false);
-  const stateRef = useRef({ title, location, time });
-  stateRef.current = { title, location, time };
+  const stateRef = useRef({ title, location, description, time });
+  stateRef.current = { title, location, description, time };
   const [newNoteId] = useState(() => note?.id ?? crypto.randomUUID());
   const noteStyle = getNoteStyle(newNoteId);
 
@@ -51,22 +52,29 @@ export default function NoteForm({
   function save() {
     if (savedRef.current) return;
     savedRef.current = true;
-    const { title, location, time } = stateRef.current;
+    const { title, location, description, time } = stateRef.current;
     const trimmedTitle = title.trim();
     if (!trimmedTitle) {
       onDone();
       return;
     }
     if (note) {
-      onDone({ ...note, title: trimmedTitle, location, time, hasTime: time !== "" });
+      onDone({ ...note, title: trimmedTitle, location, description, time, hasTime: time !== "" });
     } else {
       onDone();
     }
     startTransition(async () => {
       if (note) {
-        await updateNote({ id: note.id, title: trimmedTitle, location, time });
+        await updateNote({ id: note.id, title: trimmedTitle, location, description, time });
       } else {
-        await createNote({ id: newNoteId, title: trimmedTitle, location, day, time });
+        await createNote({
+          id: newNoteId,
+          title: trimmedTitle,
+          location,
+          description,
+          day,
+          time,
+        });
       }
       router.refresh();
     });
@@ -133,6 +141,15 @@ export default function NoteForm({
           className="w-full bg-transparent outline-none placeholder:opacity-40"
         />
       </div>
+
+      <textarea
+        value={description}
+        onChange={(event) => setDescription(event.target.value)}
+        placeholder={t("descriptionPlaceholder")}
+        aria-label={t("descriptionPlaceholder")}
+        rows={2}
+        className="mt-1 block w-full shrink-0 resize-none bg-transparent text-[11px] leading-snug opacity-80 outline-none placeholder:opacity-40"
+      />
     </div>
   );
 }

@@ -13,6 +13,7 @@
     "newDraftNote": "New draft note",
     "titlePlaceholder": "Title",
     "locationPlaceholder": "Location",
+    "descriptionPlaceholder": "Add details...",
     "clickOutside": "Click outside",
     "time": "Time",
     "clearTime": "Clear time",
@@ -22,7 +23,7 @@
     "updateInCalendar": "Update in Calendar",
     "addToCalendar": "Add to Calendar",
     "setTimeToSyncShort": "Set a time to enable sync",
-    "syncing": "Syncing…",
+    "syncing": "Syncing...",
     "syncedClickToUpdate": "Synced — click to update",
     "dragToSchedule": "Drag to schedule",
     "dragArrow": "Drag →"
@@ -45,9 +46,9 @@
   "profile": {
     "name": "Name",
     "save": "Save",
-    "saving": "Saving…",
+    "saving": "Saving...",
     "changeAvatar": "Change avatar",
-    "uploading": "Uploading…",
+    "uploading": "Uploading...",
     "couldNotProcessImage": "Could not process that image",
     "changePassword": "Change password",
     "setPassword": "Set a password",
