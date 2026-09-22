@@ -8,9 +8,9 @@ import { insertAtIndex } from "@/lib/ordering";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/session";
 
-const MAX_TITLE_LENGTH = 200;
-const MAX_LOCATION_LENGTH = 200;
-const MAX_DESCRIPTION_LENGTH = 2000;
+const MAX_TITLE_LENGTH = 80;
+const MAX_LOCATION_LENGTH = 60;
+const MAX_DESCRIPTION_LENGTH = 300;
 
 function sanitizeTitle(title: string): string {
   const trimmed = title.trim().slice(0, MAX_TITLE_LENGTH);
