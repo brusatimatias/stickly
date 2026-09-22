@@ -26,6 +26,7 @@ type ScheduledNote = {
   id: string;
   title: string;
   location: string | null;
+  description: string | null;
   scheduledAt: Date | null;
   hasTime: boolean;
   googleEventId: string | null;
@@ -50,6 +51,7 @@ export function groupNotesByDay(
       id: note.id,
       title: note.title,
       location: note.location,
+      description: note.description,
       time: format(note.scheduledAt, "HH:mm"),
       hasTime: note.hasTime,
       googleEventId: note.googleEventId,
@@ -65,6 +67,7 @@ export function toDraftNoteDTO(draft: ScheduledNote | null): NoteDTO | null {
     id: draft.id,
     title: draft.title,
     location: draft.location,
+    description: draft.description,
     time: "",
     hasTime: draft.hasTime,
     googleEventId: draft.googleEventId,

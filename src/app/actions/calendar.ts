@@ -48,6 +48,7 @@ export async function addNoteToGoogleCalendar(noteId: string) {
   const requestBody = {
     summary: note.title,
     location: note.location ?? undefined,
+    description: note.description ?? undefined,
     start: { dateTime: note.scheduledAt.toISOString() },
     end: {
       dateTime: new Date(note.scheduledAt.getTime() + EVENT_DURATION_MS).toISOString(),

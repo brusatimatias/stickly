@@ -122,6 +122,11 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
           {displayNote.hasTime ? displayNote.time : "--:--"}
         </p>
         <p className="break-words font-semibold">{displayNote.title}</p>
+        {displayNote.description && (
+          <p className="mt-0.5 line-clamp-2 break-words text-xs font-normal opacity-70">
+            {displayNote.description}
+          </p>
+        )}
       </div>
 
       <div className="flex items-end justify-between gap-1">

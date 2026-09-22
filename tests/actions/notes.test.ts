@@ -49,20 +49,21 @@ describe("createNote", () => {
   test("throws when unauthenticated", async () => {
     mockAuth.mockResolvedValue(null);
     await expect(
-      createNote({ id: "id-1", title: "Title", location: "", day: "2026-09-16", time: "10:00" })
+      createNote({ id: "id-1", title: "Title", location: "", description: "", day: "2026-09-16", time: "10:00" })
     ).rejects.toThrow("UNAUTHORIZED");
   });
 
   test("rejects an empty or oversized client id", async () => {
     mockPrisma.note.aggregate.mockResolvedValue({ _max: { position: null } });
     await expect(
-      createNote({ id: "", title: "Title", location: "", day: "2026-09-16", time: "10:00" })
+      createNote({ id: "", title: "Title", location: "", description: "", day: "2026-09-16", time: "10:00" })
     ).rejects.toThrow("INVALID_NOTE_ID");
     await expect(
       createNote({
         id: "x".repeat(65),
         title: "Title",
         location: "",
+        description: "",
         day: "2026-09-16",
         time: "10:00",
       })
@@ -72,7 +73,7 @@ describe("createNote", () => {
   test("rejects a blank title", async () => {
     mockPrisma.note.aggregate.mockResolvedValue({ _max: { position: null } });
     await expect(
-      createNote({ id: "id-1", title: "   ", location: "", day: "2026-09-16", time: "10:00" })
+      createNote({ id: "id-1", title: "   ", location: "", description: "", day: "2026-09-16", time: "10:00" })
     ).rejects.toThrow("TITLE_REQUIRED");
   });
 
@@ -83,6 +84,7 @@ describe("createNote", () => {
       id: "id-1",
       title: "  Buy milk  ",
       location: "  Store  ",
+      description: "",
       day: "2026-09-16",
       time: "10:00",
     });
@@ -103,7 +105,7 @@ describe("createNote", () => {
   test("creates a note with hasTime false when time is blank", async () => {
     mockPrisma.note.aggregate.mockResolvedValue({ _max: { position: null } });
 
-    await createNote({ id: "id-1", title: "Title", location: "", day: "2026-09-16", time: "" });
+    await createNote({ id: "id-1", title: "Title", location: "", description: "", day: "2026-09-16", time: "" });
 
     expect(mockPrisma.note.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ hasTime: false, position: 0, location: null }),
@@ -115,7 +117,7 @@ describe("updateNote", () => {
   test("throws when the note doesn't exist for this user", async () => {
     mockPrisma.note.findFirst.mockResolvedValue(null);
     await expect(
-      updateNote({ id: "id-1", title: "Title", location: "", time: "10:00" })
+      updateNote({ id: "id-1", title: "Title", location: "", description: "", time: "10:00" })
     ).rejects.toThrow("NOTE_NOT_FOUND");
   });
 
@@ -126,7 +128,7 @@ describe("updateNote", () => {
       googleEventId: "gcal-1",
     });
 
-    await updateNote({ id: "id-1", title: "Title", location: "", time: "" });
+    await updateNote({ id: "id-1", title: "Title", location: "", description: "", time: "" });
 
     expect(mockUnsync).toHaveBeenCalledWith("gcal-1");
     expect(mockPrisma.note.updateMany).toHaveBeenCalledWith({
@@ -142,7 +144,7 @@ describe("updateNote", () => {
       googleEventId: "gcal-1",
     });
 
-    await updateNote({ id: "id-1", title: "Title", location: "", time: "11:00" });
+    await updateNote({ id: "id-1", title: "Title", location: "", description: "", time: "11:00" });
 
     expect(mockUnsync).not.toHaveBeenCalled();
     expect(mockPrisma.note.updateMany).toHaveBeenCalledWith({
@@ -166,12 +168,12 @@ describe("saveDraftNote", () => {
   test("updates the existing draft instead of creating a second one", async () => {
     mockPrisma.note.findFirst.mockResolvedValue({ id: "draft-1" });
 
-    await saveDraftNote({ title: "Draft", location: "" });
+    await saveDraftNote({ title: "Draft", location: "", description: "" });
 
     expect(mockPrisma.$executeRaw).toHaveBeenCalled();
     expect(mockPrisma.note.update).toHaveBeenCalledWith({
       where: { id: "draft-1" },
-      data: { title: "Draft", location: null },
+      data: { title: "Draft", location: null, description: null },
     });
     expect(mockPrisma.note.create).not.toHaveBeenCalled();
   });
@@ -179,7 +181,7 @@ describe("saveDraftNote", () => {
   test("creates a draft when none exists yet", async () => {
     mockPrisma.note.findFirst.mockResolvedValue(null);
 
-    await saveDraftNote({ title: "Draft", location: "" });
+    await saveDraftNote({ title: "Draft", location: "", description: "" });
 
     expect(mockPrisma.note.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ isDraft: true, scheduledAt: null, userId: "user-1" }),
