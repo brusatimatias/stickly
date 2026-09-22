@@ -76,7 +76,7 @@ export default function DraftForm({
       className="relative flex h-44 w-44 -rotate-1 flex-col justify-between overflow-hidden rounded-sm border border-orange-300 bg-orange-200 p-2 text-sm text-orange-950 shadow-md sm:h-48 sm:w-48"
     >
       <FoldedCorner />
-      <div className="mt-4 min-w-0">
+      <div className="mt-4 flex min-w-0 flex-1 flex-col overflow-hidden">
         <input
           ref={titleRef}
           value={title}
@@ -85,30 +85,28 @@ export default function DraftForm({
           aria-label={t("titlePlaceholder")}
           className="block w-full bg-transparent font-semibold outline-none placeholder:opacity-50"
         />
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <div className="flex items-end justify-between gap-1">
-          <div className="flex min-w-0 items-center gap-1 text-xs opacity-70">
-            <span aria-hidden>📍</span>
-            <input
-              value={location}
-              onChange={(event) => setLocation(event.target.value)}
-              placeholder={t("locationPlaceholder")}
-              aria-label={t("locationPlaceholder")}
-              className="w-full bg-transparent outline-none placeholder:opacity-40"
-            />
-          </div>
-          <span className="shrink-0 text-[10px] opacity-60">{t("clickOutside")}</span>
-        </div>
         <textarea
           value={description}
           onChange={(event) => setDescription(event.target.value)}
           placeholder={t("descriptionPlaceholder")}
           aria-label={t("descriptionPlaceholder")}
           rows={2}
-          className="block w-full resize-none bg-transparent text-[11px] leading-snug opacity-80 outline-none placeholder:opacity-40"
+          className="mt-0.5 block w-full flex-1 resize-none bg-transparent text-[11px] leading-snug opacity-80 outline-none placeholder:opacity-40"
         />
+      </div>
+
+      <div className="flex items-end justify-between gap-1">
+        <div className="flex min-w-0 items-center gap-1 text-xs opacity-70">
+          <span aria-hidden>📍</span>
+          <input
+            value={location}
+            onChange={(event) => setLocation(event.target.value)}
+            placeholder={t("locationPlaceholder")}
+            aria-label={t("locationPlaceholder")}
+            className="w-full bg-transparent outline-none placeholder:opacity-40"
+          />
+        </div>
+        <span className="shrink-0 text-[10px] opacity-60">{t("clickOutside")}</span>
       </div>
     </div>
   );

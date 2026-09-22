@@ -127,7 +127,15 @@ export default function NoteForm({
           placeholder={t("titlePlaceholder")}
           aria-label={t("titlePlaceholder")}
           rows={1}
-          className="block w-full flex-1 resize-none break-words bg-transparent font-semibold outline-none placeholder:opacity-50"
+          className="block w-full resize-none break-words bg-transparent font-semibold outline-none placeholder:opacity-50"
+        />
+        <textarea
+          value={description}
+          onChange={(event) => setDescription(event.target.value)}
+          placeholder={t("descriptionPlaceholder")}
+          aria-label={t("descriptionPlaceholder")}
+          rows={2}
+          className="mt-0.5 block w-full flex-1 resize-none bg-transparent text-[11px] leading-snug opacity-80 outline-none placeholder:opacity-40"
         />
       </div>
 
@@ -141,15 +149,6 @@ export default function NoteForm({
           className="w-full bg-transparent outline-none placeholder:opacity-40"
         />
       </div>
-
-      <textarea
-        value={description}
-        onChange={(event) => setDescription(event.target.value)}
-        placeholder={t("descriptionPlaceholder")}
-        aria-label={t("descriptionPlaceholder")}
-        rows={2}
-        className="mt-1 block w-full shrink-0 resize-none bg-transparent text-[11px] leading-snug opacity-80 outline-none placeholder:opacity-40"
-      />
     </div>
   );
 }
