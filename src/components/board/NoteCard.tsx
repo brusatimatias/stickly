@@ -8,6 +8,7 @@ import { useState, useTransition } from "react";
 import { addNoteToGoogleCalendar } from "@/app/actions/calendar";
 import { deleteNote, toggleNoteDone } from "@/app/actions/notes";
 import { getNoteStyle } from "@/lib/noteColor";
+import ConfirmDialog from "@/components/board/ConfirmDialog";
 import FoldedCorner from "@/components/board/FoldedCorner";
 import NoteForm from "@/components/board/NoteForm";
 import type { NoteDTO } from "@/components/board/types";
@@ -30,6 +31,7 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
   const [isSyncing, startSyncTransition] = useTransition();
   const [isToggling, startToggleTransition] = useTransition();
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [optimisticNote, setOptimisticNote] = useState<NoteDTO | null>(null);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: note.id });
@@ -70,6 +72,7 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
   }
 
   function handleDelete() {
+    setIsConfirmingDelete(false);
     startTransition(async () => {
       await deleteNote(note.id);
       router.refresh();
@@ -147,7 +150,7 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
         aria-label={t("deleteNote")}
         onClick={(event) => {
           event.stopPropagation();
-          handleDelete();
+          setIsConfirmingDelete(true);
         }}
         disabled={isPending}
         className="absolute right-1 top-1 opacity-30 transition-opacity group-hover:opacity-70 disabled:opacity-30"
@@ -222,6 +225,15 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
         <p className="absolute inset-x-1 bottom-1 truncate text-[10px] text-red-700">
           {syncError}
         </p>
+      )}
+
+      {isConfirmingDelete && (
+        <ConfirmDialog
+          title={t("confirmDeleteTitle")}
+          message={t("confirmDeleteNote")}
+          onConfirm={handleDelete}
+          onCancel={() => setIsConfirmingDelete(false)}
+        />
       )}
     </div>
   );

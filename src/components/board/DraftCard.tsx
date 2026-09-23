@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { deleteNote } from "@/app/actions/notes";
+import ConfirmDialog from "@/components/board/ConfirmDialog";
 import DraftForm from "@/components/board/DraftForm";
 import FoldedCorner from "@/components/board/FoldedCorner";
 import type { NoteDTO } from "@/components/board/types";
@@ -15,6 +16,7 @@ export default function DraftCard({ note }: { note: NoteDTO }) {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: note.id });
 
@@ -29,6 +31,7 @@ export default function DraftCard({ note }: { note: NoteDTO }) {
   }
 
   function handleDelete() {
+    setIsConfirmingDelete(false);
     startTransition(async () => {
       await deleteNote(note.id);
       router.refresh();
@@ -58,7 +61,7 @@ export default function DraftCard({ note }: { note: NoteDTO }) {
         aria-label={t("deleteNote")}
         onClick={(event) => {
           event.stopPropagation();
-          handleDelete();
+          setIsConfirmingDelete(true);
         }}
         disabled={isPending}
         className="absolute right-1 top-1 opacity-0 transition-opacity group-hover:opacity-70 disabled:opacity-30"
@@ -86,6 +89,15 @@ export default function DraftCard({ note }: { note: NoteDTO }) {
         )}
         <span className="shrink-0 text-[10px] opacity-70">{t("dragArrow")}</span>
       </div>
+
+      {isConfirmingDelete && (
+        <ConfirmDialog
+          title={t("confirmDeleteTitle")}
+          message={t("confirmDeleteNote")}
+          onConfirm={handleDelete}
+          onCancel={() => setIsConfirmingDelete(false)}
+        />
+      )}
     </div>
   );
 }
