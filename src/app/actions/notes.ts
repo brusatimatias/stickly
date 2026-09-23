@@ -124,6 +124,10 @@ export async function toggleNoteDone(id: string, isDone: boolean) {
 
 export async function deleteNote(id: string) {
   const userId = await requireUserId();
+  const existing = await prisma.note.findFirst({ where: { id, userId } });
+  if (existing?.googleEventId) {
+    await unsyncNoteFromGoogleCalendar(existing.googleEventId);
+  }
   await prisma.note.deleteMany({ where: { id, userId } });
   revalidatePath("/");
 }
