@@ -2,12 +2,13 @@
 
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTransition } from "react";
 import { createNote, updateNote } from "@/app/actions/notes";
 import FoldedCorner from "@/components/board/FoldedCorner";
 import { ClockIcon, LocationIcon } from "@/components/board/icons";
 import type { NoteDTO } from "@/components/board/types";
+import { useNoteEditorKeyboard } from "@/components/board/useNoteEditorKeyboard";
 import { getNoteStyle } from "@/lib/noteColor";
 
 export default function NoteForm({
@@ -26,29 +27,26 @@ export default function NoteForm({
   const [description, setDescription] = useState(note?.description ?? "");
   const [time, setTime] = useState(note && !note.hasTime ? "" : (note?.time ?? ""));
   const [, startTransition] = useTransition();
-  const containerRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLTextAreaElement>(null);
-  const descriptionRef = useRef<HTMLTextAreaElement>(null);
   const savedRef = useRef(false);
   const stateRef = useRef({ title, location, description, time });
-  stateRef.current = { title, location, description, time };
   const [newNoteId] = useState(() => note?.id ?? crypto.randomUUID());
   const noteStyle = getNoteStyle(newNoteId);
+
+  useEffect(() => {
+    stateRef.current = { title, location, description, time };
+  });
 
   useEffect(() => {
     titleRef.current?.focus();
   }, []);
 
-  useEffect(() => {
-    function handlePointerDown(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        save();
-      }
-    }
-    document.addEventListener("mousedown", handlePointerDown);
-    return () => document.removeEventListener("mousedown", handlePointerDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const { containerRef, descriptionRef, handleKeyDown } = useNoteEditorKeyboard({
+    save,
+    cancel,
+    description,
+    setDescription,
+  });
 
   function save() {
     if (savedRef.current) return;
@@ -81,26 +79,9 @@ export default function NoteForm({
     });
   }
 
-  function handleKeyDown(event: KeyboardEvent) {
-    if (event.key === "Enter") {
-      const textarea = descriptionRef.current;
-      if (textarea && event.target === textarea && (event.ctrlKey || event.metaKey)) {
-        event.preventDefault();
-        const { selectionStart, selectionEnd, value } = textarea;
-        const cursor = selectionStart + 1;
-        setDescription(value.slice(0, selectionStart) + "\n" + value.slice(selectionEnd));
-        requestAnimationFrame(() => {
-          textarea.selectionStart = textarea.selectionEnd = cursor;
-        });
-        return;
-      }
-      event.preventDefault();
-      save();
-    }
-    if (event.key === "Escape") {
-      savedRef.current = true;
-      onDone();
-    }
+  function cancel() {
+    savedRef.current = true;
+    onDone();
   }
 
   return (

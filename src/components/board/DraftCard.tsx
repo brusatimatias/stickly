@@ -66,10 +66,10 @@ export default function DraftCard({ note }: { note: NoteDTO }) {
         ✕
       </button>
 
-      <div className="mt-4 min-w-0">
+      <div className="mt-4 flex min-w-0 flex-1 flex-col overflow-hidden">
         <p className="line-clamp-3 font-semibold">{note.title}</p>
         {note.description && (
-          <p className="mt-0.5 line-clamp-2 break-words text-xs font-normal opacity-70">
+          <p className="mt-0.5 flex-1 overflow-hidden whitespace-pre-wrap break-words text-[11px] leading-snug opacity-80">
             {note.description}
           </p>
         )}
