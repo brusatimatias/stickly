@@ -40,7 +40,7 @@ export default function DraftCard({ note }: { note: NoteDTO }) {
       ref={setNodeRef}
       style={style}
       onClick={() => setIsEditing(true)}
-      className="group relative flex h-44 w-44 -rotate-1 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border border-orange-300 bg-orange-200 p-2 text-sm text-orange-950 shadow-md transition-transform hover:z-10 hover:scale-105 hover:shadow-lg sm:h-48 sm:w-48"
+      className="group relative flex h-44 w-44 -rotate-1 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border border-orange-300 bg-orange-200 p-2 text-sm text-orange-950 shadow-md transition-transform hover:z-10 hover:-translate-y-1 hover:shadow-lg sm:h-48 sm:w-48"
     >
       <FoldedCorner />
       <button
