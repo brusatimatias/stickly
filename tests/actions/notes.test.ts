@@ -224,12 +224,10 @@ describe("moveNote", () => {
     await moveNote({ noteId: "moving", day: "2026-09-16", index: 1 });
 
     const positions = Object.fromEntries(
-      mockPrisma.note.update.mock.calls.map(
-        ([{ where, data }]: [{ where: { id: string }; data: { position: number } }]) => [
-          where.id,
-          data.position,
-        ]
-      )
+      mockPrisma.note.update.mock.calls.map((call) => {
+        const [{ where, data }] = call as [{ where: { id: string }; data: { position: number } }];
+        return [where.id, data.position];
+      })
     );
     expect(positions).toEqual({
       "pending-1": 0,
@@ -282,12 +280,10 @@ describe("scheduleDraftNote", () => {
     await scheduleDraftNote({ noteId: "draft-1", day: "2026-09-16", index: 1 });
 
     const positions = Object.fromEntries(
-      mockPrisma.note.update.mock.calls.map(
-        ([{ where, data }]: [{ where: { id: string }; data: { position: number } }]) => [
-          where.id,
-          data.position,
-        ]
-      )
+      mockPrisma.note.update.mock.calls.map((call) => {
+        const [{ where, data }] = call as [{ where: { id: string }; data: { position: number } }];
+        return [where.id, data.position];
+      })
     );
     expect(positions).toEqual({
       "pending-1": 0,
