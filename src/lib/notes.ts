@@ -1,10 +1,13 @@
 import { format } from "date-fns";
+import { sortDoneLast } from "@/lib/ordering";
 import { prisma } from "@/lib/prisma";
 import type { NoteDTO } from "@/components/board/types";
 
 /**
  * Notes scheduled within a week's [start, end) range, ordered for display
- * on the board. Uses the [userId, scheduledAt] composite index.
+ * on the board. Uses the [userId, scheduledAt] composite index for the
+ * range filter; `position` (not `scheduledAt`) drives order within a day,
+ * so notes can be freely reordered regardless of whether they have a time.
  */
 export function getNotesForWeek(userId: string, weekStart: Date, weekEnd: Date) {
   return prisma.note.findMany({
@@ -13,7 +16,7 @@ export function getNotesForWeek(userId: string, weekStart: Date, weekEnd: Date) 
       isDraft: false,
       scheduledAt: { gte: weekStart, lt: weekEnd },
     },
-    orderBy: [{ scheduledAt: "asc" }, { position: "asc" }],
+    orderBy: { position: "asc" },
   });
 }
 
@@ -62,7 +65,7 @@ export function groupNotesByDay(
     });
   }
   for (const key of Object.keys(notesByDay)) {
-    notesByDay[key].sort((a, b) => Number(a.isDone) - Number(b.isDone));
+    notesByDay[key] = sortDoneLast(notesByDay[key]);
   }
   return notesByDay;
 }

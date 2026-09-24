@@ -7,16 +7,20 @@ import { useState } from "react";
 import NoteCard from "@/components/board/NoteCard";
 import NoteForm from "@/components/board/NoteForm";
 import type { BoardDay, NoteDTO } from "@/components/board/types";
-import { PlusIcon } from "@/components/board/icons";
+import { ExpandIcon, PlusIcon } from "@/components/board/icons";
 
 export default function DayColumn({
   day,
   notes,
   todayKey,
+  isFocused = false,
+  onToggleFocus,
 }: {
   day: BoardDay;
   notes: NoteDTO[];
   todayKey: string;
+  isFocused?: boolean;
+  onToggleFocus?: () => void;
 }) {
   const t = useTranslations("board");
   const { setNodeRef, isOver } = useDroppable({ id: day.key });
@@ -32,8 +36,18 @@ export default function DayColumn({
           : "border-transparent"
       }`}
     >
-      <header className="grid grid-cols-[1.25rem_1fr_1.25rem] items-center">
-        <span aria-hidden />
+      <header className="grid grid-cols-[auto_1fr_auto] items-center gap-1">
+        {/* Invisible mirror of the right-side button cluster so the label stays centered regardless of how many buttons are shown there. */}
+        <div className="flex items-center gap-0.5 opacity-0" aria-hidden>
+          {!isFocused && onToggleFocus && (
+            <span className="rounded-full p-1">
+              <ExpandIcon className="h-3.5 w-3.5" />
+            </span>
+          )}
+          <span className="rounded-full p-1">
+            <PlusIcon className="h-3.5 w-3.5" />
+          </span>
+        </div>
         <p
           className={`flex items-center justify-center gap-1.5 text-center text-sm font-semibold ${
             isCurrentDay ? "text-amber-600 dark:text-amber-400" : "text-zinc-700 dark:text-zinc-300"
@@ -42,18 +56,30 @@ export default function DayColumn({
           {isCurrentDay && <span className="h-1.5 w-1.5 rounded-full bg-amber-500" aria-hidden />}
           {day.label}
         </p>
-        <button
-          type="button"
-          onClick={() => setIsAdding(true)}
-          aria-label={t("addNote")}
-          className="justify-self-end rounded-full p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:text-zinc-600 dark:hover:bg-zinc-900 dark:hover:text-zinc-300"
-        >
-          <PlusIcon className="h-3.5 w-3.5" />
-        </button>
+        <div className="flex items-center gap-0.5 justify-self-end">
+          {!isFocused && onToggleFocus && (
+            <button
+              type="button"
+              onClick={onToggleFocus}
+              aria-label={t("focusDay")}
+              className="rounded-full p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:text-zinc-600 dark:hover:bg-zinc-900 dark:hover:text-zinc-300"
+            >
+              <ExpandIcon className="h-3.5 w-3.5" />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setIsAdding(true)}
+            aria-label={t("addNote")}
+            className="rounded-full p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:text-zinc-600 dark:hover:bg-zinc-900 dark:hover:text-zinc-300"
+          >
+            <PlusIcon className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </header>
 
       <SortableContext id={day.key} items={notes.map((note) => note.id)} strategy={rectSortingStrategy}>
-        <div className="flex flex-1 flex-wrap items-start justify-center gap-2">
+        <div className="flex flex-1 flex-wrap items-start justify-center gap-2 pt-3">
           {notes.length === 0 && !isAdding && (
             <p className="text-xs text-zinc-400 dark:text-zinc-600">{t("noNotesYet")}</p>
           )}

@@ -12,11 +12,12 @@ import {
   type DragOverEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { moveNote, scheduleDraftNote } from "@/app/actions/notes";
 import DayColumn from "@/components/board/DayColumn";
+import DayFocusNav from "@/components/board/DayFocusNav";
 import DraftPanel from "@/components/board/DraftPanel";
 import FoldedCorner from "@/components/board/FoldedCorner";
 import WeekNav from "@/components/board/WeekNav";
@@ -74,6 +75,13 @@ export default function Board({
   const [, startTransition] = useTransition();
   const [activeNote, setActiveNote] = useState<NoteDTO | null>(null);
   const originContainerRef = useRef<string | null>(null);
+  const [focusedDay, setFocusedDay] = useState<string | null>(null);
+  const [syncedWeekStart, setSyncedWeekStart] = useState(days[0]?.key);
+  if (days[0]?.key !== syncedWeekStart) {
+    setSyncedWeekStart(days[0]?.key);
+    setFocusedDay(null);
+  }
+  const focusedDayInfo = days.find((day) => day.key === focusedDay) ?? null;
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -97,7 +105,25 @@ export default function Board({
     const overContainer =
       findContainer(over.id as string, notesByDay) ?? (over.id as string);
 
-    if (!activeContainer || !overContainer || activeContainer === overContainer) {
+    if (!activeContainer || !overContainer) {
+      return;
+    }
+
+    if (activeContainer === overContainer) {
+      setNotesByDay((prev) => {
+        const items = prev[activeContainer];
+        const activeIndex = items.findIndex((note) => note.id === active.id);
+        const overIndex = items.findIndex((note) => note.id === over.id);
+        if (activeIndex === -1 || overIndex === -1 || activeIndex === overIndex) {
+          return prev;
+        }
+
+        if (items[activeIndex].isDone !== items[overIndex].isDone) {
+          return prev;
+        }
+
+        return { ...prev, [activeContainer]: arrayMove(items, activeIndex, overIndex) };
+      });
       return;
     }
 
@@ -115,7 +141,12 @@ export default function Board({
       if (activeIndex === -1) return prev;
 
       const movingNote = activeItems[activeIndex];
-      const newIndex = overIndex >= 0 ? overIndex : overItems.length;
+      const rawIndex = overIndex >= 0 ? overIndex : overItems.length;
+
+      const pendingCount = overItems.filter((note) => !note.isDone).length;
+      const newIndex = movingNote.isDone
+        ? Math.max(rawIndex, pendingCount)
+        : Math.min(rawIndex, pendingCount);
 
       return {
         ...prev,
@@ -175,20 +206,43 @@ export default function Board({
       >
         <div className="flex flex-col gap-3 p-4 lg:flex-row">
           <DraftPanel note={notesByDay[DRAFT_CONTAINER][0] ?? null} />
-          <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-7">
-            {days.map((day, index) => (
-              <div
-                key={day.key}
-                className={
-                  index > 0
-                    ? "shadow-[inset_1px_0_0_rgba(0,0,0,0.1)] dark:shadow-[inset_1px_0_0_rgba(255,255,255,0.08)]"
-                    : ""
-                }
-              >
-                <DayColumn day={day} notes={notesByDay[day.key] ?? []} todayKey={todayKey} />
-              </div>
-            ))}
-          </div>
+          {focusedDayInfo ? (
+            <div className="min-w-0 flex-1">
+              <DayFocusNav
+                days={days}
+                focusedDay={focusedDayInfo.key}
+                todayKey={todayKey}
+                onSelect={setFocusedDay}
+                onExit={() => setFocusedDay(null)}
+              />
+              <DayColumn
+                day={focusedDayInfo}
+                notes={notesByDay[focusedDayInfo.key] ?? []}
+                todayKey={todayKey}
+                isFocused
+              />
+            </div>
+          ) : (
+            <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-7">
+              {days.map((day, index) => (
+                <div
+                  key={day.key}
+                  className={
+                    index > 0
+                      ? "shadow-[inset_1px_0_0_rgba(0,0,0,0.1)] dark:shadow-[inset_1px_0_0_rgba(255,255,255,0.08)]"
+                      : ""
+                  }
+                >
+                  <DayColumn
+                    day={day}
+                    notes={notesByDay[day.key] ?? []}
+                    todayKey={todayKey}
+                    onToggleFocus={() => setFocusedDay(day.key)}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         <DragOverlay>
           {activeNote &&

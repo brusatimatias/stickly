@@ -28,6 +28,7 @@ vi.mock("@/app/actions/calendar", () => ({
 import {
   createNote,
   deleteNote,
+  moveNote,
   saveDraftNote,
   scheduleDraftNote,
   toggleNoteDone,
@@ -201,6 +202,50 @@ describe("saveDraftNote", () => {
   });
 });
 
+describe("moveNote", () => {
+  test("reinserts against the pending-first/done-last order, not raw stored position order", async () => {
+    // Stored `position` order interleaves done and pending notes (e.g. a
+    // note marked done keeps its old position). The board always displays
+    // pending notes before done ones (groupNotesByDay), so the `index` the
+    // client sends is computed against that display order, not this one.
+    mockPrisma.note.findFirst.mockResolvedValue({
+      id: "moving",
+      scheduledAt: new Date("2026-09-16T08:00:00.000Z"),
+    });
+    mockPrisma.note.findMany.mockResolvedValue([
+      { id: "done-1", isDone: true, position: 0 },
+      { id: "pending-1", isDone: false, position: 1 },
+      { id: "done-2", isDone: true, position: 2 },
+      { id: "pending-2", isDone: false, position: 3 },
+    ]);
+
+    // Display order is [pending-1, pending-2, done-1, done-2]; dropping the
+    // moving note at index 1 means "right after pending-1".
+    await moveNote({ noteId: "moving", day: "2026-09-16", index: 1 });
+
+    const positions = Object.fromEntries(
+      mockPrisma.note.update.mock.calls.map((call) => {
+        const [{ where, data }] = call as [{ where: { id: string }; data: { position: number } }];
+        return [where.id, data.position];
+      })
+    );
+    expect(positions).toEqual({
+      "pending-1": 0,
+      moving: 1,
+      "pending-2": 2,
+      "done-1": 3,
+      "done-2": 4,
+    });
+  });
+
+  test("throws when the note doesn't belong to this user", async () => {
+    mockPrisma.note.findFirst.mockResolvedValue(null);
+    await expect(
+      moveNote({ noteId: "id-1", day: "2026-09-16", index: 0 })
+    ).rejects.toThrow("NOTE_NOT_FOUND");
+  });
+});
+
 describe("scheduleDraftNote", () => {
   test("promotes the draft with no time set", async () => {
     mockPrisma.note.findFirst.mockResolvedValue({ id: "draft-1", position: 0 });
@@ -219,5 +264,33 @@ describe("scheduleDraftNote", () => {
     await expect(
       scheduleDraftNote({ noteId: "draft-1", day: "2026-09-16", index: 0 })
     ).rejects.toThrow("DRAFT_NOTE_NOT_FOUND");
+  });
+
+  test("reinserts against the pending-first/done-last order, not raw stored position order", async () => {
+    mockPrisma.note.findFirst.mockResolvedValue({ id: "draft-1" });
+    mockPrisma.note.findMany.mockResolvedValue([
+      { id: "done-1", isDone: true, position: 0 },
+      { id: "pending-1", isDone: false, position: 1 },
+      { id: "done-2", isDone: true, position: 2 },
+      { id: "pending-2", isDone: false, position: 3 },
+    ]);
+
+    // Display order is [pending-1, pending-2, done-1, done-2]; promoting the
+    // draft at index 1 means "right after pending-1".
+    await scheduleDraftNote({ noteId: "draft-1", day: "2026-09-16", index: 1 });
+
+    const positions = Object.fromEntries(
+      mockPrisma.note.update.mock.calls.map((call) => {
+        const [{ where, data }] = call as [{ where: { id: string }; data: { position: number } }];
+        return [where.id, data.position];
+      })
+    );
+    expect(positions).toEqual({
+      "pending-1": 0,
+      "draft-1": 1,
+      "pending-2": 2,
+      "done-1": 3,
+      "done-2": 4,
+    });
   });
 });

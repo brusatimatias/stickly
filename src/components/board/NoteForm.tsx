@@ -2,12 +2,14 @@
 
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTransition } from "react";
 import { createNote, updateNote } from "@/app/actions/notes";
 import FoldedCorner from "@/components/board/FoldedCorner";
-import { ClockIcon, LocationIcon } from "@/components/board/icons";
+import { LocationIcon } from "@/components/board/icons";
+import TimePicker from "@/components/board/TimePicker";
 import type { NoteDTO } from "@/components/board/types";
+import { useNoteEditorKeyboard } from "@/components/board/useNoteEditorKeyboard";
 import { getNoteStyle } from "@/lib/noteColor";
 
 export default function NoteForm({
@@ -26,28 +28,26 @@ export default function NoteForm({
   const [description, setDescription] = useState(note?.description ?? "");
   const [time, setTime] = useState(note && !note.hasTime ? "" : (note?.time ?? ""));
   const [, startTransition] = useTransition();
-  const containerRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLTextAreaElement>(null);
   const savedRef = useRef(false);
   const stateRef = useRef({ title, location, description, time });
-  stateRef.current = { title, location, description, time };
   const [newNoteId] = useState(() => note?.id ?? crypto.randomUUID());
   const noteStyle = getNoteStyle(newNoteId);
+
+  useEffect(() => {
+    stateRef.current = { title, location, description, time };
+  });
 
   useEffect(() => {
     titleRef.current?.focus();
   }, []);
 
-  useEffect(() => {
-    function handlePointerDown(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        save();
-      }
-    }
-    document.addEventListener("mousedown", handlePointerDown);
-    return () => document.removeEventListener("mousedown", handlePointerDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const { containerRef, descriptionRef, handleKeyDown } = useNoteEditorKeyboard({
+    save,
+    cancel,
+    description,
+    setDescription,
+  });
 
   function save() {
     if (savedRef.current) return;
@@ -80,15 +80,9 @@ export default function NoteForm({
     });
   }
 
-  function handleKeyDown(event: KeyboardEvent) {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      save();
-    }
-    if (event.key === "Escape") {
-      savedRef.current = true;
-      onDone();
-    }
+  function cancel() {
+    savedRef.current = true;
+    onDone();
   }
 
   return (
@@ -101,24 +95,7 @@ export default function NoteForm({
       <FoldedCorner />
       <div className="mt-4 flex min-w-0 flex-1 flex-col overflow-hidden">
         <div className="flex items-center gap-1 text-xs font-medium opacity-80">
-          <ClockIcon className="h-3 w-3 shrink-0" />
-          <input
-            type="time"
-            value={time}
-            onChange={(event) => setTime(event.target.value)}
-            aria-label={t("time")}
-            className="w-fit bg-transparent outline-none [&::-webkit-calendar-picker-indicator]:hidden"
-          />
-          {time && (
-            <button
-              type="button"
-              aria-label={t("clearTime")}
-              onClick={() => setTime("")}
-              className="shrink-0 opacity-50 hover:opacity-90"
-            >
-              ✕
-            </button>
-          )}
+          <TimePicker value={time} onChange={setTime} />
         </div>
         <textarea
           ref={titleRef}
@@ -130,6 +107,7 @@ export default function NoteForm({
           className="block w-full resize-none break-words bg-transparent font-semibold outline-none placeholder:opacity-50"
         />
         <textarea
+          ref={descriptionRef}
           value={description}
           onChange={(event) => setDescription(event.target.value)}
           placeholder={t("descriptionPlaceholder")}

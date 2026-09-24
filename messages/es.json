@@ -16,9 +16,13 @@
     "descriptionPlaceholder": "Agregar detalles...",
     "clickOutside": "Clic afuera para guardar",
     "time": "Hora",
+    "setTime": "Poner hora",
     "clearTime": "Borrar hora",
     "dragToReorder": "Arrastrar para reordenar",
     "deleteNote": "Eliminar nota",
+    "confirmDeleteTitle": "Eliminar nota",
+    "confirmDeleteNote": "Esta acción no se puede deshacer.",
+    "cancel": "Cancelar",
     "setTimeToSync": "Definí una hora para habilitar la sincronización con Calendar",
     "updateInCalendar": "Actualizar en Calendar",
     "addToCalendar": "Agregar a Calendar",
@@ -28,7 +32,11 @@
     "dragToSchedule": "Arrastrar para programar",
     "dragArrow": "Arrastrar →",
     "markAsDone": "Marcar como hecha",
-    "markAsPending": "Marcar como pendiente"
+    "markAsPending": "Marcar como pendiente",
+    "focusDay": "Hacer foco en este día",
+    "backToWeek": "Volver a la semana",
+    "previousDay": "Día anterior",
+    "nextDay": "Día siguiente"
   },
   "auth": {
     "tagline": "Tu semana, organizada como un corcho lleno de notas adhesivas.",
@@ -46,6 +54,7 @@
     "signOut": "Cerrar sesión"
   },
   "profile": {
+    "backToBoard": "Volver al tablero",
     "name": "Nombre",
     "save": "Guardar",
     "saving": "Guardando...",
