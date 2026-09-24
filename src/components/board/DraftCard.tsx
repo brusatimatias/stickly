@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { deleteNote } from "@/app/actions/notes";
+import ConfirmDialog from "@/components/board/ConfirmDialog";
 import DraftForm from "@/components/board/DraftForm";
 import FoldedCorner from "@/components/board/FoldedCorner";
 import type { NoteDTO } from "@/components/board/types";
@@ -15,6 +16,7 @@ export default function DraftCard({ note }: { note: NoteDTO }) {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: note.id });
 
@@ -29,6 +31,7 @@ export default function DraftCard({ note }: { note: NoteDTO }) {
   }
 
   function handleDelete() {
+    setIsConfirmingDelete(false);
     startTransition(async () => {
       await deleteNote(note.id);
       router.refresh();
@@ -40,7 +43,7 @@ export default function DraftCard({ note }: { note: NoteDTO }) {
       ref={setNodeRef}
       style={style}
       onClick={() => setIsEditing(true)}
-      className="group relative flex h-44 w-44 -rotate-1 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border border-orange-300 bg-orange-200 p-2 text-sm text-orange-950 shadow-md transition-transform hover:z-10 hover:scale-105 hover:shadow-lg sm:h-48 sm:w-48"
+      className="group relative flex h-44 w-44 -rotate-1 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border border-orange-300 bg-orange-200 p-2 text-sm text-orange-950 shadow-md transition-transform hover:z-10 hover:-translate-y-1 hover:shadow-lg sm:h-48 sm:w-48"
     >
       <FoldedCorner />
       <button
@@ -58,7 +61,7 @@ export default function DraftCard({ note }: { note: NoteDTO }) {
         aria-label={t("deleteNote")}
         onClick={(event) => {
           event.stopPropagation();
-          handleDelete();
+          setIsConfirmingDelete(true);
         }}
         disabled={isPending}
         className="absolute right-1 top-1 opacity-0 transition-opacity group-hover:opacity-70 disabled:opacity-30"
@@ -66,10 +69,10 @@ export default function DraftCard({ note }: { note: NoteDTO }) {
         ✕
       </button>
 
-      <div className="mt-4 min-w-0">
+      <div className="mt-4 flex min-w-0 flex-1 flex-col overflow-hidden">
         <p className="line-clamp-3 font-semibold">{note.title}</p>
         {note.description && (
-          <p className="mt-0.5 line-clamp-2 break-words text-xs font-normal opacity-70">
+          <p className="mt-0.5 flex-1 overflow-hidden whitespace-pre-wrap break-words text-[11px] leading-snug opacity-80">
             {note.description}
           </p>
         )}
@@ -86,6 +89,15 @@ export default function DraftCard({ note }: { note: NoteDTO }) {
         )}
         <span className="shrink-0 text-[10px] opacity-70">{t("dragArrow")}</span>
       </div>
+
+      {isConfirmingDelete && (
+        <ConfirmDialog
+          title={t("confirmDeleteTitle")}
+          message={t("confirmDeleteNote")}
+          onConfirm={handleDelete}
+          onCancel={() => setIsConfirmingDelete(false)}
+        />
+      )}
     </div>
   );
 }

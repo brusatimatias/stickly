@@ -9,12 +9,12 @@ const PALETTE = [
 const ROTATIONS = ["-rotate-2", "-rotate-1", "rotate-1", "rotate-2", "rotate-3", "-rotate-3"] as const;
 
 const OVERLAPS = [
-  { top: -4, left: -2 },
-  { top: -10, left: 4 },
-  { top: -6, left: -8 },
-  { top: -12, left: 2 },
-  { top: -2, left: -6 },
-  { top: -8, left: 6 },
+  { top: -12, left: -2 },
+  { top: -18, left: 4 },
+  { top: -14, left: -8 },
+  { top: -20, left: 2 },
+  { top: -10, left: -6 },
+  { top: -16, left: 6 },
 ] as const;
 
 function hashString(value: string): number {

@@ -5,3 +5,7 @@ export function insertAtIndex<T>(items: T[], item: T, index: number): T[] {
   result.splice(insertAt, 0, item);
   return result;
 }
+
+export function sortDoneLast<T extends { isDone: boolean }>(items: T[]): T[] {
+  return [...items].sort((a, b) => Number(a.isDone) - Number(b.isDone));
+}

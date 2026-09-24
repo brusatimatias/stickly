@@ -16,9 +16,13 @@
     "descriptionPlaceholder": "Add details...",
     "clickOutside": "Click outside",
     "time": "Time",
+    "setTime": "Set time",
     "clearTime": "Clear time",
     "dragToReorder": "Drag to reorder",
     "deleteNote": "Delete note",
+    "confirmDeleteTitle": "Delete note",
+    "confirmDeleteNote": "This can't be undone.",
+    "cancel": "Cancel",
     "setTimeToSync": "Set a time to enable Calendar sync",
     "updateInCalendar": "Update in Calendar",
     "addToCalendar": "Add to Calendar",
@@ -46,6 +50,7 @@
     "signOut": "Sign out"
   },
   "profile": {
+    "backToBoard": "Back to board",
     "name": "Name",
     "save": "Save",
     "saving": "Saving...",

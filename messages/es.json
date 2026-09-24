@@ -16,9 +16,13 @@
     "descriptionPlaceholder": "Agregar detalles...",
     "clickOutside": "Clic afuera para guardar",
     "time": "Hora",
+    "setTime": "Poner hora",
     "clearTime": "Borrar hora",
     "dragToReorder": "Arrastrar para reordenar",
     "deleteNote": "Eliminar nota",
+    "confirmDeleteTitle": "Eliminar nota",
+    "confirmDeleteNote": "Esta acción no se puede deshacer.",
+    "cancel": "Cancelar",
     "setTimeToSync": "Definí una hora para habilitar la sincronización con Calendar",
     "updateInCalendar": "Actualizar en Calendar",
     "addToCalendar": "Agregar a Calendar",
@@ -46,6 +50,7 @@
     "signOut": "Cerrar sesión"
   },
   "profile": {
+    "backToBoard": "Volver al tablero",
     "name": "Nombre",
     "save": "Guardar",
     "saving": "Guardando...",

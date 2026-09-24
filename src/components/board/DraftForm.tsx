@@ -2,11 +2,12 @@
 
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTransition } from "react";
 import { saveDraftNote } from "@/app/actions/notes";
 import FoldedCorner from "@/components/board/FoldedCorner";
 import type { NoteDTO } from "@/components/board/types";
+import { useNoteEditorKeyboard } from "@/components/board/useNoteEditorKeyboard";
 
 export default function DraftForm({
   note,
@@ -21,26 +22,24 @@ export default function DraftForm({
   const [location, setLocation] = useState(note?.location ?? "");
   const [description, setDescription] = useState(note?.description ?? "");
   const [, startTransition] = useTransition();
-  const containerRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
   const savedRef = useRef(false);
   const stateRef = useRef({ title, location, description });
-  stateRef.current = { title, location, description };
+
+  useEffect(() => {
+    stateRef.current = { title, location, description };
+  });
 
   useEffect(() => {
     titleRef.current?.focus();
   }, []);
 
-  useEffect(() => {
-    function handlePointerDown(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        save();
-      }
-    }
-    document.addEventListener("mousedown", handlePointerDown);
-    return () => document.removeEventListener("mousedown", handlePointerDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const { containerRef, descriptionRef, handleKeyDown } = useNoteEditorKeyboard({
+    save,
+    cancel,
+    description,
+    setDescription,
+  });
 
   function save() {
     if (savedRef.current) return;
@@ -58,15 +57,9 @@ export default function DraftForm({
     });
   }
 
-  function handleKeyDown(event: KeyboardEvent) {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      save();
-    }
-    if (event.key === "Escape") {
-      savedRef.current = true;
-      onDone();
-    }
+  function cancel() {
+    savedRef.current = true;
+    onDone();
   }
 
   return (
@@ -86,6 +79,7 @@ export default function DraftForm({
           className="block w-full bg-transparent font-semibold outline-none placeholder:opacity-50"
         />
         <textarea
+          ref={descriptionRef}
           value={description}
           onChange={(event) => setDescription(event.target.value)}
           placeholder={t("descriptionPlaceholder")}
