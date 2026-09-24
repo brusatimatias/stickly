@@ -12,7 +12,7 @@ import {
   type DragOverEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { moveNote, scheduleDraftNote } from "@/app/actions/notes";
@@ -97,7 +97,25 @@ export default function Board({
     const overContainer =
       findContainer(over.id as string, notesByDay) ?? (over.id as string);
 
-    if (!activeContainer || !overContainer || activeContainer === overContainer) {
+    if (!activeContainer || !overContainer) {
+      return;
+    }
+
+    if (activeContainer === overContainer) {
+      setNotesByDay((prev) => {
+        const items = prev[activeContainer];
+        const activeIndex = items.findIndex((note) => note.id === active.id);
+        const overIndex = items.findIndex((note) => note.id === over.id);
+        if (activeIndex === -1 || overIndex === -1 || activeIndex === overIndex) {
+          return prev;
+        }
+
+        if (items[activeIndex].isDone !== items[overIndex].isDone) {
+          return prev;
+        }
+
+        return { ...prev, [activeContainer]: arrayMove(items, activeIndex, overIndex) };
+      });
       return;
     }
 
@@ -115,7 +133,12 @@ export default function Board({
       if (activeIndex === -1) return prev;
 
       const movingNote = activeItems[activeIndex];
-      const newIndex = overIndex >= 0 ? overIndex : overItems.length;
+      const rawIndex = overIndex >= 0 ? overIndex : overItems.length;
+
+      const pendingCount = overItems.filter((note) => !note.isDone).length;
+      const newIndex = movingNote.isDone
+        ? Math.max(rawIndex, pendingCount)
+        : Math.min(rawIndex, pendingCount);
 
       return {
         ...prev,

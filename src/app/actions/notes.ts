@@ -4,7 +4,7 @@ import { addDays, startOfDay } from "date-fns";
 import { revalidatePath } from "next/cache";
 import { unsyncNoteFromGoogleCalendar } from "@/app/actions/calendar";
 import { combineDayAndTime } from "@/lib/datetime";
-import { insertAtIndex } from "@/lib/ordering";
+import { insertAtIndex, sortDoneLast } from "@/lib/ordering";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/session";
 
@@ -155,7 +155,7 @@ export async function moveNote(input: { noteId: string; day: string; index: numb
       orderBy: { position: "asc" },
     });
 
-    const ordered = insertAtIndex(dayNotes, movingNote, input.index);
+    const ordered = insertAtIndex(sortDoneLast(dayNotes), movingNote, input.index);
 
     const previousTime = movingNote.scheduledAt ?? targetDayStart;
     const newScheduledAt = new Date(targetDayStart);
@@ -245,7 +245,7 @@ export async function scheduleDraftNote(input: { noteId: string; day: string; in
       orderBy: { position: "asc" },
     });
 
-    const ordered = insertAtIndex(dayNotes, draftNote, input.index);
+    const ordered = insertAtIndex(sortDoneLast(dayNotes), draftNote, input.index);
 
     const scheduledAt = combineDayAndTime(input.day, "00:00");
 
