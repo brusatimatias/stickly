@@ -32,7 +32,11 @@
     "dragToSchedule": "Drag to schedule",
     "dragArrow": "Drag →",
     "markAsDone": "Mark as done",
-    "markAsPending": "Mark as pending"
+    "markAsPending": "Mark as pending",
+    "focusDay": "Focus this day",
+    "backToWeek": "Back to week",
+    "previousDay": "Previous day",
+    "nextDay": "Next day"
   },
   "auth": {
     "tagline": "Your week, organized like a corkboard full of sticky notes.",

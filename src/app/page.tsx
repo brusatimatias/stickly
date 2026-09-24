@@ -1,5 +1,6 @@
 import { addDays, format } from "date-fns";
-import { getTranslations } from "next-intl/server";
+import { enUS, es } from "date-fns/locale";
+import { getLocale, getTranslations } from "next-intl/server";
 import Image from "next/image";
 import Link from "next/link";
 import { auth } from "@/auth";
@@ -30,7 +31,7 @@ export default async function Home({
   const reference = parseWeekParam(week);
   const { start, end } = getWeekRange(reference);
 
-  const [notes, draft, user, t] = await Promise.all([
+  const [notes, draft, user, t, locale] = await Promise.all([
     getNotesForWeek(session.user.id, start, end),
     getDraftNote(session.user.id),
     prisma.user.findUnique({
@@ -38,12 +39,17 @@ export default async function Home({
       select: { name: true, avatarUrl: true, imageUrl: true },
     }),
     getTranslations("common"),
+    getLocale(),
   ]);
   const avatarSrc = user?.avatarUrl ?? user?.imageUrl;
+  const dateFnsLocale = locale === "es" ? es : enUS;
 
   const days = Array.from({ length: 7 }, (_, index) => {
     const date = addDays(start, index);
-    return { key: format(date, "yyyy-MM-dd"), label: format(date, "EEE d") };
+    return {
+      key: format(date, "yyyy-MM-dd"),
+      label: format(date, "EEE d", { locale: dateFnsLocale }),
+    };
   });
 
   const notesByDay = groupNotesByDay(
@@ -87,7 +93,7 @@ export default async function Home({
         days={days}
         notesByDay={notesByDay}
         draftNote={draftNote}
-        weekLabel={`${format(start, "MMM d")} – ${format(addDays(start, 6), "MMM d, yyyy")}`}
+        weekLabel={`${format(start, "MMM d", { locale: dateFnsLocale })} – ${format(addDays(start, 6), "MMM d, yyyy", { locale: dateFnsLocale })}`}
         prevWeekParam={formatWeekParam(getAdjacentWeekStart(start, "prev"))}
         nextWeekParam={formatWeekParam(getAdjacentWeekStart(start, "next"))}
         currentWeekParam={format(start, "yyyy-MM-dd")}

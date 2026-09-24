@@ -32,7 +32,11 @@
     "dragToSchedule": "Arrastrar para programar",
     "dragArrow": "Arrastrar →",
     "markAsDone": "Marcar como hecha",
-    "markAsPending": "Marcar como pendiente"
+    "markAsPending": "Marcar como pendiente",
+    "focusDay": "Hacer foco en este día",
+    "backToWeek": "Volver a la semana",
+    "previousDay": "Día anterior",
+    "nextDay": "Día siguiente"
   },
   "auth": {
     "tagline": "Tu semana, organizada como un corcho lleno de notas adhesivas.",
