@@ -49,6 +49,7 @@
     "signOut": "Cerrar sesión"
   },
   "profile": {
+    "backToBoard": "Volver al tablero",
     "name": "Nombre",
     "save": "Guardar",
     "saving": "Guardando...",

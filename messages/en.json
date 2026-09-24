@@ -49,6 +49,7 @@
     "signOut": "Sign out"
   },
   "profile": {
+    "backToBoard": "Back to board",
     "name": "Name",
     "save": "Save",
     "saving": "Saving...",
