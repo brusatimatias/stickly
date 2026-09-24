@@ -23,7 +23,14 @@ export function useNoteEditorKeyboard({
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (containerRef.current && !containerRef.current.contains(target)) {
+        // Popovers (e.g. the time picker) are portaled to <body> so they can
+        // escape the note card's rotated/overflow-hidden box, which puts
+        // them outside containerRef even though they're part of this editor.
+        if (target instanceof Element && target.closest("[data-note-popover]")) {
+          return;
+        }
         save();
       }
     }

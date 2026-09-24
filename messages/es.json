@@ -16,6 +16,7 @@
     "descriptionPlaceholder": "Agregar detalles...",
     "clickOutside": "Clic afuera para guardar",
     "time": "Hora",
+    "setTime": "Poner hora",
     "clearTime": "Borrar hora",
     "dragToReorder": "Arrastrar para reordenar",
     "deleteNote": "Eliminar nota",

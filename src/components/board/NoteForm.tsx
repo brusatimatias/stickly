@@ -6,7 +6,8 @@ import { useEffect, useRef, useState } from "react";
 import { useTransition } from "react";
 import { createNote, updateNote } from "@/app/actions/notes";
 import FoldedCorner from "@/components/board/FoldedCorner";
-import { ClockIcon, LocationIcon } from "@/components/board/icons";
+import { LocationIcon } from "@/components/board/icons";
+import TimePicker from "@/components/board/TimePicker";
 import type { NoteDTO } from "@/components/board/types";
 import { useNoteEditorKeyboard } from "@/components/board/useNoteEditorKeyboard";
 import { getNoteStyle } from "@/lib/noteColor";
@@ -94,24 +95,7 @@ export default function NoteForm({
       <FoldedCorner />
       <div className="mt-4 flex min-w-0 flex-1 flex-col overflow-hidden">
         <div className="flex items-center gap-1 text-xs font-medium opacity-80">
-          <ClockIcon className="h-3 w-3 shrink-0" />
-          <input
-            type="time"
-            value={time}
-            onChange={(event) => setTime(event.target.value)}
-            aria-label={t("time")}
-            className="w-fit bg-transparent outline-none [&::-webkit-calendar-picker-indicator]:hidden"
-          />
-          {time && (
-            <button
-              type="button"
-              aria-label={t("clearTime")}
-              onClick={() => setTime("")}
-              className="shrink-0 opacity-50 hover:opacity-90"
-            >
-              ✕
-            </button>
-          )}
+          <TimePicker value={time} onChange={setTime} />
         </div>
         <textarea
           ref={titleRef}

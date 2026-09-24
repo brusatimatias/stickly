@@ -16,6 +16,7 @@
     "descriptionPlaceholder": "Add details...",
     "clickOutside": "Click outside",
     "time": "Time",
+    "setTime": "Set time",
     "clearTime": "Clear time",
     "dragToReorder": "Drag to reorder",
     "deleteNote": "Delete note",
