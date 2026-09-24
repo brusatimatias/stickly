@@ -47,7 +47,7 @@ export default function DayFocusNav({
         <ChevronLeftIcon className="h-4 w-4" />
       </button>
 
-      <div className="flex flex-1 gap-1 overflow-x-auto">
+      <div className="grid flex-1 auto-cols-fr grid-flow-col gap-1">
         {days.map((day) => {
           const isActive = day.key === focusedDay;
           const isToday = day.key === todayKey;
@@ -57,7 +57,7 @@ export default function DayFocusNav({
               type="button"
               onClick={() => onSelect(day.key)}
               aria-current={isActive ? "true" : undefined}
-              className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+              className={`rounded-full px-2 py-1.5 text-center text-xs font-medium transition-colors ${
                 isActive
                   ? "bg-amber-500 text-white shadow-sm"
                   : isToday
