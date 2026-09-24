@@ -5,16 +5,19 @@ import {
   DragOverlay,
   KeyboardSensor,
   PointerSensor,
-  closestCenter,
+  getFirstCollision,
+  pointerWithin,
+  rectIntersection,
   useSensor,
   useSensors,
+  type CollisionDetection,
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useRouter } from "next/navigation";
-import { useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { moveNote, scheduleDraftNote } from "@/app/actions/notes";
 import DayColumn from "@/components/board/DayColumn";
 import DayFocusNav from "@/components/board/DayFocusNav";
@@ -75,6 +78,8 @@ export default function Board({
   const [, startTransition] = useTransition();
   const [activeNote, setActiveNote] = useState<NoteDTO | null>(null);
   const originContainerRef = useRef<string | null>(null);
+  const lastOverIdRef = useRef<string | null>(null);
+  const recentlyMovedToNewContainerRef = useRef(false);
   const [focusedDay, setFocusedDay] = useState<string | null>(null);
   const [syncedWeekStart, setSyncedWeekStart] = useState(days[0]?.key);
   if (days[0]?.key !== syncedWeekStart) {
@@ -85,6 +90,40 @@ export default function Board({
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      recentlyMovedToNewContainerRef.current = false;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [notesByDay]);
+
+  // Moving a note between containers during dragOver can make plain
+  // closestCenter flip back to the origin container's item right after the
+  // move (because the DOM/rects just shifted), which reverses the move and
+  // re-triggers the same flip — an infinite render loop. Prefer pointer-based
+  // collisions and, right after a cross-container move, stick to the last
+  // known target instead of letting rects re-decide it that same frame.
+  const collisionDetectionStrategy: CollisionDetection = useCallback(
+    (args) => {
+      const pointerIntersections = pointerWithin(args);
+      const intersections =
+        pointerIntersections.length > 0 ? pointerIntersections : rectIntersection(args);
+      let overId = getFirstCollision(intersections, "id") as string | null;
+
+      if (overId != null) {
+        lastOverIdRef.current = overId;
+        return [{ id: overId }];
+      }
+
+      if (recentlyMovedToNewContainerRef.current) {
+        overId = lastOverIdRef.current;
+      }
+
+      return overId != null ? [{ id: overId }] : [];
+    },
+    []
   );
 
   function handleDragStart(event: DragStartEvent) {
@@ -133,6 +172,7 @@ export default function Board({
       return;
     }
 
+    recentlyMovedToNewContainerRef.current = true;
     setNotesByDay((prev) => {
       const activeItems = prev[activeContainer];
       const overItems = prev[overContainer];
@@ -164,6 +204,7 @@ export default function Board({
     const { active, over } = event;
     const originContainer = originContainerRef.current;
     originContainerRef.current = null;
+    lastOverIdRef.current = null;
     setActiveNote(null);
     if (!over) return;
 
@@ -198,11 +239,14 @@ export default function Board({
       />
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCenter}
+        collisionDetection={collisionDetectionStrategy}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
-        onDragCancel={() => setActiveNote(null)}
+        onDragCancel={() => {
+          lastOverIdRef.current = null;
+          setActiveNote(null);
+        }}
       >
         <div className="flex flex-col gap-3 p-4 lg:flex-row">
           <DraftPanel note={notesByDay[DRAFT_CONTAINER][0] ?? null} />
