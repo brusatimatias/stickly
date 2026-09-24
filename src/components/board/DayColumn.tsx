@@ -79,7 +79,7 @@ export default function DayColumn({
       </header>
 
       <SortableContext id={day.key} items={notes.map((note) => note.id)} strategy={rectSortingStrategy}>
-        <div className="flex flex-1 flex-wrap items-start justify-center gap-2 pt-3">
+        <div className="grid flex-1 auto-rows-min items-start justify-center gap-2 pt-3 [grid-template-columns:repeat(auto-fill,minmax(11rem,1fr))]">
           {notes.length === 0 && !isAdding && (
             <p className="text-xs text-zinc-400 dark:text-zinc-600">{t("noNotesYet")}</p>
           )}
