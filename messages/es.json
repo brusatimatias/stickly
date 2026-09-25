@@ -1,6 +1,8 @@
 {
   "common": {
-    "yourAvatar": "Tu avatar"
+    "yourAvatar": "Tu avatar",
+    "switchToDark": "Cambiar a tema oscuro",
+    "switchToLight": "Cambiar a tema claro"
   },
   "board": {
     "previousWeek": "Semana anterior",
@@ -87,6 +89,7 @@
     "TIME_REQUIRED_FOR_SYNC": "Definí una hora para esta nota antes de sincronizarla con Calendar.",
     "GOOGLE_SESSION_EXPIRED": "Tu sesión de Google expiró. Cerrá sesión y volvé a entrar para reconectar Calendar.",
     "CALENDAR_SAVE_FAILED": "El evento se creó en Calendar, pero no se pudo guardar. Intentá sincronizar de nuevo.",
-    "GENERIC": "Algo salió mal. Intentalo de nuevo."
+    "GENERIC": "Algo salió mal. Intentalo de nuevo.",
+    "INVALID_THEME": "Tema inválido."
   }
 }

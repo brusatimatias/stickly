@@ -4,6 +4,7 @@ import { signIn } from "@/auth";
 import CredentialsSignInForm from "@/components/auth/CredentialsSignInForm";
 import FoldedCorner from "@/components/board/FoldedCorner";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const STICKER_PALETTE = [
   { bg: "bg-yellow-200", border: "border-yellow-300" },
@@ -59,7 +60,8 @@ export default async function SignInScreen() {
 
   return (
     <div className="relative flex flex-1 flex-col items-center justify-center gap-8 overflow-hidden bg-zinc-50 px-6 py-16 dark:bg-black">
-      <div className="absolute right-4 top-4 z-10">
+      <div className="absolute right-4 top-4 z-10 flex items-center gap-2">
+        <ThemeToggle />
         <LocaleSwitcher />
       </div>
       {stickers.map((sticker) => (
