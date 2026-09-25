@@ -16,6 +16,7 @@ import SignInScreen from "@/components/auth/SignInScreen";
 import SignOutButton from "@/components/auth/SignOutButton";
 import Board from "@/components/board/Board";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default async function Home({
   searchParams,
@@ -84,6 +85,7 @@ export default async function Home({
             ) : null}
             {user?.name ? <span>{user.name}</span> : null}
           </Link>
+          <ThemeToggle />
           <LocaleSwitcher />
           <SignOutButton />
         </div>

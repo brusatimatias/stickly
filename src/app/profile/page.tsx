@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import ProfileForm from "@/components/profile/ProfileForm";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
+import ThemeToggle from "@/components/ThemeToggle";
 import { ChevronLeftIcon } from "@/components/board/icons";
 
 export default async function ProfilePage() {
@@ -31,7 +32,10 @@ export default async function ProfilePage() {
           <ChevronLeftIcon className="h-4 w-4" />
           {t("backToBoard")}
         </Link>
-        <LocaleSwitcher />
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <LocaleSwitcher />
+        </div>
       </header>
       <div className="flex flex-1 justify-center bg-zinc-50 px-4 py-10 dark:bg-black">
         <ProfileForm

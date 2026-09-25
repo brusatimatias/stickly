@@ -1,7 +1,7 @@
-import bcrypt from "bcryptjs";
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
+import { authorizeCredentials, normalizeEmail } from "@/lib/credentials";
 import { prisma } from "@/lib/prisma";
 
 const GOOGLE_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events";
@@ -53,24 +53,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         email: {},
         password: {},
       },
-      async authorize(credentials) {
-        const email = credentials?.email as string | undefined;
-        const password = credentials?.password as string | undefined;
-        if (!email || !password) {
-          return null;
-        }
-
-        const user = await prisma.user.findUnique({ where: { email } });
-        if (!user?.password) {
-          return null;
-        }
-
-        const passwordMatches = await bcrypt.compare(password, user.password);
-        if (!passwordMatches) {
-          return null;
-        }
-
-        return { id: user.id };
+      authorize(credentials) {
+        return authorizeCredentials(credentials?.email, credentials?.password);
       },
     }),
   ],
@@ -87,13 +71,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const user = await prisma.user.upsert({
           where: { googleId: profile.sub as string },
           update: {
-            email: profile.email as string,
+            email: normalizeEmail(profile.email as string),
             name: profile.name ?? null,
             imageUrl: (profile.picture as string) ?? null,
           },
           create: {
             googleId: profile.sub as string,
-            email: profile.email as string,
+            email: normalizeEmail(profile.email as string),
             name: profile.name ?? null,
             imageUrl: (profile.picture as string) ?? null,
           },
@@ -133,6 +117,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.id = token.userId as string;
         session.user.image = (token.picture as string | undefined) ?? null;
       }
+      // Server-only: stripped from the public /api/auth/session response. Add
+      // any new secret session field to PRIVATE_SESSION_FIELDS in
+      // src/lib/publicSession.ts too.
       session.accessToken = token.accessToken as string | undefined;
 
       return session;
