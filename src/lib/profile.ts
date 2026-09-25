@@ -1,5 +1,7 @@
 const MAX_NAME_LENGTH = 100;
 const MIN_PASSWORD_LENGTH = 8;
+// bcrypt only uses the first 72 bytes; anything past that would be silently ignored.
+const MAX_PASSWORD_BYTES = 72;
 const MAX_AVATAR_BYTES = 200_000; // ~200KB decoded, keeps the DB row small
 const AVATAR_DATA_URL_PATTERN = /^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)$/;
 
@@ -26,5 +28,8 @@ export function validateAvatarDataUrl(dataUrl: string): void {
 export function validatePasswordLength(password: string): void {
   if (password.length < MIN_PASSWORD_LENGTH) {
     throw new Error("PASSWORD_TOO_SHORT");
+  }
+  if (new TextEncoder().encode(password).length > MAX_PASSWORD_BYTES) {
+    throw new Error("PASSWORD_TOO_LONG");
   }
 }

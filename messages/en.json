@@ -73,7 +73,10 @@
     "mustBeAtLeast": "Must be at least {count} characters",
     "passwordsDontMatch": "Passwords don't match",
     "savePassword": "Save password",
-    "saved": "Saved"
+    "saved": "Saved",
+    "currentPasswordPlaceholder": "Current password",
+    "showCurrentPassword": "Show current password",
+    "hideCurrentPassword": "Hide current password"
   },
   "errors": {
     "NAME_REQUIRED": "Name is required",
@@ -90,6 +93,9 @@
     "GOOGLE_SESSION_EXPIRED": "Your Google session expired. Sign out and back in to reconnect Calendar.",
     "CALENDAR_SAVE_FAILED": "Event created in Calendar, but failed to save. Try syncing again.",
     "GENERIC": "Something went wrong. Please try again.",
-    "INVALID_THEME": "Invalid theme."
+    "INVALID_THEME": "Invalid theme.",
+    "CURRENT_PASSWORD_REQUIRED": "Enter your current password to change it",
+    "INVALID_CURRENT_PASSWORD": "The current password is incorrect",
+    "PASSWORD_TOO_LONG": "Password is too long"
   }
 }

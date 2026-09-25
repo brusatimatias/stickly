@@ -52,4 +52,17 @@ describe("validatePasswordLength", () => {
       "PASSWORD_TOO_SHORT"
     );
   });
+
+  test("accepts a password at bcrypt's 72-byte limit", () => {
+    expect(() => validatePasswordLength("a".repeat(72))).not.toThrow();
+  });
+
+  test("rejects a password longer than 72 bytes", () => {
+    expect(() => validatePasswordLength("a".repeat(73))).toThrow("PASSWORD_TOO_LONG");
+  });
+
+  test("counts bytes, not characters", () => {
+    // "ñ" is 2 bytes in UTF-8: 37 of them = 74 bytes.
+    expect(() => validatePasswordLength("ñ".repeat(37))).toThrow("PASSWORD_TOO_LONG");
+  });
 });
