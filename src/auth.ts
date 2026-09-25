@@ -133,6 +133,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.id = token.userId as string;
         session.user.image = (token.picture as string | undefined) ?? null;
       }
+      // Server-only: stripped from the public /api/auth/session response. Add
+      // any new secret session field to PRIVATE_SESSION_FIELDS in
+      // src/lib/publicSession.ts too.
       session.accessToken = token.accessToken as string | undefined;
 
       return session;
