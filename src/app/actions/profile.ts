@@ -24,9 +24,22 @@ export async function updateAvatar(dataUrl: string) {
   revalidatePath("/profile");
 }
 
-export async function setPassword(password: string) {
+export async function setPassword(password: string, currentPassword?: string) {
   const userId = await requireUserId();
   validatePasswordLength(password);
+
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { id: userId },
+    select: { password: true },
+  });
+  if (user.password) {
+    if (!currentPassword) {
+      throw new Error("CURRENT_PASSWORD_REQUIRED");
+    }
+    if (!(await bcrypt.compare(currentPassword, user.password))) {
+      throw new Error("INVALID_CURRENT_PASSWORD");
+    }
+  }
 
   const hashed = await bcrypt.hash(password, 10);
   await prisma.user.update({ where: { id: userId }, data: { password: hashed } });

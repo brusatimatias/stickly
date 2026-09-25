@@ -52,10 +52,12 @@ export default function ProfileForm({
   const [avatarStatus, setAvatarStatus] = useState<Status>(null);
   const [isAvatarPending, startAvatarTransition] = useTransition();
 
+  const [currentPassword, setCurrentPassword] = useState("");
   const [password, setPasswordValue] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordStatus, setPasswordStatus] = useState<Status>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [isPasswordPending, startPasswordTransition] = useTransition();
 
   useAutoClearStatus(nameStatus, () => setNameStatus(null));
@@ -68,7 +70,9 @@ export default function ProfileForm({
   const tooShort = password.length > 0 && password.length < MIN_PASSWORD_LENGTH;
   const mismatched = confirmPassword.length > 0 && password !== confirmPassword;
   const canSavePassword =
-    password.length >= MIN_PASSWORD_LENGTH && password === confirmPassword;
+    password.length >= MIN_PASSWORD_LENGTH &&
+    password === confirmPassword &&
+    (!hasPassword || currentPassword.length > 0);
 
   function saveName() {
     if (!canSaveName) return;
@@ -111,10 +115,13 @@ export default function ProfileForm({
     setPasswordStatus(null);
     startPasswordTransition(async () => {
       try {
-        await setPassword(password);
+        await setPassword(password, hasPassword ? currentPassword : undefined);
+        setCurrentPassword("");
         setPasswordValue("");
         setConfirmPassword("");
         setPasswordStatus({ type: "success", text: t("saved") });
+        // A first-time password flips hasPassword, which the server provides.
+        router.refresh();
       } catch (error) {
         setPasswordStatus({ type: "error", text: errorMessage(tErrors, error) });
       }
@@ -195,10 +202,35 @@ export default function ProfileForm({
         <p className="text-xs text-zinc-500 dark:text-zinc-400">
           {t("passwordHint", { email })}
         </p>
+        {hasPassword && (
+          <div className="relative">
+            <input
+              type={showCurrentPassword ? "text" : "password"}
+              placeholder={t("currentPasswordPlaceholder")}
+              autoComplete="current-password"
+              value={currentPassword}
+              onChange={(event) => setCurrentPassword(event.target.value)}
+              className="w-full rounded-lg border border-zinc-300 px-3 py-1.5 pr-9 text-sm outline-none focus:border-amber-500 dark:border-zinc-700 dark:bg-zinc-900"
+            />
+            <button
+              type="button"
+              onClick={() => setShowCurrentPassword((value) => !value)}
+              aria-label={showCurrentPassword ? t("hideCurrentPassword") : t("showCurrentPassword")}
+              className="absolute inset-y-0 right-2 flex items-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+            >
+              {showCurrentPassword ? (
+                <EyeOffIcon className="h-4 w-4" />
+              ) : (
+                <EyeIcon className="h-4 w-4" />
+              )}
+            </button>
+          </div>
+        )}
         <div className="relative">
           <input
             type={showPassword ? "text" : "password"}
             placeholder={t("newPasswordPlaceholder")}
+            autoComplete="new-password"
             value={password}
             onChange={(event) => setPasswordValue(event.target.value)}
             className="w-full rounded-lg border border-zinc-300 px-3 py-1.5 pr-9 text-sm outline-none focus:border-amber-500 dark:border-zinc-700 dark:bg-zinc-900"
@@ -220,6 +252,7 @@ export default function ProfileForm({
         <input
           type={showPassword ? "text" : "password"}
           placeholder={t("confirmPasswordPlaceholder")}
+          autoComplete="new-password"
           value={confirmPassword}
           onChange={(event) => setConfirmPassword(event.target.value)}
           className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm outline-none focus:border-amber-500 dark:border-zinc-700 dark:bg-zinc-900"
