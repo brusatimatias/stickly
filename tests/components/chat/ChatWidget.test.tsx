@@ -121,6 +121,19 @@ describe("ChatWidget", () => {
     expect(screen.queryByRole("region", { name: messages.chat.title })).toBeNull();
   });
 
+  test("scrolls to the latest message when reopening the panel", async () => {
+    mockSendChatMessage.mockResolvedValue({ reply: "¿Para qué día?", createdNotes: [] });
+    renderWidget();
+    await sendMessage("Recordame llamar al plomero");
+
+    fireEvent.click(screen.getByRole("button", { name: messages.chat.close, expanded: true }));
+    vi.mocked(Element.prototype.scrollTo).mockClear();
+    fireEvent.click(screen.getByRole("button", { name: messages.chat.open }));
+
+    expect(Element.prototype.scrollTo).toHaveBeenCalledWith({ top: expect.any(Number) });
+    expect(screen.getByText("¿Para qué día?")).toBeTruthy();
+  });
+
   test("falls back to a generic confirmation when the model returns no text", async () => {
     mockSendChatMessage.mockResolvedValue({
       reply: "",

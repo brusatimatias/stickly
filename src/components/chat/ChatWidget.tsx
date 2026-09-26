@@ -44,9 +44,11 @@ export default function ChatWidget({ weekDays }: { weekDays: string[] }) {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isOpen]);
 
+  // Keep the latest turn in view: on new messages, while waiting, and when
+  // reopening (the panel unmounts on close, so the list starts at the top).
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight });
-  }, [messages, isPending]);
+  }, [messages, isPending, isOpen]);
 
   function send() {
     const content = draft.trim();
