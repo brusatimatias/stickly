@@ -102,6 +102,16 @@ describe("ChatWidget", () => {
     expect(screen.queryByText("Recordame mañana llamar al plomero", { selector: "p" })).toBeNull();
   });
 
+  test("fills the input with an example without sending it", () => {
+    renderWidget();
+
+    fireEvent.click(screen.getByRole("button", { name: messages.chat.exampleWeek }));
+
+    const input = screen.getByLabelText(messages.chat.placeholder) as HTMLTextAreaElement;
+    expect(input.value).toBe(messages.chat.exampleWeek);
+    expect(mockSendChatMessage).not.toHaveBeenCalled();
+  });
+
   test("falls back to a generic confirmation when the model returns no text", async () => {
     mockSendChatMessage.mockResolvedValue({
       reply: "",

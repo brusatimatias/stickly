@@ -73,6 +73,8 @@ describe("getUserToday", () => {
       date: "2026-09-25",
       weekday: "Friday",
       timeZone: "America/Argentina/Buenos_Aires",
+      weekStart: "2026-09-21",
+      weekEnd: "2026-09-27",
     });
   });
 
@@ -81,6 +83,19 @@ describe("getUserToday", () => {
       date: "2026-09-26",
       weekday: "Saturday",
       timeZone: "UTC",
+      weekStart: "2026-09-21",
+      weekEnd: "2026-09-27",
+    });
+  });
+
+  test("uses the Monday-start board week, so Sunday closes it and Monday opens the next", () => {
+    expect(getUserToday("UTC", new Date("2026-09-27T12:00:00Z"))).toMatchObject({
+      weekStart: "2026-09-21",
+      weekEnd: "2026-09-27",
+    });
+    expect(getUserToday("UTC", new Date("2026-09-28T12:00:00Z"))).toMatchObject({
+      weekStart: "2026-09-28",
+      weekEnd: "2026-10-04",
     });
   });
 });
@@ -113,12 +128,25 @@ describe("getChatRateLimitError", () => {
 });
 
 describe("buildChatSystemPrompt", () => {
-  const today = { date: "2026-09-26", weekday: "Saturday", timeZone: "America/Argentina/Buenos_Aires" };
+  const today = {
+    date: "2026-09-26",
+    weekday: "Saturday",
+    timeZone: "America/Argentina/Buenos_Aires",
+    weekStart: "2026-09-21",
+    weekEnd: "2026-09-27",
+  };
 
-  test("includes today's date, weekday and time zone", () => {
+  test("includes today's date, weekday, time zone and week range", () => {
     const prompt = buildChatSystemPrompt({ today, locale: "en" });
     expect(prompt).toContain("Saturday 2026-09-26");
     expect(prompt).toContain("America/Argentina/Buenos_Aires");
+    expect(prompt).toContain("Monday 2026-09-21 to Sunday 2026-09-27");
+  });
+
+  test("mentions both tools", () => {
+    const prompt = buildChatSystemPrompt({ today, locale: "en" });
+    expect(prompt).toContain("create_note");
+    expect(prompt).toContain("list_notes");
   });
 
   test("replies in the user's locale", () => {

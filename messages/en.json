@@ -106,18 +106,23 @@
     "CHAT_RATE_LIMITED": "You're sending messages too fast. Wait a minute and try again.",
     "CHAT_DAILY_LIMIT_REACHED": "You've reached today's chat limit. Try again tomorrow.",
     "CHAT_QUOTA_EXCEEDED": "The assistant is at capacity right now. Try again later.",
-    "CHAT_UNAVAILABLE": "The assistant isn't available right now. Try again later."
+    "CHAT_UNAVAILABLE": "The assistant isn't available right now. Try again later.",
+    "INVALID_DATE_RANGE": "Invalid date range"
   },
   "chat": {
     "title": "Assistant",
     "open": "Open assistant",
     "close": "Close assistant",
-    "placeholder": "Remind me tomorrow at 10 to call the plumber…",
+    "placeholder": "Write a reminder or ask about your week…",
     "send": "Send",
-    "emptyHint": "Tell me what to remember and when, and I'll add it to your board.",
+    "emptyHint": "I can add reminders to your board and tell you what's still pending.",
     "thinking": "Thinking…",
     "noteCreated": "Done, the note is on your board.",
     "noReply": "I couldn't answer that. Try rephrasing it.",
-    "viewWeek": "View {day} on the board"
+    "viewWeek": "View {day} on the board",
+    "examplesLabel": "Try:",
+    "exampleCreate": "Remind me tomorrow at 10 to call the plumber",
+    "exampleWeek": "What's left to do this week?",
+    "exampleToday": "What do I have today?"
   }
 }

@@ -1,4 +1,6 @@
+import { addDays, format, parseISO } from "date-fns";
 import type { Locale } from "@/i18n/locales";
+import { getWeekRange } from "@/lib/week";
 
 export const DEFAULT_CHAT_MODEL = "gemini-3.5-flash-lite";
 
@@ -61,11 +63,21 @@ export function sanitizeChatMessages(raw: unknown): ChatMessage[] {
   return messages.slice(firstUser);
 }
 
+export type UserToday = {
+  date: string;
+  weekday: string;
+  timeZone: string;
+  /** Monday and Sunday (yyyy-MM-dd) of the board week containing `date`. */
+  weekStart: string;
+  weekEnd: string;
+};
+
 /**
  * "Today" as seen by the user, so the model can resolve relative dates
- * ("tomorrow", "on Friday"). Falls back to UTC for an unknown time zone.
+ * ("tomorrow", "on Friday", "this week"). Falls back to UTC for an unknown
+ * time zone.
  */
-export function getUserToday(timeZone: string, now: Date): { date: string; weekday: string; timeZone: string } {
+export function getUserToday(timeZone: string, now: Date): UserToday {
   let zone = timeZone;
   try {
     new Intl.DateTimeFormat("en-US", { timeZone: zone });
@@ -75,7 +87,14 @@ export function getUserToday(timeZone: string, now: Date): { date: string; weekd
   // en-CA formats dates as yyyy-MM-dd.
   const date = new Intl.DateTimeFormat("en-CA", { timeZone: zone }).format(now);
   const weekday = new Intl.DateTimeFormat("en-US", { timeZone: zone, weekday: "long" }).format(now);
-  return { date, weekday, timeZone: zone };
+  const week = getWeekRange(parseISO(date));
+  return {
+    date,
+    weekday,
+    timeZone: zone,
+    weekStart: format(week.start, "yyyy-MM-dd"),
+    weekEnd: format(addDays(week.end, -1), "yyyy-MM-dd"),
+  };
 }
 
 /** Returns the error code for the first exceeded limit, or null. Counts include the current message. */
@@ -99,25 +118,36 @@ export function getChatRateLimitError(counts: {
 const LANGUAGE_NAMES: Record<Locale, string> = { en: "English", es: "Spanish" };
 
 export function buildChatSystemPrompt(context: {
-  today: { date: string; weekday: string; timeZone: string };
+  today: UserToday;
   locale: Locale;
 }): string {
   const { today, locale } = context;
   return `You are the assistant of Stickly, a weekly board of sticky notes and reminders.
-Your only job is to turn what the user asks into notes using the create_note tool.
+You help the user with their notes: you create notes with the create_note tool and answer questions about their notes with the list_notes tool.
 
 Today is ${today.weekday} ${today.date} in the user's time zone (${today.timeZone}).
-Resolve relative dates ("tomorrow", "on Friday", "next Monday") against it. A bare weekday means its next occurrence, today included.
+This week runs from Monday ${today.weekStart} to Sunday ${today.weekEnd}.
+Resolve relative dates ("tomorrow", "on Friday", "next Monday", "next week") against it. A bare weekday means its next occurrence, today included.
 
-Rules:
+Creating notes:
 - Every note needs a day. If the user did not give a date, ask for it instead of guessing or calling the tool.
 - Only set "time" when the user gave one, as 24h HH:mm ("6 pm" is 18:00).
 - "title" is a short action ("Call the plumber"). Put any extra details in "description". Set "location" only when a place is mentioned.
 - Write the note fields in the language the user wrote in.
 - One tool call per note. If the user asks for several notes, create each one.
-- If the tool returns an error, explain it briefly or ask for what is missing. NOTE_NOT_SAVED means a temporary problem: say the note could not be saved and suggest trying again.
 - After creating a note, confirm it in one short sentence including its day written naturally (e.g. "Friday, October 2"), and its time if any.
-- If the user asks for anything other than creating notes, say briefly that you can only create notes.
 
-Reply in ${LANGUAGE_NAMES[locale]} unless the user writes in another language. Use plain text, no markdown.`;
+Answering about notes:
+- Always call list_notes to answer; never answer from memory or from earlier messages, since notes change on the board.
+- Pick the range from the question: "today" is from=to=today; "this week" is the week above; "tomorrow", a weekday or "next week" likewise.
+- Use status "pending" for things not done yet ("what's left", "what do I have to do"), "done" for completed ones, and "all" otherwise.
+- For a multi-day range, answer with one line per day in order, "Weekday: items", listing every day in the range, and "nothing" for days without notes. Start each line with a capital letter, separate several items in a day with commas, and put the time before the title when there is one.
+- For a single day, list its items one per line, or say there is nothing.
+- Use the note titles as they are. Mention location or description only if the user asks for details.
+
+Errors and scope:
+- If a tool returns an error, explain it briefly or ask for what is missing. NOTE_NOT_SAVED and NOTES_UNAVAILABLE mean a temporary problem: say so and suggest trying again.
+- If the user asks for anything other than creating notes or asking about them, say briefly that you can only help with their notes.
+
+Reply in ${LANGUAGE_NAMES[locale]} unless the user writes in another language, and translate weekday names to that language. Use plain text, no markdown.`;
 }

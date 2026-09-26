@@ -1,12 +1,26 @@
 "use server";
 
 import { google } from "@ai-sdk/google";
-import { APICallError, RetryError, generateText, isStepCount, jsonSchema, tool } from "ai";
+import {
+  APICallError,
+  RetryError,
+  generateText,
+  isStepCount,
+  jsonSchema,
+  tool,
+  type JSONSchema7,
+} from "ai";
 import { getLocale } from "next-intl/server";
 import { revalidatePath } from "next/cache";
 import { isSupportedLocale, DEFAULT_LOCALE } from "@/i18n/locales";
 import { createNoteForUser } from "@/lib/noteCreation";
-import { CREATE_NOTE_TOOL, parseNoteToolInput } from "@/lib/noteInput";
+import {
+  CREATE_NOTE_TOOL,
+  LIST_NOTES_TOOL,
+  parseListNotesInput,
+  parseNoteToolInput,
+} from "@/lib/noteInput";
+import { listNotesForUser } from "@/lib/notes";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/session";
 import {
@@ -25,12 +39,32 @@ const RECOVERABLE_TOOL_ERRORS = new Set([
   "DAY_REQUIRED",
   "INVALID_DAY",
   "INVALID_TIME",
+  "INVALID_DATE_RANGE",
   "INVALID_NOTE_INPUT",
 ]);
 
 // A tool call plus the final reply is 2 steps; the extra room covers a
-// message that asks for more than one note.
+// message that asks for more than one note, or a lookup before creating.
 const MAX_STEPS = 4;
+
+/** The shared tool schemas are deeply readonly (`as const`); the SDK types them as a mutable JSONSchema7. */
+function toolSchema(schema: object) {
+  return jsonSchema(schema as JSONSchema7);
+}
+
+/**
+ * Maps an error thrown while running a tool to the result the model sees.
+ * The SDK feeds anything thrown from `execute` back to the model verbatim,
+ * so unexpected errors (e.g. Prisma's) must not escape: they're logged and
+ * replaced by a generic code the model can relay without leaking internals.
+ */
+function toolErrorResult(toolName: string, error: unknown, genericCode: string) {
+  if (error instanceof Error && RECOVERABLE_TOOL_ERRORS.has(error.message)) {
+    return { ok: false, error: error.message };
+  }
+  console.error(`[chat] ${toolName} failed`, error);
+  return { ok: false, error: genericCode };
+}
 
 /**
  * Records this message and enforces the per-user and global limits over
@@ -69,24 +103,26 @@ export async function sendChatMessage(input: { messages: unknown; timeZone: stri
 
   const createNote = tool({
     description: CREATE_NOTE_TOOL.description,
-    inputSchema: jsonSchema({
-      ...CREATE_NOTE_TOOL.inputSchema,
-      required: [...CREATE_NOTE_TOOL.inputSchema.required],
-    }),
+    inputSchema: toolSchema(CREATE_NOTE_TOOL.inputSchema),
     execute: async (args: unknown) => {
       try {
         const note = await createNoteForUser(userId, parseNoteToolInput(args));
         createdNotes.push(note);
         return { ok: true, day: note.day };
       } catch (error) {
-        if (error instanceof Error && RECOVERABLE_TOOL_ERRORS.has(error.message)) {
-          return { ok: false, error: error.message };
-        }
-        // The SDK feeds anything thrown here back to the model verbatim, so
-        // unexpected errors (e.g. Prisma's) must not escape: log them and hand
-        // the model a generic code it can relay without leaking internals.
-        console.error("[chat] create_note failed", error);
-        return { ok: false, error: "NOTE_NOT_SAVED" };
+        return toolErrorResult(CREATE_NOTE_TOOL.name, error, "NOTE_NOT_SAVED");
+      }
+    },
+  });
+
+  const listNotes = tool({
+    description: LIST_NOTES_TOOL.description,
+    inputSchema: toolSchema(LIST_NOTES_TOOL.inputSchema),
+    execute: async (args: unknown) => {
+      try {
+        return { ok: true, ...(await listNotesForUser(userId, parseListNotesInput(args))) };
+      } catch (error) {
+        return toolErrorResult(LIST_NOTES_TOOL.name, error, "NOTES_UNAVAILABLE");
       }
     },
   });
@@ -97,7 +133,7 @@ export async function sendChatMessage(input: { messages: unknown; timeZone: stri
       model: google(process.env.CHAT_MODEL || DEFAULT_CHAT_MODEL),
       system: buildChatSystemPrompt({ today: getUserToday(input.timeZone, new Date()), locale }),
       messages,
-      tools: { [CREATE_NOTE_TOOL.name]: createNote },
+      tools: { [CREATE_NOTE_TOOL.name]: createNote, [LIST_NOTES_TOOL.name]: listNotes },
       stopWhen: isStepCount(MAX_STEPS),
       // A 429 won't clear up within a retry, and retries spend free-tier quota.
       maxRetries: 0,

@@ -6,6 +6,7 @@ const mockPrisma = vi.hoisted(() => ({
   note: {
     aggregate: vi.fn(),
     create: vi.fn(),
+    findMany: vi.fn(),
   },
   webChatUsage: {
     create: vi.fn(),
@@ -37,8 +38,8 @@ const USAGE = {
 
 type Content = Awaited<ReturnType<MockLanguageModelV4["doGenerate"]>>["content"];
 
-function toolCall(input: Record<string, unknown>, id = "call-1"): Content {
-  return [{ type: "tool-call", toolCallId: id, toolName: "create_note", input: JSON.stringify(input) }];
+function toolCall(input: Record<string, unknown>, toolName = "create_note", id = "call-1"): Content {
+  return [{ type: "tool-call", toolCallId: id, toolName, input: JSON.stringify(input) }];
 }
 
 function text(value: string): Content {
@@ -149,7 +150,7 @@ describe("sendChatMessage", () => {
 
     const firstCall = model.doGenerateCalls[0];
     expect(JSON.stringify(firstCall.prompt)).toContain("Reply in Spanish");
-    expect(firstCall.tools?.map((toolDef) => toolDef.name)).toEqual(["create_note"]);
+    expect(firstCall.tools?.map((toolDef) => toolDef.name)).toEqual(["create_note", "list_notes"]);
   });
 
   test("returns a recoverable tool error to the model instead of creating the note", async () => {
@@ -177,6 +178,63 @@ describe("sendChatMessage", () => {
     expect(secondPrompt).toContain("NOTE_NOT_SAVED");
     expect(secondPrompt).not.toContain("Unique constraint");
     expect(result).toEqual({ reply: "No pude guardar la nota, probá de nuevo.", createdNotes: [] });
+  });
+
+  test("answers from list_notes with every day of the range and no board refresh", async () => {
+    mockPrisma.note.findMany.mockResolvedValue([
+      {
+        id: "note-1",
+        title: "Tomar el té",
+        location: null,
+        description: null,
+        scheduledAt: new Date(2026, 8, 21, 0, 0),
+        hasTime: false,
+        isDone: false,
+        googleEventId: null,
+      },
+    ]);
+    const model = mockModel([
+      toolCall({ from: "2026-09-21", to: "2026-09-22", status: "pending" }, "list_notes"),
+      text("Lunes: tomar el té\nMartes: nada"),
+    ]);
+
+    const result = await sendChatMessage({
+      messages: [{ role: "user", content: "¿Qué tengo sin hacer esta semana?" }],
+      timeZone: TIME_ZONE,
+    });
+
+    expect(mockPrisma.note.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ userId: "user-1", isDraft: false }) })
+    );
+    const toolResultPrompt = JSON.stringify(model.doGenerateCalls[1].prompt);
+    expect(toolResultPrompt).toContain("Tomar el té");
+    expect(toolResultPrompt).toContain("2026-09-22");
+    expect(result).toEqual({ reply: "Lunes: tomar el té\nMartes: nada", createdNotes: [] });
+    expect(mockRevalidatePath).not.toHaveBeenCalled();
+  });
+
+  test("returns an invalid list_notes range to the model as a recoverable error", async () => {
+    const model = mockModel([
+      toolCall({ from: "2026-09-27", to: "2026-09-21" }, "list_notes"),
+      text("¿De qué fechas?"),
+    ]);
+
+    await sendChatMessage({ messages: MESSAGES, timeZone: TIME_ZONE });
+
+    expect(mockPrisma.note.findMany).not.toHaveBeenCalled();
+    expect(JSON.stringify(model.doGenerateCalls[1].prompt)).toContain("INVALID_DATE_RANGE");
+  });
+
+  test("hides unexpected list_notes failures behind NOTES_UNAVAILABLE", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    mockPrisma.note.findMany.mockRejectedValueOnce(new Error("connection terminated unexpectedly"));
+    const model = mockModel([toolCall({ from: "2026-09-26" }, "list_notes"), text("Probá de nuevo.")]);
+
+    await sendChatMessage({ messages: MESSAGES, timeZone: TIME_ZONE });
+
+    const secondPrompt = JSON.stringify(model.doGenerateCalls[1].prompt);
+    expect(secondPrompt).toContain("NOTES_UNAVAILABLE");
+    expect(secondPrompt).not.toContain("connection terminated");
   });
 
   test("maps a 429 from the provider to CHAT_QUOTA_EXCEEDED", async () => {

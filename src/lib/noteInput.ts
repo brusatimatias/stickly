@@ -1,10 +1,12 @@
-import { format, isValid, parseISO } from "date-fns";
+import { differenceInCalendarDays, format, isValid, parseISO } from "date-fns";
 
 const MAX_TITLE_LENGTH = 80;
 const MAX_LOCATION_LENGTH = 60;
 const MAX_DESCRIPTION_LENGTH = 300;
 const DAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
+// Caps how many notes a single list_notes call can pull into the model.
+const MAX_LIST_RANGE_DAYS = 31;
 
 export function sanitizeTitle(title: string): string {
   const trimmed = title.trim().slice(0, MAX_TITLE_LENGTH);
@@ -23,9 +25,8 @@ export function sanitizeDescription(description: string): string | null {
 }
 
 /**
- * The `create_note` tool as exposed to the web chat LLM and, through WebMCP,
- * to external browser agents. Both paths validate the arguments with
- * `parseNoteToolInput` rather than trusting the schema.
+ * The `create_note` tool as exposed to the web chat LLM. Its arguments are
+ * validated with `parseNoteToolInput` rather than trusting the schema.
  */
 export const CREATE_NOTE_TOOL = {
   name: "create_note",
@@ -54,6 +55,38 @@ export const CREATE_NOTE_TOOL = {
   },
 } as const;
 
+export const LIST_NOTES_STATUSES = ["all", "pending", "done"] as const;
+export type ListNotesStatus = (typeof LIST_NOTES_STATUSES)[number];
+
+/**
+ * Read-only companion of `create_note`, so the web chat can answer "what do
+ * I have today / this week" from the user's notes.
+ */
+export const LIST_NOTES_TOOL = {
+  name: "list_notes",
+  description:
+    "Lists the user's scheduled notes (reminders) between two days, inclusive, ordered by day and board position. Draft notes without a date are not included.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      from: { type: "string", description: "First day, yyyy-MM-dd." },
+      to: {
+        type: "string",
+        description: `Last day (inclusive), yyyy-MM-dd. Defaults to "from". At most ${MAX_LIST_RANGE_DAYS} days after "from".`,
+      },
+      status: {
+        type: "string",
+        enum: [...LIST_NOTES_STATUSES],
+        description: 'Filter by completion: "pending" (not done), "done", or "all" (default).',
+      },
+    },
+    required: ["from"],
+    additionalProperties: false,
+  },
+} as const;
+
+export type ListNotesInput = { from: string; to: string; status: ListNotesStatus };
+
 export type NoteToolInput = {
   title: string;
   location: string;
@@ -61,6 +94,24 @@ export type NoteToolInput = {
   day: string;
   time: string;
 };
+
+function readInputObject(raw: unknown): Record<string, unknown> {
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+    throw new Error("INVALID_NOTE_INPUT");
+  }
+  return raw as Record<string, unknown>;
+}
+
+function validateDay(day: string): void {
+  if (!day) {
+    throw new Error("DAY_REQUIRED");
+  }
+  // The round trip rejects well-formed but nonexistent dates like 2026-02-30.
+  const parsedDay = parseISO(day);
+  if (!DAY_PATTERN.test(day) || !isValid(parsedDay) || format(parsedDay, "yyyy-MM-dd") !== day) {
+    throw new Error("INVALID_DAY");
+  }
+}
 
 function readOptionalString(value: unknown): string {
   if (value === undefined || value === null) {
@@ -74,15 +125,12 @@ function readOptionalString(value: unknown): string {
 
 /**
  * Validates the arguments of the `create_note` tool, which come as untrusted
- * JSON from the chat LLM or from an external WebMCP agent. Missing optional
- * fields become "", matching `createNote`'s form input. Length limits and the
- * blank-title check are applied later by `createNoteForUser`.
+ * JSON from the chat LLM. Missing optional fields become "", matching
+ * `createNote`'s form input. Length limits and the blank-title check are
+ * applied later by `createNoteForUser`.
  */
 export function parseNoteToolInput(raw: unknown): NoteToolInput {
-  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
-    throw new Error("INVALID_NOTE_INPUT");
-  }
-  const input = raw as Record<string, unknown>;
+  const input = readInputObject(raw);
 
   const title = readOptionalString(input.title);
   const location = readOptionalString(input.location);
@@ -90,17 +138,32 @@ export function parseNoteToolInput(raw: unknown): NoteToolInput {
   const day = readOptionalString(input.day);
   const time = readOptionalString(input.time);
 
-  if (!day) {
-    throw new Error("DAY_REQUIRED");
-  }
-  // The round trip rejects well-formed but nonexistent dates like 2026-02-30.
-  const parsedDay = parseISO(day);
-  if (!DAY_PATTERN.test(day) || !isValid(parsedDay) || format(parsedDay, "yyyy-MM-dd") !== day) {
-    throw new Error("INVALID_DAY");
-  }
+  validateDay(day);
   if (time && !TIME_PATTERN.test(time)) {
     throw new Error("INVALID_TIME");
   }
 
   return { title, location, description, day, time };
+}
+
+/** Validates the untrusted arguments of the `list_notes` tool. */
+export function parseListNotesInput(raw: unknown): ListNotesInput {
+  const input = readInputObject(raw);
+
+  const from = readOptionalString(input.from);
+  validateDay(from);
+  const to = readOptionalString(input.to) || from;
+  validateDay(to);
+
+  const rangeDays = differenceInCalendarDays(parseISO(to), parseISO(from));
+  if (rangeDays < 0 || rangeDays > MAX_LIST_RANGE_DAYS) {
+    throw new Error("INVALID_DATE_RANGE");
+  }
+
+  const status = readOptionalString(input.status) || "all";
+  if (!LIST_NOTES_STATUSES.includes(status as ListNotesStatus)) {
+    throw new Error("INVALID_NOTE_INPUT");
+  }
+
+  return { from, to, status: status as ListNotesStatus };
 }

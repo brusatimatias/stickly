@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import {
+  parseListNotesInput,
   parseNoteToolInput,
   sanitizeDescription,
   sanitizeLocation,
@@ -85,5 +86,46 @@ describe("parseNoteToolInput", () => {
     expect(() => parseNoteToolInput({ title: "Title", day: "2026-09-27", time: 1800 })).toThrow(
       "INVALID_NOTE_INPUT"
     );
+  });
+});
+
+describe("parseListNotesInput", () => {
+  test("defaults to a single day and all statuses", () => {
+    expect(parseListNotesInput({ from: "2026-09-26" })).toEqual({
+      from: "2026-09-26",
+      to: "2026-09-26",
+      status: "all",
+    });
+  });
+
+  test("accepts a range and a status", () => {
+    expect(parseListNotesInput({ from: "2026-09-21", to: "2026-09-27", status: "pending" })).toEqual({
+      from: "2026-09-21",
+      to: "2026-09-27",
+      status: "pending",
+    });
+  });
+
+  test("requires a valid from day", () => {
+    expect(() => parseListNotesInput({})).toThrow("DAY_REQUIRED");
+    expect(() => parseListNotesInput({ from: "today" })).toThrow("INVALID_DAY");
+    expect(() => parseListNotesInput({ from: "2026-09-21", to: "2026-02-30" })).toThrow("INVALID_DAY");
+  });
+
+  test("rejects a reversed or longer than 31-day range", () => {
+    expect(() => parseListNotesInput({ from: "2026-09-27", to: "2026-09-21" })).toThrow(
+      "INVALID_DATE_RANGE"
+    );
+    expect(() => parseListNotesInput({ from: "2026-09-01", to: "2026-10-03" })).toThrow(
+      "INVALID_DATE_RANGE"
+    );
+    expect(parseListNotesInput({ from: "2026-09-01", to: "2026-10-02" }).to).toBe("2026-10-02");
+  });
+
+  test("rejects an unknown status or a non-object input", () => {
+    expect(() => parseListNotesInput({ from: "2026-09-26", status: "late" })).toThrow(
+      "INVALID_NOTE_INPUT"
+    );
+    expect(() => parseListNotesInput("2026-09-26")).toThrow("INVALID_NOTE_INPUT");
   });
 });

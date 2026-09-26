@@ -13,6 +13,8 @@ import { formatWeekParam } from "@/lib/week";
 
 type DisplayMessage = ChatMessage & { notes?: { id: string; day: string }[] };
 
+const EXAMPLE_KEYS = ["exampleCreate", "exampleWeek", "exampleToday"] as const;
+
 /**
  * Floating assistant that creates notes from natural language. The
  * conversation lives only in this component's state (it's mounted outside
@@ -110,9 +112,24 @@ export default function ChatWidget({ weekDays }: { weekDays: string[] }) {
 
           <div ref={listRef} className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-3 text-sm">
             {messages.length === 0 ? (
-              <p className="m-auto max-w-[16rem] text-center text-zinc-500 dark:text-zinc-400">
-                {t("emptyHint")}
-              </p>
+              <div className="m-auto flex max-w-[17rem] flex-col gap-3 text-zinc-500 dark:text-zinc-400">
+                <p className="text-center">{t("emptyHint")}</p>
+                <p className="text-xs font-medium">{t("examplesLabel")}</p>
+                {/* Examples fill the input instead of sending, so they can be edited first. */}
+                {EXAMPLE_KEYS.map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => {
+                      setDraft(t(key));
+                      inputRef.current?.focus();
+                    }}
+                    className="cursor-pointer rounded-lg border border-dashed border-zinc-300 px-3 py-2 text-left text-zinc-700 transition-colors hover:border-zinc-400 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-500 dark:hover:bg-zinc-900"
+                  >
+                    {t(key)}
+                  </button>
+                ))}
+              </div>
             ) : null}
             {messages.map((message, index) =>
               message.role === "user" ? (

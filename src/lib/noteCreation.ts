@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 
 /**
  * Creates a scheduled note at the end of its day. Shared by the board's
- * `createNote` action and the `create_note` tool (web chat and WebMCP).
+ * `createNote` action and the web chat's `create_note` tool.
  * Kept outside `"use server"` files on purpose: it takes an already-resolved
  * `userId`, so it must never be exposed as a server action itself.
  *
