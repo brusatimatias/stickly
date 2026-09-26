@@ -16,6 +16,7 @@ A notes/reminders app organized on a whiteboard-style weekly board, with Google 
 - `npm run type-check` — `next typegen && tsc --noEmit`; regenerates Next's route types before checking.
 - `npm test` — Vitest (jsdom environment, `tests/**/*.test.{ts,tsx}`). Run a single file with `npm test -- tests/lib/notes.test.ts`, or filter by name with `npm test -- -t "pattern"`.
 - `npx prisma migrate dev` — apply/create Prisma migrations locally.
+- `npm run db:seed` — runs `prisma/seed.sql` (idempotent; demo users `@stickly.test`, credentials login only, passwords in the file header).
 - `npx prisma generate` — regenerate the Prisma client into `src/generated/prisma` (runs automatically via `postinstall`).
 - Deploy is Vercel: `vercel-build` runs `prisma migrate deploy` before `next build`. CI (`.github/workflows`) runs lint, type-check, test and build on every push/PR.
 - A project `Stop` hook (`.claude/hooks/verify.sh`) runs lint + type-check + tests at the end of each turn when `src`, `tests`, `prisma`, `messages` or the tooling config changed, and feeds failures back (up to 3 attempts) — so there's no need to run those manually just before finishing.

@@ -10,6 +10,7 @@
     "lint": "eslint",
     "type-check": "next typegen && tsc --noEmit",
     "test": "vitest run",
+    "db:seed": "prisma db execute --file prisma/seed.sql --config prisma7.config.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {
