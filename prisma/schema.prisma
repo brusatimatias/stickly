@@ -11,15 +11,16 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  googleId  String   @unique
-  email     String   @unique
-  name      String?
-  imageUrl  String?
-  avatarUrl String?
-  password  String?
-  notes     Note[]
-  createdAt DateTime @default(now())
+  id            String         @id @default(cuid())
+  googleId      String         @unique
+  email         String         @unique
+  name          String?
+  imageUrl      String?
+  avatarUrl     String?
+  password      String?
+  notes         Note[]
+  webChatUsages WebChatUsage[]
+  createdAt     DateTime       @default(now())
 }
 
 model Note {
@@ -39,4 +40,17 @@ model Note {
   updatedAt     DateTime  @updatedAt
 
   @@index([userId, scheduledAt])
+}
+
+/// One row per web chat message, used only to rate-limit the LLM chat
+/// (per user and globally, over rolling windows). Rows older than the
+/// longest window are pruned by the chat action itself.
+model WebChatUsage {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
 }

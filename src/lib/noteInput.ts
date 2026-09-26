@@ -22,6 +22,38 @@ export function sanitizeDescription(description: string): string | null {
   return description.trim().slice(0, MAX_DESCRIPTION_LENGTH) || null;
 }
 
+/**
+ * The `create_note` tool as exposed to the web chat LLM and, through WebMCP,
+ * to external browser agents. Both paths validate the arguments with
+ * `parseNoteToolInput` rather than trusting the schema.
+ */
+export const CREATE_NOTE_TOOL = {
+  name: "create_note",
+  description:
+    "Creates a note (reminder) on the user's Stickly weekly board, on the given day and optionally at a given time.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      title: {
+        type: "string",
+        description: `Short action-style title, at most ${MAX_TITLE_LENGTH} characters, e.g. "Call the plumber".`,
+      },
+      day: { type: "string", description: "Day of the note, yyyy-MM-dd." },
+      time: { type: "string", description: "Time of day in 24h HH:mm. Omit when none was given." },
+      location: {
+        type: "string",
+        description: `Place, only if one was mentioned. At most ${MAX_LOCATION_LENGTH} characters.`,
+      },
+      description: {
+        type: "string",
+        description: `Extra details that don't fit the title. At most ${MAX_DESCRIPTION_LENGTH} characters.`,
+      },
+    },
+    required: ["title", "day"],
+    additionalProperties: false,
+  },
+} as const;
+
 export type NoteToolInput = {
   title: string;
   location: string;

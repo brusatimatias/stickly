@@ -100,6 +100,12 @@
     "INVALID_NOTE_INPUT": "Invalid note data",
     "DAY_REQUIRED": "A date is required for this note",
     "INVALID_DAY": "Invalid date",
-    "INVALID_TIME": "Invalid time"
+    "INVALID_TIME": "Invalid time",
+    "INVALID_CHAT_MESSAGES": "Invalid chat message",
+    "CHAT_MESSAGE_TOO_LONG": "That message is too long (max 500 characters)",
+    "CHAT_RATE_LIMITED": "You're sending messages too fast. Wait a minute and try again.",
+    "CHAT_DAILY_LIMIT_REACHED": "You've reached today's chat limit. Try again tomorrow.",
+    "CHAT_QUOTA_EXCEEDED": "The assistant is at capacity right now. Try again later.",
+    "CHAT_UNAVAILABLE": "The assistant isn't available right now. Try again later."
   }
 }

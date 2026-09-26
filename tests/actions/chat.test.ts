@@ -1,0 +1,209 @@
+import { APICallError } from "ai";
+import { MockLanguageModelV4 } from "ai/test";
+import { beforeEach, describe, expect, test, vi } from "vitest";
+
+const mockPrisma = vi.hoisted(() => ({
+  note: {
+    aggregate: vi.fn(),
+    create: vi.fn(),
+  },
+  webChatUsage: {
+    create: vi.fn(),
+    count: vi.fn(),
+    deleteMany: vi.fn(),
+  },
+}));
+
+const mockAuth = vi.hoisted(() => vi.fn());
+const mockRevalidatePath = vi.hoisted(() => vi.fn());
+const mockGoogle = vi.hoisted(() => vi.fn());
+
+vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }));
+vi.mock("@/auth", () => ({ auth: mockAuth }));
+vi.mock("next/cache", () => ({ revalidatePath: mockRevalidatePath }));
+vi.mock("next-intl/server", () => ({ getLocale: async () => "es" }));
+vi.mock("@ai-sdk/google", () => ({ google: mockGoogle }));
+
+import { sendChatMessage } from "@/app/actions/chat";
+
+const SESSION = { user: { id: "user-1" } };
+const TIME_ZONE = "America/Argentina/Buenos_Aires";
+const MESSAGES = [{ role: "user", content: "Recordame mañana llamar al plomero" }];
+
+const USAGE = {
+  inputTokens: { total: 10, noCache: 10, cacheRead: undefined, cacheWrite: undefined },
+  outputTokens: { total: 5, text: 5, reasoning: undefined },
+};
+
+type Content = Awaited<ReturnType<MockLanguageModelV4["doGenerate"]>>["content"];
+
+function toolCall(input: Record<string, unknown>, id = "call-1"): Content {
+  return [{ type: "tool-call", toolCallId: id, toolName: "create_note", input: JSON.stringify(input) }];
+}
+
+function text(value: string): Content {
+  return [{ type: "text", text: value }];
+}
+
+/** A model that answers each step with the next content in `steps`. */
+function mockModel(steps: Content[]) {
+  let call = 0;
+  const model = new MockLanguageModelV4({
+    doGenerate: async () => {
+      const content = steps[Math.min(call, steps.length - 1)];
+      const isToolStep = content.some((part) => part.type === "tool-call");
+      call += 1;
+      return {
+        content,
+        finishReason: { unified: isToolStep ? "tool-calls" : "stop", raw: undefined },
+        usage: USAGE,
+        warnings: [],
+      };
+    },
+  });
+  mockGoogle.mockReturnValue(model);
+  return model;
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockAuth.mockResolvedValue(SESSION);
+  mockPrisma.note.aggregate.mockResolvedValue({ _max: { position: null } });
+  mockPrisma.webChatUsage.create.mockResolvedValue({ id: "usage-1" });
+  mockPrisma.webChatUsage.count.mockResolvedValue(1);
+});
+
+describe("sendChatMessage", () => {
+  test("throws when unauthenticated, without touching the database or the model", async () => {
+    mockAuth.mockResolvedValue(null);
+    const model = mockModel([text("hi")]);
+
+    await expect(sendChatMessage({ messages: MESSAGES, timeZone: TIME_ZONE })).rejects.toThrow(
+      "UNAUTHORIZED"
+    );
+    expect(mockPrisma.webChatUsage.create).not.toHaveBeenCalled();
+    expect(model.doGenerateCalls).toHaveLength(0);
+  });
+
+  test("rejects invalid messages before consuming quota", async () => {
+    await expect(
+      sendChatMessage({ messages: [{ role: "user", content: "" }], timeZone: TIME_ZONE })
+    ).rejects.toThrow("INVALID_CHAT_MESSAGES");
+    expect(mockPrisma.webChatUsage.create).not.toHaveBeenCalled();
+  });
+
+  test("records usage scoped to the user and prunes rows older than a day", async () => {
+    mockModel([text("¿Para qué día?")]);
+
+    await sendChatMessage({ messages: MESSAGES, timeZone: TIME_ZONE });
+
+    expect(mockPrisma.webChatUsage.deleteMany).toHaveBeenCalledWith({
+      where: { createdAt: { lt: expect.any(Date) } },
+    });
+    expect(mockPrisma.webChatUsage.create).toHaveBeenCalledWith({ data: { userId: "user-1" } });
+    expect(mockPrisma.webChatUsage.count).toHaveBeenCalledWith({
+      where: { userId: "user-1", createdAt: { gte: expect.any(Date) } },
+    });
+  });
+
+  test.each([
+    ["user per-minute", [6, 6, 6], "CHAT_RATE_LIMITED"],
+    ["user per-day", [1, 31, 31], "CHAT_DAILY_LIMIT_REACHED"],
+    ["global per-day", [1, 1, 201], "CHAT_QUOTA_EXCEEDED"],
+  ])("rejects over the %s limit and releases the usage row", async (_, counts, code) => {
+    const model = mockModel([text("hi")]);
+    for (const count of counts) {
+      mockPrisma.webChatUsage.count.mockResolvedValueOnce(count);
+    }
+
+    await expect(sendChatMessage({ messages: MESSAGES, timeZone: TIME_ZONE })).rejects.toThrow(code);
+    expect(mockPrisma.webChatUsage.deleteMany).toHaveBeenLastCalledWith({
+      where: { id: "usage-1", userId: "user-1" },
+    });
+    expect(model.doGenerateCalls).toHaveLength(0);
+  });
+
+  test("creates the note from the tool call and returns the model's reply", async () => {
+    const model = mockModel([
+      toolCall({ title: "Llamar al plomero", day: "2026-09-27", description: "Pérdida en la cocina" }),
+      text("Listo, te lo agendé para mañana domingo."),
+    ]);
+
+    const result = await sendChatMessage({ messages: MESSAGES, timeZone: TIME_ZONE });
+
+    expect(mockPrisma.note.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        title: "Llamar al plomero",
+        description: "Pérdida en la cocina",
+        location: null,
+        hasTime: false,
+        userId: "user-1",
+      }),
+    });
+    expect(result).toEqual({
+      reply: "Listo, te lo agendé para mañana domingo.",
+      createdNotes: [{ id: expect.any(String), day: "2026-09-27" }],
+    });
+    expect(mockRevalidatePath).toHaveBeenCalledWith("/");
+    expect(mockGoogle).toHaveBeenCalledWith("gemini-3.5-flash-lite");
+
+    const firstCall = model.doGenerateCalls[0];
+    expect(JSON.stringify(firstCall.prompt)).toContain("Reply in Spanish");
+    expect(firstCall.tools?.map((toolDef) => toolDef.name)).toEqual(["create_note"]);
+  });
+
+  test("returns a recoverable tool error to the model instead of creating the note", async () => {
+    const model = mockModel([toolCall({ title: "Llamar al plomero" }), text("¿Para qué día?")]);
+
+    const result = await sendChatMessage({ messages: MESSAGES, timeZone: TIME_ZONE });
+
+    expect(mockPrisma.note.create).not.toHaveBeenCalled();
+    expect(mockRevalidatePath).not.toHaveBeenCalled();
+    expect(result).toEqual({ reply: "¿Para qué día?", createdNotes: [] });
+    expect(JSON.stringify(model.doGenerateCalls[1].prompt)).toContain("DAY_REQUIRED");
+  });
+
+  test("hides unexpected tool failures from the model behind a generic code", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    mockPrisma.note.create.mockRejectedValueOnce(new Error("Unique constraint failed on Note.id"));
+    const model = mockModel([
+      toolCall({ title: "Llamar al plomero", day: "2026-09-27" }),
+      text("No pude guardar la nota, probá de nuevo."),
+    ]);
+
+    const result = await sendChatMessage({ messages: MESSAGES, timeZone: TIME_ZONE });
+
+    const secondPrompt = JSON.stringify(model.doGenerateCalls[1].prompt);
+    expect(secondPrompt).toContain("NOTE_NOT_SAVED");
+    expect(secondPrompt).not.toContain("Unique constraint");
+    expect(result).toEqual({ reply: "No pude guardar la nota, probá de nuevo.", createdNotes: [] });
+  });
+
+  test("maps a 429 from the provider to CHAT_QUOTA_EXCEEDED", async () => {
+    const model = mockModel([text("unused")]);
+    model.doGenerate = async () => {
+      throw new APICallError({
+        message: "Resource exhausted",
+        url: "https://generativelanguage.googleapis.com",
+        requestBodyValues: {},
+        statusCode: 429,
+      });
+    };
+
+    await expect(sendChatMessage({ messages: MESSAGES, timeZone: TIME_ZONE })).rejects.toThrow(
+      "CHAT_QUOTA_EXCEEDED"
+    );
+  });
+
+  test("maps any other provider failure to CHAT_UNAVAILABLE", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const model = mockModel([text("unused")]);
+    model.doGenerate = async () => {
+      throw new Error("network down");
+    };
+
+    await expect(sendChatMessage({ messages: MESSAGES, timeZone: TIME_ZONE })).rejects.toThrow(
+      "CHAT_UNAVAILABLE"
+    );
+  });
+});
