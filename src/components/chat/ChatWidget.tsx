@@ -94,115 +94,126 @@ export default function ChatWidget({ weekDays }: { weekDays: string[] }) {
   return (
     <>
       {isOpen ? (
-        <section
-          aria-label={t("title")}
-          className="animate-dialog-in fixed right-4 bottom-20 z-40 flex h-[28rem] max-h-[calc(100dvh-7rem)] w-[calc(100vw-2rem)] max-w-sm flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950"
-        >
-          <header className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
-            <h2 className="font-semibold text-zinc-900 dark:text-zinc-100">{t("title")}</h2>
-            <button
-              type="button"
-              onClick={() => setIsOpen(false)}
-              aria-label={t("close")}
-              className="cursor-pointer rounded-full p-1 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
-            >
-              <CloseIcon className="h-4 w-4" />
-            </button>
-          </header>
+        <>
+          {/* Dims the board so the open panel stands out; clicking it closes the chat. */}
+          <div
+            aria-hidden
+            onClick={() => setIsOpen(false)}
+            className="animate-overlay-in fixed inset-0 z-30 bg-black/25 dark:bg-black/50"
+          />
+          <section
+            aria-label={t("title")}
+            className="animate-dialog-in fixed right-4 bottom-20 z-40 flex h-[28rem] max-h-[calc(100dvh-7rem)] w-[calc(100vw-2rem)] max-w-sm flex-col overflow-hidden rounded-2xl border border-zinc-300 bg-white shadow-2xl dark:border-zinc-700 dark:bg-zinc-900"
+          >
+            <header className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-700">
+              <h2 className="flex items-center gap-2 font-semibold text-zinc-900 dark:text-zinc-100">
+                <ChatIcon className="h-4 w-4" />
+                {t("title")}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                aria-label={t("close")}
+                className="cursor-pointer rounded-full p-1 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+              >
+                <CloseIcon className="h-4 w-4" />
+              </button>
+            </header>
 
-          <div ref={listRef} className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-3 text-sm">
-            {messages.length === 0 ? (
-              <div className="m-auto flex max-w-[17rem] flex-col gap-3 text-zinc-500 dark:text-zinc-400">
-                <p className="text-center">{t("emptyHint")}</p>
-                <p className="text-xs font-medium">{t("examplesLabel")}</p>
-                {/* Examples fill the input instead of sending, so they can be edited first. */}
-                {EXAMPLE_KEYS.map((key) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => {
-                      setDraft(t(key));
-                      inputRef.current?.focus();
-                    }}
-                    className="cursor-pointer rounded-lg border border-dashed border-zinc-300 px-3 py-2 text-left text-zinc-700 transition-colors hover:border-zinc-400 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-500 dark:hover:bg-zinc-900"
-                  >
-                    {t(key)}
-                  </button>
-                ))}
-              </div>
-            ) : null}
-            {messages.map((message, index) =>
-              message.role === "user" ? (
-                <p
-                  key={index}
-                  className="max-w-[85%] self-end rounded-2xl rounded-br-sm bg-zinc-900 px-3 py-2 break-words whitespace-pre-wrap text-white dark:bg-zinc-100 dark:text-zinc-900"
-                >
-                  {message.content}
-                </p>
-              ) : (
-                <div
-                  key={index}
-                  className="flex max-w-[85%] -rotate-1 flex-col gap-1.5 self-start rounded-sm border border-yellow-300 bg-yellow-200 px-3 py-2 break-words whitespace-pre-wrap text-yellow-950 shadow-[2px_4px_6px_rgba(0,0,0,0.15)] dark:shadow-[2px_4px_6px_rgba(0,0,0,0.6)]"
-                >
-                  <p>{message.content}</p>
-                  {message.notes
-                    ?.filter((note) => !weekDays.includes(note.day))
-                    .map((note) => (
-                      <Link
-                        key={note.id}
-                        href={`/?week=${formatWeekParam(parseISO(note.day))}`}
-                        className="self-start text-xs font-medium underline underline-offset-2 opacity-80 hover:opacity-100"
-                      >
-                        {t("viewWeek", {
-                          day: format(parseISO(note.day), "EEE d MMM", { locale: dateFnsLocale }),
-                        })}
-                      </Link>
-                    ))}
+            <div ref={listRef} className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-3 text-sm">
+              {messages.length === 0 ? (
+                <div className="m-auto flex max-w-[17rem] flex-col gap-3 text-zinc-500 dark:text-zinc-400">
+                  <p className="text-center">{t("emptyHint")}</p>
+                  <p className="text-xs font-medium">{t("examplesLabel")}</p>
+                  {/* Examples fill the input instead of sending, so they can be edited first. */}
+                  {EXAMPLE_KEYS.map((key) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => {
+                        setDraft(t(key));
+                        inputRef.current?.focus();
+                      }}
+                      className="cursor-pointer rounded-lg border border-dashed border-zinc-300 px-3 py-2 text-left text-zinc-700 transition-colors hover:border-zinc-400 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-500 dark:hover:bg-zinc-800"
+                    >
+                      {t(key)}
+                    </button>
+                  ))}
                 </div>
-              )
-            )}
-            {isPending ? (
-              <p className="flex items-center gap-2 self-start text-zinc-500 dark:text-zinc-400">
-                <SpinnerIcon className="h-4 w-4 animate-spin" />
-                {t("thinking")}
+              ) : null}
+              {messages.map((message, index) =>
+                message.role === "user" ? (
+                  <p
+                    key={index}
+                    className="max-w-[85%] self-end rounded-2xl rounded-br-sm bg-zinc-900 px-3 py-2 break-words whitespace-pre-wrap text-white dark:bg-zinc-100 dark:text-zinc-900"
+                  >
+                    {message.content}
+                  </p>
+                ) : (
+                  <div
+                    key={index}
+                    className="flex max-w-[85%] -rotate-1 flex-col gap-1.5 self-start rounded-sm border border-yellow-300 bg-yellow-200 px-3 py-2 break-words whitespace-pre-wrap text-yellow-950 shadow-[2px_4px_6px_rgba(0,0,0,0.15)] dark:shadow-[2px_4px_6px_rgba(0,0,0,0.6)]"
+                  >
+                    <p>{message.content}</p>
+                    {message.notes
+                      ?.filter((note) => !weekDays.includes(note.day))
+                      .map((note) => (
+                        <Link
+                          key={note.id}
+                          href={`/?week=${formatWeekParam(parseISO(note.day))}`}
+                          className="self-start text-xs font-medium underline underline-offset-2 opacity-80 hover:opacity-100"
+                        >
+                          {t("viewWeek", {
+                            day: format(parseISO(note.day), "EEE d MMM", { locale: dateFnsLocale }),
+                          })}
+                        </Link>
+                      ))}
+                  </div>
+                )
+              )}
+              {isPending ? (
+                <p className="flex items-center gap-2 self-start text-zinc-500 dark:text-zinc-400">
+                  <SpinnerIcon className="h-4 w-4 animate-spin" />
+                  {t("thinking")}
+                </p>
+              ) : null}
+            </div>
+
+            {error ? (
+              <p role="alert" className="px-4 pb-2 text-xs text-red-600 dark:text-red-400">
+                {error}
               </p>
             ) : null}
-          </div>
 
-          {error ? (
-            <p role="alert" className="px-4 pb-2 text-xs text-red-600 dark:text-red-400">
-              {error}
-            </p>
-          ) : null}
-
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              send();
-            }}
-            className="flex items-end gap-2 border-t border-zinc-200 p-3 dark:border-zinc-800"
-          >
-            <textarea
-              ref={inputRef}
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={t("placeholder")}
-              aria-label={t("placeholder")}
-              maxLength={MAX_MESSAGE_LENGTH}
-              rows={2}
-              className="flex-1 resize-none rounded-lg border border-zinc-300 bg-transparent px-3 py-2 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-zinc-500 dark:border-zinc-700 dark:text-zinc-100 dark:focus:border-zinc-500"
-            />
-            <button
-              type="submit"
-              disabled={isPending || !draft.trim()}
-              aria-label={t("send")}
-              className="cursor-pointer rounded-full bg-zinc-900 p-2 text-white shadow-sm hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                send();
+              }}
+              className="flex items-end gap-2 border-t border-zinc-200 p-3 dark:border-zinc-700"
             >
-              <SendIcon className="h-4 w-4" />
-            </button>
-          </form>
-        </section>
+              <textarea
+                ref={inputRef}
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={t("placeholder")}
+                aria-label={t("placeholder")}
+                maxLength={MAX_MESSAGE_LENGTH}
+                rows={2}
+                className="flex-1 resize-none rounded-lg border border-zinc-300 bg-transparent px-3 py-2 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-zinc-500 dark:border-zinc-700 dark:text-zinc-100 dark:focus:border-zinc-500"
+              />
+              <button
+                type="submit"
+                disabled={isPending || !draft.trim()}
+                aria-label={t("send")}
+                className="cursor-pointer rounded-full bg-zinc-900 p-2 text-white shadow-sm hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+              >
+                <SendIcon className="h-4 w-4" />
+              </button>
+            </form>
+          </section>
+        </>
       ) : null}
 
       <button

@@ -112,6 +112,15 @@ describe("ChatWidget", () => {
     expect(mockSendChatMessage).not.toHaveBeenCalled();
   });
 
+  test("closes when clicking the dimmed backdrop", () => {
+    renderWidget();
+    expect(screen.getByRole("region", { name: messages.chat.title })).toBeTruthy();
+
+    fireEvent.click(document.querySelector('[aria-hidden="true"].fixed.inset-0')!);
+
+    expect(screen.queryByRole("region", { name: messages.chat.title })).toBeNull();
+  });
+
   test("falls back to a generic confirmation when the model returns no text", async () => {
     mockSendChatMessage.mockResolvedValue({
       reply: "",
