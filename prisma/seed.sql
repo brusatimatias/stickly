@@ -10,6 +10,7 @@
 BEGIN;
 
 DELETE FROM "Note" WHERE "userId" IN (SELECT "id" FROM "User" WHERE "email" LIKE '%@stickly.test');
+DELETE FROM "WebChatUsage" WHERE "userId" IN (SELECT "id" FROM "User" WHERE "email" LIKE '%@stickly.test');
 DELETE FROM "User" WHERE "email" LIKE '%@stickly.test';
 
 -- password hash = bcrypt (cost 10) of "stickly-demo-123" for both users. googleId is required and unique, so seed users get fake ones.

@@ -2,7 +2,10 @@ import type { Locale } from "@/i18n/locales";
 
 export const DEFAULT_CHAT_MODEL = "gemini-3.5-flash-lite";
 
-const MAX_MESSAGE_LENGTH = 500;
+export const MAX_MESSAGE_LENGTH = 500;
+// Assistant turns come back from the client too, so they're capped as well,
+// but truncated rather than rejected: the user didn't write them.
+const MAX_ASSISTANT_MESSAGE_LENGTH = 1000;
 // Only the most recent turns are sent to the model, to cap tokens per request.
 const MAX_HISTORY_MESSAGES = 12;
 
@@ -40,6 +43,9 @@ export function sanitizeChatMessages(raw: unknown): ChatMessage[] {
     const trimmed = content.trim();
     if (!trimmed) {
       throw new Error("INVALID_CHAT_MESSAGES");
+    }
+    if (role === "assistant") {
+      return { role, content: trimmed.slice(0, MAX_ASSISTANT_MESSAGE_LENGTH) };
     }
     if (trimmed.length > MAX_MESSAGE_LENGTH) {
       throw new Error("CHAT_MESSAGE_TOO_LONG");

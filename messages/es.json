@@ -107,5 +107,17 @@
     "CHAT_DAILY_LIMIT_REACHED": "Llegaste al límite diario del chat. Probá de nuevo mañana.",
     "CHAT_QUOTA_EXCEEDED": "El asistente está al límite de su capacidad. Probá más tarde.",
     "CHAT_UNAVAILABLE": "El asistente no está disponible en este momento. Probá más tarde."
+  },
+  "chat": {
+    "title": "Asistente",
+    "open": "Abrir asistente",
+    "close": "Cerrar asistente",
+    "placeholder": "Recordame mañana a las 10 llamar al plomero…",
+    "send": "Enviar",
+    "emptyHint": "Decime qué recordar y cuándo, y lo agrego a tu tablero.",
+    "thinking": "Pensando…",
+    "noteCreated": "Listo, la nota está en tu tablero.",
+    "noReply": "No pude responder eso. Probá reformularlo.",
+    "viewWeek": "Ver {day} en el tablero"
   }
 }

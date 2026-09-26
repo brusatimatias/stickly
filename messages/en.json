@@ -107,5 +107,17 @@
     "CHAT_DAILY_LIMIT_REACHED": "You've reached today's chat limit. Try again tomorrow.",
     "CHAT_QUOTA_EXCEEDED": "The assistant is at capacity right now. Try again later.",
     "CHAT_UNAVAILABLE": "The assistant isn't available right now. Try again later."
+  },
+  "chat": {
+    "title": "Assistant",
+    "open": "Open assistant",
+    "close": "Close assistant",
+    "placeholder": "Remind me tomorrow at 10 to call the plumber…",
+    "send": "Send",
+    "emptyHint": "Tell me what to remember and when, and I'll add it to your board.",
+    "thinking": "Thinking…",
+    "noteCreated": "Done, the note is on your board.",
+    "noReply": "I couldn't answer that. Try rephrasing it.",
+    "viewWeek": "View {day} on the board"
   }
 }

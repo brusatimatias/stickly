@@ -15,6 +15,7 @@ import {
 import SignInScreen from "@/components/auth/SignInScreen";
 import SignOutButton from "@/components/auth/SignOutButton";
 import Board from "@/components/board/Board";
+import ChatWidget from "@/components/chat/ChatWidget";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
 import ThemeToggle from "@/components/ThemeToggle";
 
@@ -102,6 +103,7 @@ export default async function Home({
         todayWeekParam={todayWeekParam}
         todayKey={todayKey}
       />
+      <ChatWidget weekDays={days.map((day) => day.key)} />
     </div>
   );
 }

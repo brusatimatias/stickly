@@ -53,6 +53,15 @@ describe("sanitizeChatMessages", () => {
       "CHAT_MESSAGE_TOO_LONG"
     );
   });
+
+  test("truncates long assistant turns instead of rejecting them", () => {
+    const [, assistant] = sanitizeChatMessages([
+      { role: "user", content: "hi" },
+      { role: "assistant", content: "a".repeat(1500) },
+      { role: "user", content: "ok" },
+    ]);
+    expect(assistant.content).toHaveLength(1000);
+  });
 });
 
 describe("getUserToday", () => {
