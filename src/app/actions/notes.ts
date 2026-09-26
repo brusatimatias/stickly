@@ -4,29 +4,11 @@ import { addDays, startOfDay } from "date-fns";
 import { revalidatePath } from "next/cache";
 import { unsyncNoteFromGoogleCalendar } from "@/app/actions/calendar";
 import { combineDayAndTime } from "@/lib/datetime";
+import { createNoteForUser } from "@/lib/noteCreation";
+import { sanitizeDescription, sanitizeLocation, sanitizeTitle } from "@/lib/noteInput";
 import { insertAtIndex, sortDoneLast } from "@/lib/ordering";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/session";
-
-const MAX_TITLE_LENGTH = 80;
-const MAX_LOCATION_LENGTH = 60;
-const MAX_DESCRIPTION_LENGTH = 300;
-
-function sanitizeTitle(title: string): string {
-  const trimmed = title.trim().slice(0, MAX_TITLE_LENGTH);
-  if (!trimmed) {
-    throw new Error("TITLE_REQUIRED");
-  }
-  return trimmed;
-}
-
-function sanitizeLocation(location: string): string | null {
-  return location.trim().slice(0, MAX_LOCATION_LENGTH) || null;
-}
-
-function sanitizeDescription(description: string): string | null {
-  return description.trim().slice(0, MAX_DESCRIPTION_LENGTH) || null;
-}
 
 const MAX_ID_LENGTH = 64;
 
@@ -46,30 +28,7 @@ export async function createNote(input: {
   time: string;
 }) {
   const userId = await requireUserId();
-  const id = sanitizeClientId(input.id);
-  const hasTime = input.time !== "";
-  const scheduledAt = combineDayAndTime(input.day, hasTime ? input.time : "00:00");
-  const dayStart = startOfDay(scheduledAt);
-  const dayEnd = addDays(dayStart, 1);
-
-  const maxPosition = await prisma.note.aggregate({
-    where: { userId, isDraft: false, scheduledAt: { gte: dayStart, lt: dayEnd } },
-    _max: { position: true },
-  });
-  const position = (maxPosition._max.position ?? -1) + 1;
-
-  await prisma.note.create({
-    data: {
-      id,
-      title: sanitizeTitle(input.title),
-      location: sanitizeLocation(input.location),
-      description: sanitizeDescription(input.description),
-      scheduledAt,
-      hasTime,
-      position,
-      userId,
-    },
-  });
+  await createNoteForUser(userId, { ...input, id: sanitizeClientId(input.id) });
 
   revalidatePath("/");
 }

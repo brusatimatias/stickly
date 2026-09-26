@@ -17,7 +17,7 @@ import {
 } from "@dnd-kit/core";
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useId, useRef, useState, useTransition } from "react";
 import { moveNote, scheduleDraftNote } from "@/app/actions/notes";
 import DayColumn from "@/components/board/DayColumn";
 import DayFocusNav from "@/components/board/DayFocusNav";
@@ -87,6 +87,10 @@ export default function Board({
     setFocusedDay(null);
   }
   const focusedDayInfo = days.find((day) => day.key === focusedDay) ?? null;
+  // dnd-kit derives its aria-describedby ids from a module-level counter that
+  // differs between the server and client renders (hydration mismatch); a
+  // stable id from useId makes them deterministic.
+  const dndContextId = useId();
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -238,6 +242,7 @@ export default function Board({
         todayWeekParam={todayWeekParam}
       />
       <DndContext
+        id={dndContextId}
         sensors={sensors}
         collisionDetection={collisionDetectionStrategy}
         onDragStart={handleDragStart}

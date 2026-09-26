@@ -1,4 +1,5 @@
-import { format } from "date-fns";
+import { addDays, eachDayOfInterval, format, parseISO, startOfDay } from "date-fns";
+import type { ListNotesInput } from "@/lib/noteInput";
 import { sortDoneLast } from "@/lib/ordering";
 import { prisma } from "@/lib/prisma";
 import type { NoteDTO } from "@/components/board/types";
@@ -82,5 +83,37 @@ export function toDraftNoteDTO(draft: ScheduledNote | null): NoteDTO | null {
     hasTime: draft.hasTime,
     isDone: draft.isDone,
     googleEventId: draft.googleEventId,
+  };
+}
+
+/**
+ * The user's scheduled notes between two days (inclusive) for the chat's
+ * `list_notes` tool. Every day in the range is returned, even empty ones, so
+ * the model can say "nothing on Tuesday" without inferring missing days.
+ * Within a day, notes keep the board order (pending before done).
+ */
+export async function listNotesForUser(userId: string, input: ListNotesInput) {
+  const start = startOfDay(parseISO(input.from));
+  const lastDay = startOfDay(parseISO(input.to));
+  const dayKeys = eachDayOfInterval({ start, end: lastDay }).map((day) => format(day, "yyyy-MM-dd"));
+
+  const notes = await getNotesForWeek(userId, start, addDays(lastDay, 1));
+  const matching = notes.filter(
+    (note) => input.status === "all" || note.isDone === (input.status === "done")
+  );
+  const notesByDay = groupNotesByDay(matching, dayKeys);
+
+  return {
+    days: dayKeys.map((day) => ({
+      day,
+      weekday: format(parseISO(day), "EEEE"),
+      notes: notesByDay[day].map((note) => ({
+        time: note.hasTime ? note.time : null,
+        title: note.title,
+        location: note.location,
+        description: note.description,
+        isDone: note.isDone,
+      })),
+    })),
   };
 }

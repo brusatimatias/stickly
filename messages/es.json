@@ -96,6 +96,33 @@
     "INVALID_THEME": "Tema inválido.",
     "CURRENT_PASSWORD_REQUIRED": "Ingresá tu contraseña actual para cambiarla",
     "INVALID_CURRENT_PASSWORD": "La contraseña actual es incorrecta",
-    "PASSWORD_TOO_LONG": "La contraseña es demasiado larga"
+    "PASSWORD_TOO_LONG": "La contraseña es demasiado larga",
+    "INVALID_NOTE_INPUT": "Datos de la nota inválidos",
+    "DAY_REQUIRED": "La nota necesita una fecha",
+    "INVALID_DAY": "Fecha inválida",
+    "INVALID_TIME": "Hora inválida",
+    "INVALID_CHAT_MESSAGES": "Mensaje de chat inválido",
+    "CHAT_MESSAGE_TOO_LONG": "El mensaje es demasiado largo (máximo 500 caracteres)",
+    "CHAT_RATE_LIMITED": "Estás enviando mensajes muy rápido. Esperá un minuto y probá de nuevo.",
+    "CHAT_DAILY_LIMIT_REACHED": "Llegaste al límite diario del chat. Probá de nuevo mañana.",
+    "CHAT_QUOTA_EXCEEDED": "El asistente está al límite de su capacidad. Probá más tarde.",
+    "CHAT_UNAVAILABLE": "El asistente no está disponible en este momento. Probá más tarde.",
+    "INVALID_DATE_RANGE": "Rango de fechas inválido"
+  },
+  "chat": {
+    "title": "Asistente",
+    "open": "Abrir asistente",
+    "close": "Cerrar asistente",
+    "placeholder": "Escribí un recordatorio o preguntá por tu semana…",
+    "send": "Enviar",
+    "emptyHint": "Puedo anotar recordatorios en tu tablero y contarte qué tenés pendiente.",
+    "thinking": "Pensando…",
+    "noteCreated": "Listo, la nota está en tu tablero.",
+    "noReply": "No pude responder eso. Probá reformularlo.",
+    "viewWeek": "Ver {day} en el tablero",
+    "examplesLabel": "Probá con:",
+    "exampleCreate": "Recordame mañana a las 10 llamar al plomero",
+    "exampleWeek": "¿Qué tengo sin hacer esta semana?",
+    "exampleToday": "¿Qué tengo para hoy?"
   }
 }

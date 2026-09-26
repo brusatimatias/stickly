@@ -16,6 +16,7 @@ A notes/reminders app organized on a whiteboard-style weekly board, with Google 
 - `npm run type-check` — `next typegen && tsc --noEmit`; regenerates Next's route types before checking.
 - `npm test` — Vitest (jsdom environment, `tests/**/*.test.{ts,tsx}`). Run a single file with `npm test -- tests/lib/notes.test.ts`, or filter by name with `npm test -- -t "pattern"`.
 - `npx prisma migrate dev` — apply/create Prisma migrations locally.
+- `npm run db:seed` — runs `prisma/seed.sql` (idempotent; demo users `@stickly.test`, credentials login only, passwords in the file header).
 - `npx prisma generate` — regenerate the Prisma client into `src/generated/prisma` (runs automatically via `postinstall`).
 - Deploy is Vercel: `vercel-build` runs `prisma migrate deploy` before `next build`. CI (`.github/workflows`) runs lint, type-check, test and build on every push/PR.
 - A project `Stop` hook (`.claude/hooks/verify.sh`) runs lint + type-check + tests at the end of each turn when `src`, `tests`, `prisma`, `messages` or the tooling config changed, and feeds failures back (up to 3 attempts) — so there's no need to run those manually just before finishing.
@@ -24,10 +25,11 @@ A notes/reminders app organized on a whiteboard-style weekly board, with Google 
 
 - **Server actions, not API routes.** All mutations live in `src/app/actions/*.ts` (`"use server"`), called directly from client components. Every action starts by resolving the current user via `requireUserId()` (`src/lib/session.ts`), which throws `UNAUTHORIZED` if there's no session, and ends with `revalidatePath("/")`. (`calendar.ts` calls `auth()` directly instead, since it also needs the session's `accessToken`.)
   - Errors are thrown as bare string codes (`new Error("TITLE_REQUIRED")`) that the UI translates via the `errors` namespace in `messages/*.json` — when adding a new code, add the key to both `en.json` and `es.json`.
-  - Pure validation/transform logic is pulled out into `src/lib/*` (e.g. `profile.ts`, `notes.ts`) so it can be unit-tested without Prisma.
-  - `notes.ts`: CRUD + reordering/moving notes and the draft-note upsert (`saveDraftNote`, `scheduleDraftNote`).
+  - Pure validation/transform logic is pulled out into `src/lib/*` (e.g. `profile.ts`, `notes.ts`, `noteInput.ts`, `webChat.ts`) so it can be unit-tested without Prisma.
+  - `notes.ts`: CRUD + reordering/moving notes and the draft-note upsert (`saveDraftNote`, `scheduleDraftNote`). `createNote` delegates to `createNoteForUser` (`src/lib/noteCreation.ts`), which takes an already-resolved `userId` and so lives outside `"use server"` files on purpose (every export there becomes a callable action).
   - `calendar.ts`: creates/updates/deletes the linked Google Calendar event for a note (`googleEventId`), using the session's Google `accessToken`.
   - `profile.ts`: user profile fields and password change.
+  - `chat.ts`: `sendChatMessage`, the assistant chat (see **Assistant chat** below).
   - `locale.ts`, `theme.ts`: only write the `NEXT_LOCALE` / `THEME` cookies (theme falls back to the OS preference when the cookie is unset, see `src/lib/theme.ts`).
 - **Auth (`src/auth.ts`).** Auth.js with two providers: Google (primary, grants the Calendar scope and stores access/refresh tokens in the JWT) and Credentials (email/password against a bcrypt `password` hash on `User`; the password is set from the profile page via `setPassword` — not mentioned in the README's feature list). A Credentials session has no Google tokens, so Calendar actions fail with `MISSING_GOOGLE_TOKEN` there. The `jwt` callback is where the app's `User` row is upserted and where an expired Google access token gets silently refreshed via `refreshGoogleAccessToken`.
   - The `session` callback puts `accessToken` on the session so server code can read it via `auth()`, but it must never reach the browser: `src/app/api/auth/[...nextauth]/route.ts` wraps Auth.js's handlers to strip `PRIVATE_SESSION_FIELDS` (`src/lib/publicSession.ts`) from `/api/auth/session`. Any new server-only session field goes in that list.
@@ -38,6 +40,12 @@ A notes/reminders app organized on a whiteboard-style weekly board, with Google 
 - **Week/date handling.** `src/lib/week.ts` computes week ranges (Monday-start, `[start, end)`), parses/formats the `week` query param, and steps to adjacent weeks — no week number is stored, see below. `src/lib/datetime.ts` combines a day string + time string into the single `scheduledAt` used throughout.
 - **Board UI (`src/components/board/`).** `Board.tsx` is the top-level client component; drag & drop between days/positions is handled with `@dnd-kit`. `useNoteEditorKeyboard.ts` centralizes the keyboard behavior (Shift+Enter to submit, etc.) shared by `NoteForm.tsx` and `DraftForm.tsx`.
 - **i18n.** `next-intl`, locale resolved from a cookie (`NEXT_LOCALE`, `src/i18n/locales.ts`/`request.ts`) rather than the URL; supported locales are `en`/`es` with message catalogs in `messages/*.json`.
+- **Assistant chat.** `ChatWidget.tsx` (`src/components/chat/`, mounted in `page.tsx` outside `<Board>` so it survives week navigation) sends the whole conversation to `sendChatMessage`, which calls Gemini through the Vercel AI SDK v7 (`ai` + `@ai-sdk/google`; model from `CHAT_MODEL`, default in `src/lib/webChat.ts`) with two tools: `create_note` and the read-only `list_notes`.
+  - Tool definitions (`CREATE_NOTE_TOOL`, `LIST_NOTES_TOOL`) and their parsers live in `src/lib/noteInput.ts`. Tool arguments are untrusted JSON: always run them through `parseNoteToolInput` / `parseListNotesInput`, never trust the schema.
+  - The AI SDK feeds anything thrown from a tool's `execute` back to the model verbatim, so tools must not throw: `toolErrorResult` returns recoverable input codes (e.g. `DAY_REQUIRED`) to the model and replaces unexpected errors with a generic code after logging them.
+  - The conversation lives only in the widget's state (not persisted, lost on reload); the server re-validates and trims it on every turn (`sanitizeChatMessages`). The model resolves relative dates from `getUserToday` (user's time zone from the browser, plus the Monday–Sunday board week), and `list_notes` returns every day of the range, including empty ones.
+  - Rate limiting (`consumeChatQuota`, limits in `CHAT_LIMITS`): one `WebChatUsage` row per message, rolling windows per user and global, insert-then-count, rejected messages don't count. Sized for Gemini's free tier, whose quota is per API key; the key's Cloud project has no billing account so going over it fails with 429 (`CHAT_QUOTA_EXCEEDED`) instead of charging. `maxRetries: 0` so a 429 doesn't burn more quota.
+  - Tests: `tests/actions/chat.test.ts` drives the real tool loop with `MockLanguageModelV4` (`ai/test`) by mocking `@ai-sdk/google`; component tests (`tests/components/`) render inside `NextIntlClientProvider` with `messages/es.json`.
 - **Tests.** No test database: action tests (`tests/actions/`) mock `@/lib/prisma`, `@/auth` and `next/cache` with `vi.hoisted` + `vi.mock` (including `$transaction`/`$executeRaw`), then import the action under test.
 - **Prisma client.** Generated into `src/generated/prisma` (not `node_modules`), via the `prisma-client` generator and `@prisma/adapter-pg` as the driver adapter — see `prisma7.config.ts` for the config used by the CLI.
 
@@ -51,6 +59,8 @@ A notes/reminders app organized on a whiteboard-style weekly board, with Google 
 - Composite index `[userId, scheduledAt]` is meant for the most frequent query: a user's notes between the start and end of a given week.
 - Week navigation is resolved via query (`scheduledAt >= weekStart AND scheduledAt < weekEnd`); no week number is persisted on the note — it's derived from the date on each query.
 - `@auth/prisma-adapter` is not used: the schema has no `Account`/`Session` models. Sessions are JWT-based (`src/auth.ts`), and Google tokens (access/refresh) are stored in the JWT, not in the database. The app's own `User` record is synced (upserted) in Auth.js's `jwt` callback.
+- Notes created from the chat are not synced to Google Calendar automatically; syncing stays a manual per-note action.
+- WebMCP (exposing the tools to external browser agents via `document.modelContext`) was prototyped and deliberately removed; the chat talks to the server only. Don't reintroduce it without asking.
 - Postgres runs on the user's local server (not Docker). The dev database is `stickly-development`, following the `<app>-development`/`<app>-test` convention used in their other projects.
 
 ## Broader plan context

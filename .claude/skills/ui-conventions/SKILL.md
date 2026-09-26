@@ -14,6 +14,7 @@ The look is "sticky notes on a whiteboard". New UI should look like it belongs t
 - Cards: `NoteCard.tsx` / `DraftCard.tsx`. Their in-place edit forms: `NoteForm.tsx` / `DraftForm.tsx`, which render in the same card shape and colors as the card they replace.
 - `useNoteEditorKeyboard.ts`: shared keyboard handling (Shift+Enter submits, etc.). Any new editor form should use it instead of adding its own `onKeyDown` logic.
 - `FoldedCorner.tsx`, `icons.tsx`, `ConfirmDialog.tsx`, `TimePicker.tsx`: reuse them before adding new ones.
+- Outside the board, `src/components/chat/ChatWidget.tsx` is the assistant: a floating button plus a panel over a dimmed backdrop (clicking it, the ✕ or Escape closes it). Assistant replies render as small yellow sticky notes. It's mounted in `page.tsx` outside `<Board>` (which is keyed by week) so the conversation survives week navigation.
 
 ## Note card styling
 - **Color, rotation and overlap are derived from the note id**: `getNoteStyle(id)` in `src/lib/noteColor.ts` hashes the id and picks from `PALETTE`, `ROTATIONS` and `OVERLAPS`. The same note always looks the same, and there's no stored color. If a feature needs user-chosen colors, that's a schema change (see `new-entity-crud`), not a tweak here.
@@ -40,6 +41,7 @@ Both of these caused infinite render loops before (commits `5dd3e9f`, `d55e0d1`)
 - **Day columns lay out sortable items with CSS grid** (`[grid-template-columns:repeat(auto-fill,minmax(11rem,1fr))]`), not `flex-wrap`. With flex-wrap, reordering reflowed the items and the sort flipped back and forth.
 - Drag feedback: the source card goes to `opacity: 0.5` (inline style) and `z-20`. `DragOverlay` in `Board.tsx` renders a simplified copy (palette + rotation + FoldedCorner + title).
 - A drop calls `moveNote` / `scheduleDraftNote` inside `startTransition` and then `router.refresh()`.
+- **Keep `id={useId()}` on `DndContext`.** Without it dnd-kit numbers its `aria-describedby` ids from a module-level counter that differs between server and client, which causes a hydration mismatch warning and leaves the attribute pointing at a missing element.
 
 ## React state patterns
 - **Syncing state from props**: this codebase adjusts state during render by comparing to a stored previous value (`lastServerNote` in `NoteCard`, `syncedWeekStart` in `Board`) instead of using a `useEffect` that sets state. Follow that pattern. An effect that sets state here adds an extra render and was part of the loops above.
@@ -57,4 +59,5 @@ Both of these caused infinite render loops before (commits `5dd3e9f`, `d55e0d1`)
 
 ## Before finishing
 - If you changed `noteColor.ts`, update `tests/lib/noteColor.test.ts`.
+- Component tests live in `tests/components/<folder>/` (mirroring `src/components/`), rendered inside `NextIntlClientProvider` with `messages/es.json` and with server actions and `next/navigation` mocked; see `tests/components/chat/ChatWidget.test.tsx`.
 - Delegate a review to the `stickly-reviewer` subagent (required after board changes). The `Stop` hook already runs lint, type-check and tests.
