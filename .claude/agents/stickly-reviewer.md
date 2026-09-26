@@ -22,6 +22,7 @@ Your job is ONLY to review and report: do not edit files.
 - Every action resolves the user with `requireUserId()` (`calendar.ts` uses `auth()` directly because it needs `accessToken`) and ends with `revalidatePath("/")`.
 - Every query/mutation on a note is scoped by `userId` (`findFirst`/`updateMany`/`deleteMany` with `{ id, userId }`), never by `id` alone — except `tx.note.update` on ids that were just loaded with a `userId` filter.
 - User input goes through the sanitizers (trim + max length, `TITLE_REQUIRED`, `sanitizeClientId`); new validation logic lives in `src/lib/*` so it can be tested without Prisma.
+- Chat tool arguments (`src/app/actions/chat.ts`) are untrusted: each tool's `execute` runs them through its parser in `src/lib/noteInput.ts` and never throws (the AI SDK would hand the raw error to the model); unexpected errors go through `toolErrorResult`. New tools follow the same shape, and the chat stays behind `consumeChatQuota`.
 - Errors are thrown as bare string codes (`new Error("SOME_CODE")`); every new code has a key in the `errors` namespace of both `messages/en.json` and `messages/es.json`.
 
 **Data model and Prisma**
