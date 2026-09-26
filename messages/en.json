@@ -96,6 +96,10 @@
     "INVALID_THEME": "Invalid theme.",
     "CURRENT_PASSWORD_REQUIRED": "Enter your current password to change it",
     "INVALID_CURRENT_PASSWORD": "The current password is incorrect",
-    "PASSWORD_TOO_LONG": "Password is too long"
+    "PASSWORD_TOO_LONG": "Password is too long",
+    "INVALID_NOTE_INPUT": "Invalid note data",
+    "DAY_REQUIRED": "A date is required for this note",
+    "INVALID_DAY": "Invalid date",
+    "INVALID_TIME": "Invalid time"
   }
 }

@@ -96,6 +96,10 @@
     "INVALID_THEME": "Tema inválido.",
     "CURRENT_PASSWORD_REQUIRED": "Ingresá tu contraseña actual para cambiarla",
     "INVALID_CURRENT_PASSWORD": "La contraseña actual es incorrecta",
-    "PASSWORD_TOO_LONG": "La contraseña es demasiado larga"
+    "PASSWORD_TOO_LONG": "La contraseña es demasiado larga",
+    "INVALID_NOTE_INPUT": "Datos de la nota inválidos",
+    "DAY_REQUIRED": "La nota necesita una fecha",
+    "INVALID_DAY": "Fecha inválida",
+    "INVALID_TIME": "Hora inválida"
   }
 }
