@@ -1,21 +1,26 @@
 import { describe, expect, test } from "vitest";
-import { combineDayAndTime } from "@/lib/datetime";
+import { dateToDay, dayToDate, localDateTime } from "@/lib/datetime";
 
-describe("combineDayAndTime", () => {
-  test("combines a day and a time into a single Date", () => {
-    const result = combineDayAndTime("2026-09-16", "14:30");
-    expect(result.getFullYear()).toBe(2026);
-    expect(result.getMonth()).toBe(8);
-    expect(result.getDate()).toBe(16);
-    expect(result.getHours()).toBe(14);
-    expect(result.getMinutes()).toBe(30);
-    expect(result.getSeconds()).toBe(0);
-    expect(result.getMilliseconds()).toBe(0);
+describe("dayToDate / dateToDay", () => {
+  test("maps a day to midnight UTC, as Prisma reads a DATE column", () => {
+    expect(dayToDate("2026-09-26").toISOString()).toBe("2026-09-26T00:00:00.000Z");
   });
 
-  test("defaults to midnight when the time is empty", () => {
-    const result = combineDayAndTime("2026-09-16", "");
-    expect(result.getHours()).toBe(0);
-    expect(result.getMinutes()).toBe(0);
+  test("round-trips a day", () => {
+    expect(dateToDay(dayToDate("2026-12-31"))).toBe("2026-12-31");
+  });
+});
+
+describe("localDateTime", () => {
+  test("joins a day and a time as a zone-less wall-clock string", () => {
+    expect(localDateTime("2026-09-26", "22:00")).toBe("2026-09-26T22:00:00");
+  });
+
+  test("adds minutes, rolling over to the next day", () => {
+    expect(localDateTime("2026-09-26", "23:30", 60)).toBe("2026-09-27T00:30:00");
+  });
+
+  test("rolls over month and year boundaries", () => {
+    expect(localDateTime("2026-12-31", "23:15", 60)).toBe("2027-01-01T00:15:00");
   });
 });

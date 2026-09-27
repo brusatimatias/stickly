@@ -15,7 +15,7 @@ vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }));
 vi.mock("@/auth", () => ({ auth: mockAuth }));
 vi.mock("next/cache", () => ({ revalidatePath: mockRevalidatePath }));
 
-import { setPassword } from "@/app/actions/profile";
+import { setPassword, updateTimeZone } from "@/app/actions/profile";
 
 const SESSION = { user: { id: "user-1" } };
 let currentHash: string;
@@ -27,6 +27,30 @@ beforeAll(async () => {
 beforeEach(() => {
   vi.clearAllMocks();
   mockAuth.mockResolvedValue(SESSION);
+});
+
+describe("updateTimeZone", () => {
+  test("rejects when there's no session", async () => {
+    mockAuth.mockResolvedValue(null);
+
+    await expect(updateTimeZone("Europe/Madrid")).rejects.toThrow("UNAUTHORIZED");
+    expect(mockPrisma.user.update).not.toHaveBeenCalled();
+  });
+
+  test("stores a valid zone on the current user", async () => {
+    await updateTimeZone("Europe/Madrid");
+
+    expect(mockPrisma.user.update).toHaveBeenCalledWith({
+      where: { id: "user-1" },
+      data: { timeZone: "Europe/Madrid" },
+    });
+    expect(mockRevalidatePath).toHaveBeenCalledWith("/");
+  });
+
+  test("rejects an unknown zone", async () => {
+    await expect(updateTimeZone("Mars/Olympus_Mons")).rejects.toThrow("INVALID_TIME_ZONE");
+    expect(mockPrisma.user.update).not.toHaveBeenCalled();
+  });
 });
 
 describe("setPassword", () => {
