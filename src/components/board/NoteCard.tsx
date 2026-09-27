@@ -41,8 +41,8 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
   if (
     lastServerNote.title !== note.title ||
     lastServerNote.location !== note.location ||
+    lastServerNote.description !== note.description ||
     lastServerNote.time !== note.time ||
-    lastServerNote.hasTime !== note.hasTime ||
     lastServerNote.isDone !== note.isDone ||
     lastServerNote.googleEventId !== note.googleEventId
   ) {
@@ -161,7 +161,7 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
       <div className="mt-4 flex min-w-0 flex-1 flex-col overflow-hidden">
         <p className="flex items-center gap-1 text-xs font-medium opacity-80">
           <ClockIcon className="h-3 w-3 shrink-0" />
-          {displayNote.hasTime ? displayNote.time : "--:--"}
+          {displayNote.time ?? "--:--"}
         </p>
         <p className={`break-words font-semibold ${displayNote.isDone ? "line-through" : ""}`}>
           {displayNote.title}
@@ -186,7 +186,7 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
           <button
             type="button"
             aria-label={
-              !displayNote.hasTime
+              !displayNote.time
                 ? t("setTimeToSync")
                 : displayNote.googleEventId
                   ? t("updateInCalendar")
@@ -196,7 +196,7 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
               event.stopPropagation();
               handleSyncToCalendar();
             }}
-            disabled={isSyncing || !displayNote.hasTime}
+            disabled={isSyncing || !displayNote.time}
             className={`rounded-full p-1 opacity-30 transition-opacity group-hover:opacity-70 disabled:opacity-40 ${
               displayNote.googleEventId ? "text-emerald-600 dark:text-emerald-400" : ""
             }`}
@@ -210,7 +210,7 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
             )}
           </button>
           <span className="pointer-events-none absolute bottom-full right-0 mb-1 whitespace-nowrap rounded bg-zinc-900 px-1.5 py-0.5 text-[10px] text-white opacity-0 transition-opacity group-hover/sync:opacity-90 dark:bg-zinc-100 dark:text-zinc-900">
-            {!displayNote.hasTime
+            {!displayNote.time
               ? t("setTimeToSyncShort")
               : isSyncing
                 ? t("syncing")

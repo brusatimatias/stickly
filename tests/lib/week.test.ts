@@ -31,26 +31,20 @@ describe("formatWeekParam", () => {
 
 describe("parseWeekParam", () => {
   test("parses a valid yyyy-MM-dd string", () => {
-    const parsed = parseWeekParam("2026-09-14");
+    const parsed = parseWeekParam("2026-09-14", "2026-09-26");
     expect(parsed.getFullYear()).toBe(2026);
     expect(parsed.getMonth()).toBe(8);
     expect(parsed.getDate()).toBe(14);
   });
 
-  test("falls back to now for missing input", () => {
-    const before = Date.now();
-    const parsed = parseWeekParam(undefined);
-    const after = Date.now();
-    expect(parsed.getTime()).toBeGreaterThanOrEqual(before);
-    expect(parsed.getTime()).toBeLessThanOrEqual(after);
+  test("falls back to today for missing input", () => {
+    const parsed = parseWeekParam(undefined, "2026-09-26");
+    expect(parsed).toEqual(new Date(2026, 8, 26));
   });
 
-  test("falls back to now for invalid input", () => {
-    const before = Date.now();
-    const parsed = parseWeekParam("not-a-date");
-    const after = Date.now();
-    expect(parsed.getTime()).toBeGreaterThanOrEqual(before);
-    expect(parsed.getTime()).toBeLessThanOrEqual(after);
+  test("falls back to today for invalid input", () => {
+    const parsed = parseWeekParam("not-a-date", "2026-09-26");
+    expect(parsed).toEqual(new Date(2026, 8, 26));
   });
 });
 

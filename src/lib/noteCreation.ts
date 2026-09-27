@@ -1,6 +1,11 @@
-import { addDays, startOfDay } from "date-fns";
-import { combineDayAndTime } from "@/lib/datetime";
-import { sanitizeDescription, sanitizeLocation, sanitizeTitle } from "@/lib/noteInput";
+import { dayToDate } from "@/lib/datetime";
+import {
+  sanitizeDay,
+  sanitizeDescription,
+  sanitizeLocation,
+  sanitizeTime,
+  sanitizeTitle,
+} from "@/lib/noteInput";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -26,13 +31,12 @@ export async function createNoteForUser(
 ): Promise<{ id: string; day: string }> {
   const id = input.id ?? crypto.randomUUID();
   const title = sanitizeTitle(input.title);
-  const hasTime = input.time !== "";
-  const scheduledAt = combineDayAndTime(input.day, hasTime ? input.time : "00:00");
-  const dayStart = startOfDay(scheduledAt);
-  const dayEnd = addDays(dayStart, 1);
+  const day = sanitizeDay(input.day);
+  const time = sanitizeTime(input.time);
+  const date = dayToDate(day);
 
   const maxPosition = await prisma.note.aggregate({
-    where: { userId, isDraft: false, scheduledAt: { gte: dayStart, lt: dayEnd } },
+    where: { userId, isDraft: false, date },
     _max: { position: true },
   });
   const position = (maxPosition._max.position ?? -1) + 1;
@@ -43,12 +47,12 @@ export async function createNoteForUser(
       title,
       location: sanitizeLocation(input.location),
       description: sanitizeDescription(input.description),
-      scheduledAt,
-      hasTime,
+      date,
+      time,
       position,
       userId,
     },
   });
 
-  return { id, day: input.day };
+  return { id, day };
 }

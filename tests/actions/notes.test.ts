@@ -79,7 +79,7 @@ describe("createNote", () => {
     ).rejects.toThrow("TITLE_REQUIRED");
   });
 
-  test("creates a note with hasTime true and the next position", async () => {
+  test("creates a note with its day, time and the next position", async () => {
     mockPrisma.note.aggregate.mockResolvedValue({ _max: { position: 2 } });
 
     await createNote({
@@ -96,7 +96,8 @@ describe("createNote", () => {
         id: "id-1",
         title: "Buy milk",
         location: "Store",
-        hasTime: true,
+        date: new Date("2026-09-16T00:00:00.000Z"),
+        time: "10:00",
         position: 3,
         userId: "user-1",
       }),
@@ -104,13 +105,22 @@ describe("createNote", () => {
     expect(mockRevalidatePath).toHaveBeenCalledWith("/");
   });
 
-  test("creates a note with hasTime false when time is blank", async () => {
+  test("rejects an invalid day or time before touching the database", async () => {
+    const base = { id: "id-1", title: "Title", location: "", description: "" };
+    await expect(createNote({ ...base, day: "2026-02-30", time: "" })).rejects.toThrow("INVALID_DAY");
+    await expect(createNote({ ...base, day: "2026-09-16", time: "25:00" })).rejects.toThrow(
+      "INVALID_TIME"
+    );
+    expect(mockPrisma.note.create).not.toHaveBeenCalled();
+  });
+
+  test("creates a note with no time when time is blank", async () => {
     mockPrisma.note.aggregate.mockResolvedValue({ _max: { position: null } });
 
     await createNote({ id: "id-1", title: "Title", location: "", description: "", day: "2026-09-16", time: "" });
 
     expect(mockPrisma.note.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({ hasTime: false, position: 0, location: null }),
+      data: expect.objectContaining({ time: null, position: 0, location: null }),
     });
   });
 });
@@ -125,8 +135,8 @@ describe("updateNote", () => {
 
   test("unsyncs from Calendar and clears googleEventId when time is cleared", async () => {
     mockPrisma.note.findFirst.mockResolvedValue({
-      scheduledAt: new Date("2026-09-16T10:00:00.000Z"),
-      hasTime: true,
+      date: new Date("2026-09-16T00:00:00.000Z"),
+      time: "10:00",
       googleEventId: "gcal-1",
     });
 
@@ -135,14 +145,27 @@ describe("updateNote", () => {
     expect(mockUnsync).toHaveBeenCalledWith("gcal-1");
     expect(mockPrisma.note.updateMany).toHaveBeenCalledWith({
       where: { id: "id-1", userId: "user-1" },
-      data: expect.objectContaining({ hasTime: false, googleEventId: null }),
+      data: expect.objectContaining({ time: null, googleEventId: null }),
     });
+  });
+
+  test("rejects an invalid time", async () => {
+    mockPrisma.note.findFirst.mockResolvedValue({
+      date: new Date("2026-09-16T00:00:00.000Z"),
+      time: null,
+      googleEventId: null,
+    });
+
+    await expect(
+      updateNote({ id: "id-1", title: "Title", location: "", description: "", time: "9am" })
+    ).rejects.toThrow("INVALID_TIME");
+    expect(mockPrisma.note.updateMany).not.toHaveBeenCalled();
   });
 
   test("does not unsync when the note keeps a time", async () => {
     mockPrisma.note.findFirst.mockResolvedValue({
-      scheduledAt: new Date("2026-09-16T10:00:00.000Z"),
-      hasTime: true,
+      date: new Date("2026-09-16T00:00:00.000Z"),
+      time: "10:00",
       googleEventId: "gcal-1",
     });
 
@@ -151,7 +174,7 @@ describe("updateNote", () => {
     expect(mockUnsync).not.toHaveBeenCalled();
     expect(mockPrisma.note.updateMany).toHaveBeenCalledWith({
       where: { id: "id-1", userId: "user-1" },
-      data: expect.objectContaining({ hasTime: true }),
+      data: expect.objectContaining({ time: "11:00" }),
     });
   });
 });
@@ -197,7 +220,7 @@ describe("saveDraftNote", () => {
     await saveDraftNote({ title: "Draft", location: "", description: "" });
 
     expect(mockPrisma.note.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({ isDraft: true, scheduledAt: null, userId: "user-1" }),
+      data: expect.objectContaining({ isDraft: true, userId: "user-1" }),
     });
   });
 });
@@ -210,7 +233,8 @@ describe("moveNote", () => {
     // client sends is computed against that display order, not this one.
     mockPrisma.note.findFirst.mockResolvedValue({
       id: "moving",
-      scheduledAt: new Date("2026-09-16T08:00:00.000Z"),
+      date: new Date("2026-09-15T00:00:00.000Z"),
+      time: "08:00",
     });
     mockPrisma.note.findMany.mockResolvedValue([
       { id: "done-1", isDone: true, position: 0 },
@@ -238,6 +262,27 @@ describe("moveNote", () => {
     });
   });
 
+  test("changes only the day of the moved note, keeping its time", async () => {
+    mockPrisma.note.findFirst.mockResolvedValue({
+      id: "moving",
+      date: new Date("2026-09-15T00:00:00.000Z"),
+      time: "22:30",
+    });
+    mockPrisma.note.findMany.mockResolvedValue([]);
+
+    await moveNote({ noteId: "moving", day: "2026-09-16", index: 0 });
+
+    expect(mockPrisma.note.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ userId: "user-1", date: new Date("2026-09-16T00:00:00.000Z") }),
+      })
+    );
+    expect(mockPrisma.note.update).toHaveBeenCalledWith({
+      where: { id: "moving" },
+      data: { position: 0, date: new Date("2026-09-16T00:00:00.000Z") },
+    });
+  });
+
   test("throws when the note doesn't belong to this user", async () => {
     mockPrisma.note.findFirst.mockResolvedValue(null);
     await expect(
@@ -255,7 +300,12 @@ describe("scheduleDraftNote", () => {
 
     expect(mockPrisma.note.update).toHaveBeenCalledWith({
       where: { id: "draft-1" },
-      data: expect.objectContaining({ isDraft: false, hasTime: false, position: 0 }),
+      data: expect.objectContaining({
+        isDraft: false,
+        date: new Date("2026-09-16T00:00:00.000Z"),
+        time: null,
+        position: 0,
+      }),
     });
   });
 

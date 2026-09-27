@@ -14,16 +14,15 @@ DELETE FROM "WebChatUsage" WHERE "userId" IN (SELECT "id" FROM "User" WHERE "ema
 DELETE FROM "User" WHERE "email" LIKE '%@stickly.test';
 
 -- password hash = bcrypt (cost 10) of "stickly-demo-123" for both users. googleId is required and unique, so seed users get fake ones.
-INSERT INTO "User" ("id", "googleId", "email", "name", "password", "createdAt") VALUES
-  ('seed_user_ana',   'seed-google-ana',   'ana@stickly.test',   'Ana Gómez',   '$2b$10$XWnW42mY.pyLX4ztlCv96u5NSJW9mt96Ese54VdhFhG1BBEKYKwdi', now() - interval '30 days'),
-  ('seed_user_bruno', 'seed-google-bruno', 'bruno@stickly.test', 'Bruno Díaz',  '$2b$10$XWnW42mY.pyLX4ztlCv96u5NSJW9mt96Ese54VdhFhG1BBEKYKwdi', now() - interval '10 days');
+INSERT INTO "User" ("id", "googleId", "email", "name", "password", "timeZone", "createdAt") VALUES
+  ('seed_user_ana',   'seed-google-ana',   'ana@stickly.test',   'Ana Gómez',   '$2b$10$XWnW42mY.pyLX4ztlCv96u5NSJW9mt96Ese54VdhFhG1BBEKYKwdi', 'America/Argentina/Cordoba', now() - interval '30 days'),
+  ('seed_user_bruno', 'seed-google-bruno', 'bruno@stickly.test', 'Bruno Díaz',  '$2b$10$XWnW42mY.pyLX4ztlCv96u5NSJW9mt96Ese54VdhFhG1BBEKYKwdi', 'America/Argentina/Cordoba', now() - interval '10 days');
 
 -- week: 0 = current week, -1 = previous, 1 = next. day: 0 = Monday ... 6 = Sunday.
--- time NULL = note without time (stored at local midnight, hasTime = false), as createNote does.
+-- time NULL = note without time. Dates and times are stored as written, with no time zone.
 WITH params AS (
-  -- Must match the timezone the Next server runs in (combineDayAndTime uses server local time).
-  SELECT 'America/Argentina/Cordoba'::text AS tz,
-         date_trunc('week', (now() AT TIME ZONE 'America/Argentina/Cordoba'))::date AS week_start
+  -- The current week as seen from the seed users' time zone.
+  SELECT date_trunc('week', (now() AT TIME ZONE 'America/Argentina/Cordoba'))::date AS week_start
 ),
 data ("userId", week, day, time, title, location, description, "isDone") AS (
   VALUES
@@ -55,14 +54,14 @@ data ("userId", week, day, time, title, location, description, "isDone") AS (
     ('seed_user_bruno', 0, 3, NULL,          'Estudiar para el parcial', NULL, 'Capítulos 4 a 6', false),
     ('seed_user_bruno', 0, 4, '22:00'::time, 'Partido de fútbol 5', 'Complejo La Cancha', NULL, false)
 )
-INSERT INTO "Note" ("id", "title", "location", "description", "scheduledAt", "hasTime", "isDraft", "isDone", "position", "userId", "createdAt", "updatedAt")
+INSERT INTO "Note" ("id", "title", "location", "description", "date", "time", "isDraft", "isDone", "position", "userId", "createdAt", "updatedAt")
 SELECT
   'seed_note_' || row_number() OVER (),
   d.title,
   d.location,
   d.description,
-  ((p.week_start + d.week * 7 + d.day) + coalesce(d.time, '00:00'::time)) AT TIME ZONE p.tz AT TIME ZONE 'UTC', -- Prisma stores UTC
-  d.time IS NOT NULL,
+  p.week_start + d.week * 7 + d.day,
+  to_char(d.time, 'HH24:MI'),
   false,
   d."isDone",
   -- Positions are contiguous per user and day; done notes go last, as the board shows them.
@@ -72,8 +71,8 @@ SELECT
   now()
 FROM data d CROSS JOIN params p;
 
--- Draft notes: at most one per user, no date (scheduledAt NULL).
-INSERT INTO "Note" ("id", "title", "location", "description", "scheduledAt", "hasTime", "isDraft", "isDone", "position", "userId", "createdAt", "updatedAt") VALUES
-  ('seed_note_draft_ana', 'Ideas para las vacaciones', NULL, 'Bariloche o Salta', NULL, false, true, false, 0, 'seed_user_ana', now(), now());
+-- Draft notes: at most one per user, no date.
+INSERT INTO "Note" ("id", "title", "location", "description", "date", "time", "isDraft", "isDone", "position", "userId", "createdAt", "updatedAt") VALUES
+  ('seed_note_draft_ana', 'Ideas para las vacaciones', NULL, 'Bariloche o Salta', NULL, NULL, true, false, 0, 'seed_user_ana', now(), now());
 
 COMMIT;

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { sanitizeName, validateAvatarDataUrl, validatePasswordLength } from "@/lib/profile";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/session";
+import { isValidTimeZone } from "@/lib/timezone";
 
 export async function updateProfileName(name: string) {
   const userId = await requireUserId();
@@ -22,6 +23,17 @@ export async function updateAvatar(dataUrl: string) {
   await prisma.user.update({ where: { id: userId }, data: { avatarUrl: dataUrl } });
   revalidatePath("/");
   revalidatePath("/profile");
+}
+
+/** Stores the time zone the browser reports (see `TimeZoneSync`), used to work out "today". */
+export async function updateTimeZone(timeZone: string) {
+  const userId = await requireUserId();
+  if (!isValidTimeZone(timeZone)) {
+    throw new Error("INVALID_TIME_ZONE");
+  }
+
+  await prisma.user.update({ where: { id: userId }, data: { timeZone } });
+  revalidatePath("/");
 }
 
 export async function setPassword(password: string, currentPassword?: string) {

@@ -26,7 +26,7 @@ export default function NoteForm({
   const [title, setTitle] = useState(note?.title ?? "");
   const [location, setLocation] = useState(note?.location ?? "");
   const [description, setDescription] = useState(note?.description ?? "");
-  const [time, setTime] = useState(note && !note.hasTime ? "" : (note?.time ?? ""));
+  const [time, setTime] = useState(note?.time ?? "");
   const [, startTransition] = useTransition();
   const titleRef = useRef<HTMLTextAreaElement>(null);
   const savedRef = useRef(false);
@@ -59,7 +59,7 @@ export default function NoteForm({
       return;
     }
     if (note) {
-      onDone({ ...note, title: trimmedTitle, location, description, time, hasTime: time !== "" });
+      onDone({ ...note, title: trimmedTitle, location, description, time: time || null });
     } else {
       onDone();
     }
