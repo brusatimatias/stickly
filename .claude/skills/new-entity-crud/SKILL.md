@@ -11,7 +11,7 @@ CLAUDE.md already covers the architecture. This skill is the ordered checklist p
 **Start from the closest existing feature and copy its shape.** A boolean flag on a note (pinned, priority, archived…) is `isDone` all over again: the `add_note_is_done` migration, `toggleNoteDone` in `actions/notes.ts`, the DTO mappers, the done toggle in `NoteCard`, and its tests. A free-text field copies `location`/`description` through `createNote`/`updateNote`. Skip the sections below that don't apply.
 
 ## 1. Schema + migration
-- Edit `prisma/schema.prisma`. For note fields, think about a `@default` so existing rows migrate cleanly, and whether the draft note (`isDraft: true`, `scheduledAt: null`) should carry the field too.
+- Edit `prisma/schema.prisma`. For note fields, think about a `@default` so existing rows migrate cleanly, and whether the draft note (`isDraft: true`, `date: null`) should carry the field too.
 - `npx prisma migrate dev --name <snake_case_description>`, then **`npx prisma generate`**. Prisma 7's `migrate dev` no longer regenerates the client, and `postinstall` only runs on `npm install`, so without this step the types in `src/generated/prisma` are stale and type-check fails.
 - Import the client from `@/lib/prisma` and types from `@/generated/prisma`, never from `@prisma/client`.
 
@@ -33,7 +33,7 @@ A new column on `Note` doesn't reach the UI by itself. Update each of these:
 1. `ScheduledNote` type in `src/lib/notes.ts`.
 2. Both mappers there: `groupNotesByDay` (scheduled notes) and `toDraftNoteDTO` (the draft).
 3. `NoteDTO` in `src/components/board/types.ts`.
-4. The `lastServerNote` comparison in `NoteCard.tsx`. It decides when the server copy has changed and the optimistic copy can be dropped, so it should compare every DTO field. If a field is missing, the card can keep showing stale optimistic data. (`description` is currently missing from it, so add it if you're in there.)
+4. The `lastServerNote` comparison in `NoteCard.tsx`. It decides when the server copy has changed and the optimistic copy can be dropped, so it should compare every DTO field. If a field is missing, the card can keep showing stale optimistic data.
 5. The form (`NoteForm.tsx` / `DraftForm.tsx`) and the card display. Follow the `ui-conventions` skill for these. If the field is visible on the card, also consider the simplified card copy in `Board.tsx`'s `DragOverlay`.
 6. If the field belongs on the Google Calendar event, update the event body in `actions/calendar.ts`.
 7. Decide whether the assistant chat should know about it. Notes are created through `createNoteForUser` (`src/lib/noteCreation.ts`), shared by `createNote` and the chat's `create_note` tool: a field settable from chat needs a property in `CREATE_NOTE_TOOL`'s schema and in `parseNoteToolInput` (`src/lib/noteInput.ts`); a field the chat should report needs to be added to `listNotesForUser`'s output (`src/lib/notes.ts`). Don't let a new tool argument skip the parser.

@@ -26,10 +26,11 @@ Your job is ONLY to review and report: do not edit files.
 - Errors are thrown as bare string codes (`new Error("SOME_CODE")`); every new code has a key in the `errors` namespace of both `messages/en.json` and `messages/es.json`.
 
 **Data model and Prisma**
-- `scheduledAt` stays a single `DateTime` (date + time), never split into two fields; `hasTime` marks whether the time is meaningful.
-- `scheduledAt` is `null` only for the draft note (`isDraft: true`); board queries filter `isDraft: false`.
+- A note's schedule is `date` (`@db.Date`) + `time` (`"HH:mm"` or `null` for no time): wall-clock values as written, never converted between zones. `date` is `null` only for the draft note (`isDraft: true`); board queries filter `isDraft: false`.
+- Days go through `dayToDate`/`dateToDay` (`src/lib/datetime.ts`, UTC-based); flag any server code that derives a day or "today" from the process time zone (`new Date()` + `format`, `getHours`, `startOfDay` on instants...). "Today" comes from `getTodayInZone` with the user's zone (`getUserTimeZone`).
+- Day and time input from the client or tools is validated with `sanitizeDay`/`sanitizeTime` (`src/lib/noteInput.ts`) before reaching Prisma.
 - Single draft per user is enforced in the app: `findFirst({ userId, isDraft: true })` + update-or-create, inside a transaction holding `pg_advisory_xact_lock` keyed on `userId`. No partial unique constraint added in the schema.
-- Week queries use `scheduledAt >= weekStart AND scheduledAt < weekEnd` (the `[userId, scheduledAt]` index); no week number is persisted.
+- Week queries use `date >= weekStart AND date < weekEnd` (the `[userId, date]` index); no week number is persisted.
 - No `Account`/`Session` models and no `@auth/prisma-adapter`; Google tokens stay in the JWT, not in the DB.
 - Schema changes come with a migration in `prisma/migrations/`; the Prisma client is imported from `src/generated/prisma` / `@/lib/prisma`, not `@prisma/client`.
 
@@ -38,7 +39,7 @@ Your job is ONLY to review and report: do not edit files.
 - New notes get `max(position) + 1` within their day.
 
 **Google Calendar**
-- The event is built directly from `scheduledAt`/`title`/`location`/`description` (`location` is its own event field); only notes with `hasTime` can be synced.
+- The event is built from `date` + `time` as a zone-less `dateTime` plus the user's `timeZone`, and `title`/`location`/`description` (`location` is its own event field); only notes with a `time` can be synced.
 - Deleting a note or clearing its time unsyncs the event (`unsyncNoteFromGoogleCalendar`, best-effort, never throws) and clears `googleEventId`.
 - A 401 from Google maps to `GOOGLE_SESSION_EXPIRED`; a missing token (Credentials session) to `MISSING_GOOGLE_TOKEN`.
 
