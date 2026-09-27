@@ -1,11 +1,13 @@
-import { addDays, format } from "date-fns";
+import { addDays, format, parseISO } from "date-fns";
 import { enUS, es } from "date-fns/locale";
 import { getLocale, getTranslations } from "next-intl/server";
 import Image from "next/image";
 import Link from "next/link";
 import { auth } from "@/auth";
-import { getDraftNote, getNotesForWeek, groupNotesByDay, toDraftNoteDTO } from "@/lib/notes";
+import { getDraftNote, getNotesForDays, groupNotesByDay, toDraftNoteDTO } from "@/lib/notes";
 import { prisma } from "@/lib/prisma";
+import { getTodayInZone } from "@/lib/timezone";
+import { getUserTimeZone } from "@/lib/userTimeZone";
 import {
   formatWeekParam,
   getAdjacentWeekStart,
@@ -18,6 +20,7 @@ import Board from "@/components/board/Board";
 import ChatWidget from "@/components/chat/ChatWidget";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
 import ThemeToggle from "@/components/ThemeToggle";
+import TimeZoneSync from "@/components/TimeZoneSync";
 
 export default async function Home({
   searchParams,
@@ -30,16 +33,18 @@ export default async function Home({
   }
 
   const { week } = await searchParams;
-  const reference = parseWeekParam(week);
-  const { start, end } = getWeekRange(reference);
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { name: true, avatarUrl: true, imageUrl: true, timeZone: true },
+  });
+  // "Today" depends on where the user is; everything else on the board is
+  // plain calendar days, so it's independent of the server's time zone.
+  const todayKey = getTodayInZone(await getUserTimeZone(user?.timeZone), new Date());
+  const { start, end } = getWeekRange(parseWeekParam(week, todayKey));
 
-  const [notes, draft, user, t, locale] = await Promise.all([
-    getNotesForWeek(session.user.id, start, end),
+  const [notes, draft, t, locale] = await Promise.all([
+    getNotesForDays(session.user.id, format(start, "yyyy-MM-dd"), format(end, "yyyy-MM-dd")),
     getDraftNote(session.user.id),
-    prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { name: true, avatarUrl: true, imageUrl: true },
-    }),
     getTranslations("common"),
     getLocale(),
   ]);
@@ -59,9 +64,7 @@ export default async function Home({
     days.map((day) => day.key)
   );
   const draftNote = toDraftNoteDTO(draft);
-  const now = new Date();
-  const todayKey = format(now, "yyyy-MM-dd");
-  const todayWeekParam = formatWeekParam(now);
+  const todayWeekParam = formatWeekParam(parseISO(todayKey));
 
   return (
     <div className="flex flex-1 flex-col">
@@ -104,6 +107,7 @@ export default async function Home({
         todayKey={todayKey}
       />
       <ChatWidget weekDays={days.map((day) => day.key)} />
+      <TimeZoneSync storedTimeZone={user?.timeZone ?? null} />
     </div>
   );
 }

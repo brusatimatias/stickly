@@ -18,6 +18,10 @@ model User {
   imageUrl      String?
   avatarUrl     String?
   password      String?
+  /// IANA zone reported by the user's browser (e.g. America/Argentina/Buenos_Aires).
+  /// Only used to work out "today" and to build Calendar events; note dates and
+  /// times are stored as written, not converted.
+  timeZone      String?
   notes         Note[]
   webChatUsages WebChatUsage[]
   createdAt     DateTime       @default(now())
@@ -28,8 +32,11 @@ model Note {
   title         String
   location      String?
   description   String?
-  scheduledAt   DateTime?
-  hasTime       Boolean   @default(true)
+  /// Calendar day and wall-clock time as the user wrote them, without a time
+  /// zone. `date` is null only for the draft note; `time` (HH:mm) is null when
+  /// the note has no time.
+  date          DateTime? @db.Date
+  time          String?   @db.VarChar(5)
   isDraft       Boolean   @default(false)
   isDone        Boolean   @default(false)
   position      Int       @default(0)
@@ -39,7 +46,7 @@ model Note {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  @@index([userId, scheduledAt])
+  @@index([userId, date])
 }
 
 /// One row per web chat message, used only to rate-limit the LLM chat

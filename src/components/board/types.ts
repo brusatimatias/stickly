@@ -3,8 +3,7 @@ export type NoteDTO = {
   title: string;
   location: string | null;
   description: string | null;
-  time: string; // HH:mm
-  hasTime: boolean;
+  time: string | null; // HH:mm; null when the note has no time
   isDone: boolean;
   googleEventId: string | null;
 };

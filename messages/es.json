@@ -101,6 +101,7 @@
     "DAY_REQUIRED": "La nota necesita una fecha",
     "INVALID_DAY": "Fecha inválida",
     "INVALID_TIME": "Hora inválida",
+    "INVALID_TIME_ZONE": "Zona horaria inválida",
     "INVALID_CHAT_MESSAGES": "Mensaje de chat inválido",
     "CHAT_MESSAGE_TOO_LONG": "El mensaje es demasiado largo (máximo 500 caracteres)",
     "CHAT_RATE_LIMITED": "Estás enviando mensajes muy rápido. Esperá un minuto y probá de nuevo.",

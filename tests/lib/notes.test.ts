@@ -23,8 +23,8 @@ describe("groupNotesByDay", () => {
           title: "Standup",
           location: "Room A",
           description: null,
-          scheduledAt: new Date(2026, 8, 14, 9, 30),
-          hasTime: true,
+          date: new Date("2026-09-14T00:00:00Z"),
+          time: "09:30",
           isDone: false,
           googleEventId: "gcal-1",
         },
@@ -39,7 +39,6 @@ describe("groupNotesByDay", () => {
         location: "Room A",
         description: null,
         time: "09:30",
-        hasTime: true,
         isDone: false,
         googleEventId: "gcal-1",
       },
@@ -55,8 +54,8 @@ describe("groupNotesByDay", () => {
           title: "A",
           location: null,
           description: null,
-          scheduledAt: new Date(2026, 8, 14, 8, 0),
-          hasTime: true,
+          date: new Date("2026-09-14T00:00:00Z"),
+          time: "08:00",
           isDone: false,
           googleEventId: null,
         },
@@ -65,8 +64,8 @@ describe("groupNotesByDay", () => {
           title: "B",
           location: null,
           description: null,
-          scheduledAt: new Date(2026, 8, 14, 9, 0),
-          hasTime: true,
+          date: new Date("2026-09-14T00:00:00Z"),
+          time: "09:00",
           isDone: false,
           googleEventId: null,
         },
@@ -85,8 +84,8 @@ describe("groupNotesByDay", () => {
           title: "A",
           location: null,
           description: null,
-          scheduledAt: new Date(2026, 8, 14, 8, 0),
-          hasTime: true,
+          date: new Date("2026-09-14T00:00:00Z"),
+          time: "08:00",
           isDone: true,
           googleEventId: null,
         },
@@ -95,8 +94,8 @@ describe("groupNotesByDay", () => {
           title: "B",
           location: null,
           description: null,
-          scheduledAt: new Date(2026, 8, 14, 9, 0),
-          hasTime: true,
+          date: new Date("2026-09-14T00:00:00Z"),
+          time: "09:00",
           isDone: false,
           googleEventId: null,
         },
@@ -105,8 +104,8 @@ describe("groupNotesByDay", () => {
           title: "C",
           location: null,
           description: null,
-          scheduledAt: new Date(2026, 8, 14, 10, 0),
-          hasTime: true,
+          date: new Date("2026-09-14T00:00:00Z"),
+          time: "10:00",
           isDone: true,
           googleEventId: null,
         },
@@ -115,8 +114,8 @@ describe("groupNotesByDay", () => {
           title: "D",
           location: null,
           description: null,
-          scheduledAt: new Date(2026, 8, 14, 11, 0),
-          hasTime: true,
+          date: new Date("2026-09-14T00:00:00Z"),
+          time: "11:00",
           isDone: false,
           googleEventId: null,
         },
@@ -132,7 +131,7 @@ describe("groupNotesByDay", () => {
     ]);
   });
 
-  test("skips notes with no scheduledAt", () => {
+  test("skips notes with no date", () => {
     const result = groupNotesByDay(
       [
         {
@@ -140,8 +139,8 @@ describe("groupNotesByDay", () => {
           title: "Draft",
           location: null,
           description: null,
-          scheduledAt: null,
-          hasTime: true,
+          date: null,
+          time: null,
           isDone: false,
           googleEventId: null,
         },
@@ -160,8 +159,8 @@ describe("groupNotesByDay", () => {
           title: "Out of range",
           location: null,
           description: null,
-          scheduledAt: new Date(2026, 0, 1),
-          hasTime: true,
+          date: new Date("2026-01-01T00:00:00Z"),
+          time: null,
           isDone: false,
           googleEventId: null,
         },
@@ -178,14 +177,14 @@ describe("toDraftNoteDTO", () => {
     expect(toDraftNoteDTO(null)).toBeNull();
   });
 
-  test("maps the draft note to a DTO with a blank time", () => {
+  test("maps the draft note to a DTO with no time", () => {
     const dto = toDraftNoteDTO({
       id: "draft-1",
       title: "Draft",
       location: "Somewhere",
       description: null,
-      scheduledAt: null,
-      hasTime: true,
+      date: null,
+      time: null,
       isDone: false,
       googleEventId: null,
     });
@@ -195,8 +194,7 @@ describe("toDraftNoteDTO", () => {
       title: "Draft",
       location: "Somewhere",
       description: null,
-      time: "",
-      hasTime: true,
+      time: null,
       isDone: false,
       googleEventId: null,
     });
@@ -209,8 +207,8 @@ function note(overrides: Partial<Record<string, unknown>>) {
     title: "Note",
     location: null,
     description: null,
-    scheduledAt: new Date(2026, 8, 21, 0, 0),
-    hasTime: false,
+    date: new Date("2026-09-21T00:00:00Z"),
+    time: null,
     isDone: false,
     googleEventId: null,
     ...overrides,
@@ -231,7 +229,7 @@ describe("listNotesForUser", () => {
       where: {
         userId: "user-1",
         isDraft: false,
-        scheduledAt: { gte: new Date(2026, 8, 21), lt: new Date(2026, 8, 28) },
+        date: { gte: new Date("2026-09-21T00:00:00Z"), lt: new Date("2026-09-28T00:00:00Z") },
       },
       orderBy: { position: "asc" },
     });
@@ -239,8 +237,8 @@ describe("listNotesForUser", () => {
 
   test("returns every day in the range, including empty ones", async () => {
     mockPrisma.note.findMany.mockResolvedValue([
-      note({ id: "a", title: "Drink tea", scheduledAt: new Date(2026, 8, 21, 8, 30), hasTime: true }),
-      note({ id: "b", title: "Buy gift", scheduledAt: new Date(2026, 8, 23), location: "Mall" }),
+      note({ id: "a", title: "Drink tea", time: "08:30" }),
+      note({ id: "b", title: "Buy gift", date: new Date("2026-09-23T00:00:00Z"), location: "Mall" }),
     ]);
 
     const result = await listNotesForUser("user-1", { from: "2026-09-21", to: "2026-09-23", status: "all" });

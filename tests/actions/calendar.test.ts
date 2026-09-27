@@ -5,7 +5,9 @@ const mockPrisma = vi.hoisted(() => ({
     findFirst: vi.fn(),
     update: vi.fn(),
   },
+  user: { findUnique: vi.fn() },
 }));
+const mockHeaders = vi.hoisted(() => vi.fn());
 
 const mockAuth = vi.hoisted(() => vi.fn());
 const mockRevalidatePath = vi.hoisted(() => vi.fn());
@@ -17,6 +19,7 @@ const mockSetCredentials = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }));
 vi.mock("@/auth", () => ({ auth: mockAuth }));
 vi.mock("next/cache", () => ({ revalidatePath: mockRevalidatePath }));
+vi.mock("next/headers", () => ({ headers: mockHeaders }));
 vi.mock("googleapis", () => ({
   google: {
     auth: {
@@ -42,14 +45,16 @@ const SCHEDULED_NOTE = {
   id: "note-1",
   title: "Meeting",
   location: null,
-  scheduledAt: new Date("2026-09-16T10:00:00.000Z"),
-  hasTime: true,
+  date: new Date("2026-09-16T00:00:00.000Z"),
+  time: "22:30",
   googleEventId: null,
 };
 
 beforeEach(() => {
   vi.clearAllMocks();
   mockAuth.mockResolvedValue(SESSION);
+  mockPrisma.user.findUnique.mockResolvedValue({ timeZone: "America/Argentina/Buenos_Aires" });
+  mockHeaders.mockResolvedValue(new Headers());
 });
 
 describe("addNoteToGoogleCalendar", () => {
@@ -66,7 +71,7 @@ describe("addNoteToGoogleCalendar", () => {
   });
 
   test("throws when the note has no time set", async () => {
-    mockPrisma.note.findFirst.mockResolvedValue({ ...SCHEDULED_NOTE, hasTime: false });
+    mockPrisma.note.findFirst.mockResolvedValue({ ...SCHEDULED_NOTE, time: null });
     await expect(addNoteToGoogleCalendar("note-1")).rejects.toThrow(
       "TIME_REQUIRED_FOR_SYNC"
     );
@@ -86,6 +91,29 @@ describe("addNoteToGoogleCalendar", () => {
       where: { id: "note-1" },
       data: { googleEventId: "gcal-new" },
     });
+  });
+
+  test("sends the note's wall-clock time with the user's time zone", async () => {
+    mockPrisma.note.findFirst.mockResolvedValue({ ...SCHEDULED_NOTE, time: "23:30" });
+    mockEventsInsert.mockResolvedValue({ data: { id: "gcal-new" } });
+
+    await addNoteToGoogleCalendar("note-1");
+
+    expect(mockEventsInsert.mock.calls[0][0].requestBody).toMatchObject({
+      start: { dateTime: "2026-09-16T23:30:00", timeZone: "America/Argentina/Buenos_Aires" },
+      end: { dateTime: "2026-09-17T00:30:00", timeZone: "America/Argentina/Buenos_Aires" },
+    });
+  });
+
+  test("falls back to the IP-based zone when the user has none stored", async () => {
+    mockPrisma.note.findFirst.mockResolvedValue(SCHEDULED_NOTE);
+    mockPrisma.user.findUnique.mockResolvedValue({ timeZone: null });
+    mockHeaders.mockResolvedValue(new Headers({ "x-vercel-ip-timezone": "Europe/Madrid" }));
+    mockEventsInsert.mockResolvedValue({ data: { id: "gcal-new" } });
+
+    await addNoteToGoogleCalendar("note-1");
+
+    expect(mockEventsInsert.mock.calls[0][0].requestBody.start.timeZone).toBe("Europe/Madrid");
   });
 
   test("updates the existing event when already synced", async () => {
