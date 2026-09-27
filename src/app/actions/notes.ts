@@ -1,11 +1,16 @@
 "use server";
 
-import { addDays, startOfDay } from "date-fns";
 import { revalidatePath } from "next/cache";
 import { unsyncNoteFromGoogleCalendar } from "@/app/actions/calendar";
-import { combineDayAndTime } from "@/lib/datetime";
+import { dayToDate } from "@/lib/datetime";
 import { createNoteForUser } from "@/lib/noteCreation";
-import { sanitizeDescription, sanitizeLocation, sanitizeTitle } from "@/lib/noteInput";
+import {
+  sanitizeDay,
+  sanitizeDescription,
+  sanitizeLocation,
+  sanitizeTime,
+  sanitizeTitle,
+} from "@/lib/noteInput";
 import { insertAtIndex, sortDoneLast } from "@/lib/ordering";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/session";
@@ -44,18 +49,16 @@ export async function updateNote(input: {
   const existing = await prisma.note.findFirst({
     where: { id: input.id, userId },
   });
-  if (!existing?.scheduledAt) {
+  if (!existing?.date) {
     throw new Error("NOTE_NOT_FOUND");
   }
 
   const title = sanitizeTitle(input.title);
   const location = sanitizeLocation(input.location);
   const description = sanitizeDescription(input.description);
-  const hasTime = input.time !== "";
-  const day = existing.scheduledAt.toISOString().slice(0, 10);
-  const scheduledAt = combineDayAndTime(day, hasTime ? input.time : "00:00");
+  const time = sanitizeTime(input.time);
 
-  const clearingTime = existing.hasTime && !hasTime && existing.googleEventId;
+  const clearingTime = existing.time && !time && existing.googleEventId;
   if (clearingTime) {
     await unsyncNoteFromGoogleCalendar(existing.googleEventId!);
   }
@@ -66,8 +69,7 @@ export async function updateNote(input: {
       title,
       location,
       description,
-      scheduledAt,
-      hasTime,
+      time,
       ...(clearingTime ? { googleEventId: null } : {}),
     },
   });
@@ -93,8 +95,7 @@ export async function deleteNote(id: string) {
 
 export async function moveNote(input: { noteId: string; day: string; index: number }) {
   const userId = await requireUserId();
-  const targetDayStart = startOfDay(combineDayAndTime(input.day, "00:00"));
-  const targetDayEnd = addDays(targetDayStart, 1);
+  const date = dayToDate(sanitizeDay(input.day));
 
   await prisma.$transaction(async (tx) => {
     const movingNote = await tx.note.findFirst({
@@ -108,7 +109,7 @@ export async function moveNote(input: { noteId: string; day: string; index: numb
       where: {
         userId,
         isDraft: false,
-        scheduledAt: { gte: targetDayStart, lt: targetDayEnd },
+        date,
         id: { not: input.noteId },
       },
       orderBy: { position: "asc" },
@@ -116,17 +117,14 @@ export async function moveNote(input: { noteId: string; day: string; index: numb
 
     const ordered = insertAtIndex(sortDoneLast(dayNotes), movingNote, input.index);
 
-    const previousTime = movingNote.scheduledAt ?? targetDayStart;
-    const newScheduledAt = new Date(targetDayStart);
-    newScheduledAt.setHours(previousTime.getHours(), previousTime.getMinutes(), 0, 0);
-
     await Promise.all(
       ordered.map((note, position) =>
         tx.note.update({
           where: { id: note.id },
           data: {
             position,
-            ...(note.id === input.noteId ? { scheduledAt: newScheduledAt } : {}),
+            // The time stays as is: moving only changes the day.
+            ...(note.id === input.noteId ? { date } : {}),
           },
         })
       )
@@ -176,7 +174,6 @@ export async function saveDraftNote(input: {
           description,
           userId,
           isDraft: true,
-          scheduledAt: null,
         },
       });
     }
@@ -188,8 +185,7 @@ export async function saveDraftNote(input: {
 /** Promotes the draft note to a scheduled note on the given day, with no time set. */
 export async function scheduleDraftNote(input: { noteId: string; day: string; index: number }) {
   const userId = await requireUserId();
-  const targetDayStart = startOfDay(combineDayAndTime(input.day, "00:00"));
-  const targetDayEnd = addDays(targetDayStart, 1);
+  const date = dayToDate(sanitizeDay(input.day));
 
   await prisma.$transaction(async (tx) => {
     const draftNote = await tx.note.findFirst({
@@ -200,13 +196,11 @@ export async function scheduleDraftNote(input: { noteId: string; day: string; in
     }
 
     const dayNotes = await tx.note.findMany({
-      where: { userId, isDraft: false, scheduledAt: { gte: targetDayStart, lt: targetDayEnd } },
+      where: { userId, isDraft: false, date },
       orderBy: { position: "asc" },
     });
 
     const ordered = insertAtIndex(sortDoneLast(dayNotes), draftNote, input.index);
-
-    const scheduledAt = combineDayAndTime(input.day, "00:00");
 
     await Promise.all(
       ordered.map((note, position) =>
@@ -215,7 +209,7 @@ export async function scheduleDraftNote(input: { noteId: string; day: string; in
           data: {
             position,
             ...(note.id === input.noteId
-              ? { isDraft: false, scheduledAt, hasTime: false }
+              ? { isDraft: false, date, time: null }
               : {}),
           },
         })

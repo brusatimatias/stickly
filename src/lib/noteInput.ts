@@ -113,6 +113,23 @@ function validateDay(day: string): void {
   }
 }
 
+/** Validates a note's `yyyy-MM-dd` day coming from the client or a tool call. */
+export function sanitizeDay(day: string): string {
+  validateDay(day);
+  return day;
+}
+
+/** Validates a note's `HH:mm` time; "" means no time and becomes null. */
+export function sanitizeTime(time: string): string | null {
+  if (!time) {
+    return null;
+  }
+  if (!TIME_PATTERN.test(time)) {
+    throw new Error("INVALID_TIME");
+  }
+  return time;
+}
+
 function readOptionalString(value: unknown): string {
   if (value === undefined || value === null) {
     return "";
@@ -138,10 +155,8 @@ export function parseNoteToolInput(raw: unknown): NoteToolInput {
   const day = readOptionalString(input.day);
   const time = readOptionalString(input.time);
 
-  validateDay(day);
-  if (time && !TIME_PATTERN.test(time)) {
-    throw new Error("INVALID_TIME");
-  }
+  sanitizeDay(day);
+  sanitizeTime(time);
 
   return { title, location, description, day, time };
 }

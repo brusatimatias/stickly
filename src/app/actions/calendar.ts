@@ -3,9 +3,11 @@
 import { google } from "googleapis";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
+import { dateToDay, localDateTime } from "@/lib/datetime";
 import { prisma } from "@/lib/prisma";
+import { getUserTimeZone } from "@/lib/userTimeZone";
 
-const EVENT_DURATION_MS = 60 * 60 * 1000; // 1 hour
+const EVENT_DURATION_MINUTES = 60;
 
 function getCalendarClient(accessToken: string) {
   const oauth2Client = new google.auth.OAuth2();
@@ -36,12 +38,20 @@ export async function addNoteToGoogleCalendar(noteId: string) {
   const note = await prisma.note.findFirst({
     where: { id: noteId, userId: session.user.id, isDraft: false },
   });
-  if (!note?.scheduledAt) {
+  if (!note?.date) {
     throw new Error("NOTE_NOT_FOUND");
   }
-  if (!note.hasTime) {
+  if (!note.time) {
     throw new Error("TIME_REQUIRED_FOR_SYNC");
   }
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { timeZone: true },
+  });
+  // The note keeps the wall-clock time as written; Google turns it into an
+  // instant with the user's time zone.
+  const timeZone = await getUserTimeZone(user?.timeZone);
+  const day = dateToDay(note.date);
 
   const calendar = getCalendarClient(session.accessToken);
 
@@ -49,10 +59,8 @@ export async function addNoteToGoogleCalendar(noteId: string) {
     summary: note.title,
     location: note.location ?? undefined,
     description: note.description ?? undefined,
-    start: { dateTime: note.scheduledAt.toISOString() },
-    end: {
-      dateTime: new Date(note.scheduledAt.getTime() + EVENT_DURATION_MS).toISOString(),
-    },
+    start: { dateTime: localDateTime(day, note.time), timeZone },
+    end: { dateTime: localDateTime(day, note.time, EVENT_DURATION_MINUTES), timeZone },
   };
 
   let googleEventId: string | null | undefined;

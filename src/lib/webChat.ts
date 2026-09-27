@@ -1,5 +1,6 @@
 import { addDays, format, parseISO } from "date-fns";
 import type { Locale } from "@/i18n/locales";
+import { getTodayInZone, resolveTimeZone } from "@/lib/timezone";
 import { getWeekRange } from "@/lib/week";
 
 export const DEFAULT_CHAT_MODEL = "gemini-3.5-flash-lite";
@@ -78,14 +79,8 @@ export type UserToday = {
  * time zone.
  */
 export function getUserToday(timeZone: string, now: Date): UserToday {
-  let zone = timeZone;
-  try {
-    new Intl.DateTimeFormat("en-US", { timeZone: zone });
-  } catch {
-    zone = "UTC";
-  }
-  // en-CA formats dates as yyyy-MM-dd.
-  const date = new Intl.DateTimeFormat("en-CA", { timeZone: zone }).format(now);
+  const zone = resolveTimeZone(timeZone);
+  const date = getTodayInZone(zone, now);
   const weekday = new Intl.DateTimeFormat("en-US", { timeZone: zone, weekday: "long" }).format(now);
   const week = getWeekRange(parseISO(date));
   return {
