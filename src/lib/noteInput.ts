@@ -58,6 +58,25 @@ export const CREATE_NOTE_TOOL = {
   },
 } as const;
 
+/**
+ * The `create_draft_note` tool: a note with no date yet, kept in the board's
+ * draft panel. Validated with `parseDraftNoteToolInput`.
+ */
+export const CREATE_DRAFT_NOTE_TOOL = {
+  name: "create_draft_note",
+  description: `Creates a draft note (no date) in the draft panel of the user's Stickly board. Only use it when the user explicitly asks for a draft ("borrador"); a note missing its date is not a draft. The user can keep at most ${MAX_DRAFT_NOTES} drafts.`,
+  inputSchema: {
+    type: "object",
+    properties: {
+      title: CREATE_NOTE_TOOL.inputSchema.properties.title,
+      location: CREATE_NOTE_TOOL.inputSchema.properties.location,
+      description: CREATE_NOTE_TOOL.inputSchema.properties.description,
+    },
+    required: ["title"],
+    additionalProperties: false,
+  },
+} as const;
+
 export const LIST_NOTES_STATUSES = ["all", "pending", "done"] as const;
 export type ListNotesStatus = (typeof LIST_NOTES_STATUSES)[number];
 
@@ -90,13 +109,9 @@ export const LIST_NOTES_TOOL = {
 
 export type ListNotesInput = { from: string; to: string; status: ListNotesStatus };
 
-export type NoteToolInput = {
-  title: string;
-  location: string;
-  description: string;
-  day: string;
-  time: string;
-};
+export type DraftNoteToolInput = { title: string; location: string; description: string };
+
+export type NoteToolInput = DraftNoteToolInput & { day: string; time: string };
 
 function readInputObject(raw: unknown): Record<string, unknown> {
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
@@ -152,9 +167,7 @@ function readOptionalString(value: unknown): string {
 export function parseNoteToolInput(raw: unknown): NoteToolInput {
   const input = readInputObject(raw);
 
-  const title = readOptionalString(input.title);
-  const location = readOptionalString(input.location);
-  const description = readOptionalString(input.description);
+  const { title, location, description } = parseDraftNoteToolInput(input);
   const day = readOptionalString(input.day);
   const time = readOptionalString(input.time);
 
@@ -162,6 +175,20 @@ export function parseNoteToolInput(raw: unknown): NoteToolInput {
   sanitizeTime(time);
 
   return { title, location, description, day, time };
+}
+
+/**
+ * Validates the untrusted arguments of the `create_draft_note` tool; like
+ * `parseNoteToolInput`, the blank-title check and length limits are left to
+ * `createDraftNoteForUser`.
+ */
+export function parseDraftNoteToolInput(raw: unknown): DraftNoteToolInput {
+  const input = readInputObject(raw);
+  return {
+    title: readOptionalString(input.title),
+    location: readOptionalString(input.location),
+    description: readOptionalString(input.description),
+  };
 }
 
 /** Validates the untrusted arguments of the `list_notes` tool. */

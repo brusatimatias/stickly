@@ -151,7 +151,7 @@ describe("sendChatMessage", () => {
 
     const firstCall = model.doGenerateCalls[0];
     expect(JSON.stringify(firstCall.prompt)).toContain("Reply in Spanish");
-    expect(firstCall.tools?.map((toolDef) => toolDef.name)).toEqual(["create_note", "list_notes"]);
+    expect(firstCall.tools?.map((toolDef) => toolDef.name)).toEqual(["create_note", "create_draft_note", "list_notes"]);
   });
 
   test("converts a time the model gives, in the user's zone, to UTC", async () => {

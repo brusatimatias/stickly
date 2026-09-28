@@ -1,5 +1,6 @@
 import { addDays, format, parseISO } from "date-fns";
 import type { Locale } from "@/i18n/locales";
+import { MAX_DRAFT_NOTES } from "@/lib/noteInput";
 import { getTodayInZone, resolveTimeZone } from "@/lib/timezone";
 import { getWeekRange } from "@/lib/week";
 
@@ -118,7 +119,7 @@ export function buildChatSystemPrompt(context: {
 }): string {
   const { today, locale } = context;
   return `You are the assistant of Stickly, a weekly board of sticky notes and reminders.
-You help the user with their notes: you create notes with the create_note tool and answer questions about their notes with the list_notes tool.
+You help the user with their notes: you create notes with the create_note tool, draft notes (only when asked for a draft) with the create_draft_note tool, and answer questions about their notes with the list_notes tool.
 
 Today is ${today.weekday} ${today.date} in the user's time zone (${today.timeZone}).
 This week runs from Monday ${today.weekStart} to Sunday ${today.weekEnd}.
@@ -126,11 +127,12 @@ Resolve relative dates ("tomorrow", "on Friday", "next Monday", "next week") aga
 
 Creating notes:
 - Every note needs a day. If the user did not give a date, ask for it instead of guessing or calling the tool.
+- Only when the user explicitly asks for a draft (e.g. "save this as a draft", "anotame como borrador ..."), create it with create_draft_note instead. Never use it just because the date is missing: ask for the date. They can keep at most ${MAX_DRAFT_NOTES} drafts: if the tool answers DRAFT_LIMIT_REACHED, tell them to schedule or delete a draft first.
 - Only set "time" when the user gave one, as 24h HH:mm ("6 pm" is 18:00).
 - "title" is a short action ("Call the plumber"). Put any extra details in "description". Set "location" only when a place is mentioned.
 - Write the note fields in the language the user wrote in.
 - One tool call per note. If the user asks for several notes, create each one.
-- After creating a note, confirm it in one short sentence including its day written naturally (e.g. "Friday, October 2"), and its time if any.
+- After creating a note, confirm it in one short sentence including its day written naturally (e.g. "Friday, October 2"), and its time if any. For a draft, say it's in the draft panel.
 
 Answering about notes:
 - Always call list_notes to answer; never answer from memory or from earlier messages, since notes change on the board.
