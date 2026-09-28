@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import {
+  parseDraftNoteToolInput,
   parseListNotesInput,
   parseNoteToolInput,
   sanitizeDescription,
@@ -86,6 +87,22 @@ describe("parseNoteToolInput", () => {
     expect(() => parseNoteToolInput({ title: "Title", day: "2026-09-27", time: 1800 })).toThrow(
       "INVALID_NOTE_INPUT"
     );
+  });
+});
+
+describe("parseDraftNoteToolInput", () => {
+  test("trims the fields, defaults missing ones and ignores a day", () => {
+    expect(
+      parseDraftNoteToolInput({ title: " Buy batteries ", description: "AA", day: "2026-09-27" })
+    ).toEqual({ title: "Buy batteries", location: "", description: "AA" });
+  });
+
+  test.each([null, "text", ["title"]])("rejects the non-object input %j", (raw) => {
+    expect(() => parseDraftNoteToolInput(raw)).toThrow("INVALID_NOTE_INPUT");
+  });
+
+  test("rejects non-string fields", () => {
+    expect(() => parseDraftNoteToolInput({ title: 42 })).toThrow("INVALID_NOTE_INPUT");
   });
 });
 

@@ -17,9 +17,12 @@ export function getNotesForDays(userId: string, fromDay: string, toDay: string, 
   });
 }
 
-/** The user's single draft note (isDraft: true), if any. */
-export function getDraftNote(userId: string) {
-  return prisma.note.findFirst({ where: { userId, isDraft: true } });
+/** The user's draft notes (isDraft: true, no date), in their panel order. */
+export function getDraftNotes(userId: string) {
+  return prisma.note.findMany({
+    where: { userId, isDraft: true },
+    orderBy: [{ position: "asc" }, { createdAt: "asc" }],
+  });
 }
 
 /**

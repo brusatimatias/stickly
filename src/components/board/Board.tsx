@@ -18,7 +18,7 @@ import {
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useRef, useState, useTransition } from "react";
-import { moveNote, scheduleDraftNote } from "@/app/actions/notes";
+import { moveDraftNote, moveNote, scheduleDraftNote } from "@/app/actions/notes";
 import DayColumn from "@/components/board/DayColumn";
 import DayFocusNav from "@/components/board/DayFocusNav";
 import DraftPanel from "@/components/board/DraftPanel";
@@ -44,7 +44,7 @@ function findContainer(id: string, notesByDay: NotesByDay): string | undefined {
 export default function Board({
   days,
   notes,
-  draftNote,
+  draftNotes,
   timeZone,
   weekLabel,
   prevWeekParam,
@@ -56,7 +56,8 @@ export default function Board({
   days: BoardDay[];
   /** The week's notes as stored (UTC); grouped here into local days of `timeZone`. */
   notes: StoredNoteDTO[];
-  draftNote: StoredNoteDTO | null;
+  /** The user's drafts, in their panel order. */
+  draftNotes: StoredNoteDTO[];
   timeZone: string;
   weekLabel: string;
   prevWeekParam: string;
@@ -67,24 +68,23 @@ export default function Board({
 }) {
   const router = useRouter();
   function buildNotesByDay(): NotesByDay {
-    const draft = toDraftNoteDTO(draftNote);
     return {
       ...groupNotesByDay(
         notes,
         days.map((day) => day.key),
         timeZone
       ),
-      [DRAFT_CONTAINER]: draft ? [draft] : [],
+      [DRAFT_CONTAINER]: draftNotes.map(toDraftNoteDTO),
     };
   }
 
   const [notesByDay, setNotesByDay] = useState<NotesByDay>(buildNotesByDay);
   const [syncedNotes, setSyncedNotes] = useState(notes);
-  const [syncedDraftNote, setSyncedDraftNote] = useState(draftNote);
+  const [syncedDraftNotes, setSyncedDraftNotes] = useState(draftNotes);
   const [syncedTimeZone, setSyncedTimeZone] = useState(timeZone);
-  if (notes !== syncedNotes || draftNote !== syncedDraftNote || timeZone !== syncedTimeZone) {
+  if (notes !== syncedNotes || draftNotes !== syncedDraftNotes || timeZone !== syncedTimeZone) {
     setSyncedNotes(notes);
-    setSyncedDraftNote(draftNote);
+    setSyncedDraftNotes(draftNotes);
     setSyncedTimeZone(timeZone);
     setNotesByDay(buildNotesByDay());
   }
@@ -183,8 +183,8 @@ export default function Board({
       return;
     }
 
-    // Only the draft note itself may ever occupy the draft container, so a
-    // regular scheduled note can never be dropped back into it.
+    // Only drafts may ever occupy the draft container, so a regular scheduled
+    // note can never be dropped back into it.
     if (overContainer === DRAFT_CONTAINER && originContainerRef.current !== DRAFT_CONTAINER) {
       return;
     }
@@ -229,7 +229,18 @@ export default function Board({
       findContainer(active.id as string, notesByDay) ?? (over.id as string);
     const items = notesByDay[destinationContainer] ?? [];
     const index = items.findIndex((note) => note.id === active.id);
-    if (index === -1 || destinationContainer === DRAFT_CONTAINER) return;
+    if (index === -1) return;
+
+    if (destinationContainer === DRAFT_CONTAINER) {
+      // Reordered among the drafts (a draft dragged over a day and back ends
+      // up here too).
+      startTransition(async () => {
+        await moveDraftNote({ noteId: active.id as string, index });
+        router.refresh();
+      });
+      return;
+    }
+
     // Same local time on the new day (or just the new day), stored as UTC.
     const schedule = toScheduleInput(
       toStoredSchedule(destinationContainer, items[index].time, timeZone)
@@ -277,7 +288,7 @@ export default function Board({
           }}
         >
           <div className="flex flex-col gap-3 p-4 lg:flex-row">
-            <DraftPanel note={notesByDay[DRAFT_CONTAINER][0] ?? null} />
+            <DraftPanel notes={notesByDay[DRAFT_CONTAINER]} />
             {focusedDayInfo ? (
               <div className="min-w-0 flex-1">
                 <DayFocusNav

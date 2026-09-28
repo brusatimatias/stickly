@@ -8,6 +8,8 @@ const mockPrisma = vi.hoisted(() => ({
     create: vi.fn(),
     findMany: vi.fn(),
   },
+  $transaction: vi.fn(),
+  $executeRaw: vi.fn(),
   webChatUsage: {
     create: vi.fn(),
     count: vi.fn(),
@@ -69,7 +71,10 @@ function mockModel(steps: Content[]) {
 beforeEach(() => {
   vi.clearAllMocks();
   mockAuth.mockResolvedValue(SESSION);
-  mockPrisma.note.aggregate.mockResolvedValue({ _max: { position: null } });
+  mockPrisma.note.aggregate.mockResolvedValue({ _count: 0, _max: { position: null } });
+  mockPrisma.$transaction.mockImplementation((callback: (tx: typeof mockPrisma) => unknown) =>
+    callback(mockPrisma)
+  );
   mockPrisma.webChatUsage.create.mockResolvedValue({ id: "usage-1" });
   mockPrisma.webChatUsage.count.mockResolvedValue(1);
 });
@@ -151,7 +156,11 @@ describe("sendChatMessage", () => {
 
     const firstCall = model.doGenerateCalls[0];
     expect(JSON.stringify(firstCall.prompt)).toContain("Reply in Spanish");
-    expect(firstCall.tools?.map((toolDef) => toolDef.name)).toEqual(["create_note", "list_notes"]);
+    expect(firstCall.tools?.map((toolDef) => toolDef.name)).toEqual([
+      "create_note",
+      "create_draft_note",
+      "list_notes",
+    ]);
   });
 
   test("converts a time the model gives, in the user's zone, to UTC", async () => {
@@ -181,6 +190,41 @@ describe("sendChatMessage", () => {
     expect(mockRevalidatePath).not.toHaveBeenCalled();
     expect(result).toEqual({ reply: "¿Para qué día?", createdNotes: [] });
     expect(JSON.stringify(model.doGenerateCalls[1].prompt)).toContain("DAY_REQUIRED");
+  });
+
+  test("creates a draft, with no day, from create_draft_note", async () => {
+    mockModel([
+      toolCall({ title: "Comprar pilas", description: "AA" }, "create_draft_note"),
+      text("Listo, quedó en tus borradores."),
+    ]);
+
+    const result = await sendChatMessage({
+      messages: [{ role: "user", content: "Anotame como borrador comprar pilas AA" }],
+      timeZone: TIME_ZONE,
+    });
+
+    expect(mockPrisma.note.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ title: "Comprar pilas", isDraft: true, userId: "user-1" }),
+    });
+    expect(result).toEqual({
+      reply: "Listo, quedó en tus borradores.",
+      createdNotes: [{ id: expect.any(String), day: null }],
+    });
+    expect(mockRevalidatePath).toHaveBeenCalledWith("/");
+  });
+
+  test("returns the draft limit to the model as a recoverable error", async () => {
+    mockPrisma.note.aggregate.mockResolvedValue({ _count: 4, _max: { position: 3 } });
+    const model = mockModel([
+      toolCall({ title: "Comprar pilas" }, "create_draft_note"),
+      text("Ya tenés 4 borradores."),
+    ]);
+
+    const result = await sendChatMessage({ messages: MESSAGES, timeZone: TIME_ZONE });
+
+    expect(mockPrisma.note.create).not.toHaveBeenCalled();
+    expect(result).toEqual({ reply: "Ya tenés 4 borradores.", createdNotes: [] });
+    expect(JSON.stringify(model.doGenerateCalls[1].prompt)).toContain("DRAFT_LIMIT_REACHED");
   });
 
   test("hides unexpected tool failures from the model behind a generic code", async () => {

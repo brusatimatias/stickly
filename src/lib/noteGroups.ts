@@ -66,9 +66,8 @@ export function groupNotesByDay(
   return notesByDay;
 }
 
-/** Maps the draft note (if any) to its board DTO; drafts never carry a time. */
-export function toDraftNoteDTO(draft: StoredNoteDTO | null): NoteDTO | null {
-  if (!draft) return null;
+/** Maps a draft note to its board DTO; drafts never carry a time. */
+export function toDraftNoteDTO(draft: StoredNoteDTO): NoteDTO {
   return {
     id: draft.id,
     title: draft.title,

@@ -111,7 +111,7 @@ export default function NoteForm({
           placeholder={t("descriptionPlaceholder")}
           aria-label={t("descriptionPlaceholder")}
           rows={2}
-          className="mt-0.5 block w-full flex-1 resize-none bg-transparent text-[11px] leading-snug opacity-80 outline-none placeholder:opacity-40"
+          className="mt-0.5 block w-full flex-1 resize-none bg-transparent text-[11px] leading-snug text-current/80 outline-none placeholder:opacity-40"
         />
       </div>
 

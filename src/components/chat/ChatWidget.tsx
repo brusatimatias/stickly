@@ -11,7 +11,8 @@ import { ChatIcon, CloseIcon, SendIcon, SpinnerIcon } from "@/components/board/i
 import { MAX_MESSAGE_LENGTH, type ChatMessage } from "@/lib/webChat";
 import { formatWeekParam } from "@/lib/week";
 
-type DisplayMessage = ChatMessage & { notes?: { id: string; day: string }[] };
+// `day` is null for drafts, which are always in view in the draft panel.
+type DisplayMessage = ChatMessage & { notes?: { id: string; day: string | null }[] };
 
 const EXAMPLE_KEYS = ["exampleCreate", "exampleWeek", "exampleToday"] as const;
 
@@ -158,7 +159,10 @@ export default function ChatWidget({ weekDays }: { weekDays: string[] }) {
                   >
                     <p>{message.content}</p>
                     {message.notes
-                      ?.filter((note) => !weekDays.includes(note.day))
+                      ?.filter(
+                        (note): note is { id: string; day: string } =>
+                          note.day !== null && !weekDays.includes(note.day)
+                      )
                       .map((note) => (
                         <Link
                           key={note.id}
