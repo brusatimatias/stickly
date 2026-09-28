@@ -1,8 +1,8 @@
 /**
- * Session fields that server code needs (via `auth()`) but that must never be
- * sent to the browser. `accessToken` is a live Google token with Calendar
- * scope, so anything that can read the public session (an XSS, a malicious
- * extension) could use it.
+ * Session fields that must never be sent to the browser. `accessToken` (a
+ * live Google token with Calendar scope) used to be on the session; tokens
+ * now live encrypted on `User`, but it stays listed so an old session cookie
+ * or a regression can't expose one. Add any new secret session field here.
  */
 const PRIVATE_SESSION_FIELDS = ["accessToken"] as const;
 

@@ -5,10 +5,10 @@ import { toPublicSession } from "@/lib/publicSession";
 type AuthHandler = (req: NextRequest) => Promise<Response>;
 
 /**
- * The session callback puts the Google `accessToken` on the session so server
- * actions can call Calendar through `auth()` (which also refreshes it when it
- * expires). Auth.js serves that same object to the browser at
- * `/api/auth/session`, so strip the server-only fields from that response.
+ * Auth.js serves the session object to the browser at `/api/auth/session`.
+ * The session holds no secrets today (Google tokens live encrypted on `User`,
+ * see src/lib/googleCalendar.ts), but server-only fields must never leak, so
+ * they're stripped from that response as a safeguard.
  */
 function withPublicSession(handler: AuthHandler): AuthHandler {
   return async (req) => {
