@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import { prisma } from "@/lib/prisma";
 import { resolveTimeZone } from "@/lib/timezone";
 
 /**
@@ -9,4 +10,10 @@ import { resolveTimeZone } from "@/lib/timezone";
 export async function getUserTimeZone(stored: string | null | undefined): Promise<string> {
   const ipTimeZone = (await headers()).get("x-vercel-ip-timezone");
   return resolveTimeZone(stored, ipTimeZone);
+}
+
+/** `getUserTimeZone` for a user id, reading their stored zone. */
+export async function getTimeZoneForUser(userId: string): Promise<string> {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { timeZone: true } });
+  return getUserTimeZone(user?.timeZone);
 }

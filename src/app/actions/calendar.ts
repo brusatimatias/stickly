@@ -3,9 +3,7 @@
 import { google } from "googleapis";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
-import { dateToDay, localDateTime } from "@/lib/datetime";
 import { prisma } from "@/lib/prisma";
-import { getUserTimeZone } from "@/lib/userTimeZone";
 
 const EVENT_DURATION_MINUTES = 60;
 
@@ -38,20 +36,12 @@ export async function addNoteToGoogleCalendar(noteId: string) {
   const note = await prisma.note.findFirst({
     where: { id: noteId, userId: session.user.id, isDraft: false },
   });
-  if (!note?.date) {
+  if (!note?.startsAt) {
     throw new Error("NOTE_NOT_FOUND");
   }
-  if (!note.time) {
+  if (note.kind !== "TIMED") {
     throw new Error("TIME_REQUIRED_FOR_SYNC");
   }
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { timeZone: true },
-  });
-  // The note keeps the wall-clock time as written; Google turns it into an
-  // instant with the user's time zone.
-  const timeZone = await getUserTimeZone(user?.timeZone);
-  const day = dateToDay(note.date);
 
   const calendar = getCalendarClient(session.accessToken);
 
@@ -59,8 +49,11 @@ export async function addNoteToGoogleCalendar(noteId: string) {
     summary: note.title,
     location: note.location ?? undefined,
     description: note.description ?? undefined,
-    start: { dateTime: localDateTime(day, note.time), timeZone },
-    end: { dateTime: localDateTime(day, note.time, EVENT_DURATION_MINUTES), timeZone },
+    // A TIMED note is an instant (UTC), shown by Google in the calendar's zone.
+    start: { dateTime: note.startsAt.toISOString() },
+    end: {
+      dateTime: new Date(note.startsAt.getTime() + EVENT_DURATION_MINUTES * 60_000).toISOString(),
+    },
   };
 
   let googleEventId: string | null | undefined;

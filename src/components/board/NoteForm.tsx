@@ -8,9 +8,11 @@ import { createNote, updateNote } from "@/app/actions/notes";
 import FoldedCorner from "@/components/board/FoldedCorner";
 import { LocationIcon } from "@/components/board/icons";
 import TimePicker from "@/components/board/TimePicker";
+import { useBoardTimeZone } from "@/components/board/TimeZoneContext";
 import type { NoteDTO } from "@/components/board/types";
 import { useNoteEditorKeyboard } from "@/components/board/useNoteEditorKeyboard";
 import { getNoteStyle } from "@/lib/noteColor";
+import { toScheduleInput, toStoredSchedule } from "@/lib/schedule";
 
 export default function NoteForm({
   day,
@@ -23,6 +25,7 @@ export default function NoteForm({
 }) {
   const t = useTranslations("board");
   const router = useRouter();
+  const timeZone = useBoardTimeZone();
   const [title, setTitle] = useState(note?.title ?? "");
   const [location, setLocation] = useState(note?.location ?? "");
   const [description, setDescription] = useState(note?.description ?? "");
@@ -63,18 +66,13 @@ export default function NoteForm({
     } else {
       onDone();
     }
+    // The day and time are typed in the board's zone; the server stores UTC.
+    const schedule = toScheduleInput(toStoredSchedule(day, time || null, timeZone));
     startTransition(async () => {
       if (note) {
-        await updateNote({ id: note.id, title: trimmedTitle, location, description, time });
+        await updateNote({ id: note.id, title: trimmedTitle, location, description, schedule });
       } else {
-        await createNote({
-          id: newNoteId,
-          title: trimmedTitle,
-          location,
-          description,
-          day,
-          time,
-        });
+        await createNote({ id: newNoteId, title: trimmedTitle, location, description, schedule });
       }
       router.refresh();
     });

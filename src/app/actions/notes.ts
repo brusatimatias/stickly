@@ -2,18 +2,19 @@
 
 import { revalidatePath } from "next/cache";
 import { unsyncNoteFromGoogleCalendar } from "@/app/actions/calendar";
-import { dayToDate } from "@/lib/datetime";
+import { dayToDate, nextDay } from "@/lib/datetime";
 import { createNoteForUser } from "@/lib/noteCreation";
 import {
   sanitizeDay,
   sanitizeDescription,
   sanitizeLocation,
-  sanitizeTime,
   sanitizeTitle,
 } from "@/lib/noteInput";
 import { insertAtIndex, sortDoneLast } from "@/lib/ordering";
 import { prisma } from "@/lib/prisma";
+import { localDaysFilter, parseScheduleInput, type ScheduleInput } from "@/lib/schedule";
 import { requireUserId } from "@/lib/session";
+import { getTimeZoneForUser } from "@/lib/userTimeZone";
 
 const MAX_ID_LENGTH = 64;
 
@@ -24,16 +25,26 @@ function sanitizeClientId(id: string): string {
   return id;
 }
 
+/*
+ * The board converts what the user types into a stored schedule (UTC, see
+ * src/lib/schedule.ts) before calling these, so they receive `schedule`
+ * rather than a local day and time. `day` (local, yyyy-MM-dd) is only used to
+ * find the notes that share the destination column when reordering.
+ */
+
 export async function createNote(input: {
   id: string;
   title: string;
   location: string;
   description: string;
-  day: string;
-  time: string;
+  schedule: ScheduleInput;
 }) {
   const userId = await requireUserId();
-  await createNoteForUser(userId, { ...input, id: sanitizeClientId(input.id) });
+  await createNoteForUser(userId, {
+    ...input,
+    id: sanitizeClientId(input.id),
+    schedule: parseScheduleInput(input.schedule),
+  });
 
   revalidatePath("/");
 }
@@ -43,22 +54,22 @@ export async function updateNote(input: {
   title: string;
   location: string;
   description: string;
-  time: string;
+  schedule: ScheduleInput;
 }) {
   const userId = await requireUserId();
   const existing = await prisma.note.findFirst({
     where: { id: input.id, userId },
   });
-  if (!existing?.date) {
+  if (!existing?.startsAt) {
     throw new Error("NOTE_NOT_FOUND");
   }
 
   const title = sanitizeTitle(input.title);
   const location = sanitizeLocation(input.location);
   const description = sanitizeDescription(input.description);
-  const time = sanitizeTime(input.time);
+  const { kind, startsAt } = parseScheduleInput(input.schedule);
 
-  const clearingTime = existing.time && !time && existing.googleEventId;
+  const clearingTime = existing.kind === "TIMED" && kind === "ALL_DAY" && existing.googleEventId;
   if (clearingTime) {
     await unsyncNoteFromGoogleCalendar(existing.googleEventId!);
   }
@@ -69,7 +80,8 @@ export async function updateNote(input: {
       title,
       location,
       description,
-      time,
+      kind,
+      startsAt,
       ...(clearingTime ? { googleEventId: null } : {}),
     },
   });
@@ -93,9 +105,21 @@ export async function deleteNote(id: string) {
   revalidatePath("/");
 }
 
-export async function moveNote(input: { noteId: string; day: string; index: number }) {
+/**
+ * Moves a note to position `index` of the local day `day`. `schedule` is the
+ * note's new stored schedule, computed by the board: the same local time on
+ * the new day for a TIMED note, the new day for an ALL_DAY one.
+ */
+export async function moveNote(input: {
+  noteId: string;
+  day: string;
+  index: number;
+  schedule: ScheduleInput;
+}) {
   const userId = await requireUserId();
-  const date = dayToDate(sanitizeDay(input.day));
+  const day = sanitizeDay(input.day);
+  const { kind, startsAt } = parseScheduleInput(input.schedule);
+  const dayFilter = localDaysFilter(day, nextDay(day), await getTimeZoneForUser(userId));
 
   await prisma.$transaction(async (tx) => {
     const movingNote = await tx.note.findFirst({
@@ -109,7 +133,7 @@ export async function moveNote(input: { noteId: string; day: string; index: numb
       where: {
         userId,
         isDraft: false,
-        date,
+        OR: dayFilter,
         id: { not: input.noteId },
       },
       orderBy: { position: "asc" },
@@ -123,8 +147,7 @@ export async function moveNote(input: { noteId: string; day: string; index: numb
           where: { id: note.id },
           data: {
             position,
-            // The time stays as is: moving only changes the day.
-            ...(note.id === input.noteId ? { date } : {}),
+            ...(note.id === input.noteId ? { kind, startsAt } : {}),
           },
         })
       )
@@ -182,10 +205,13 @@ export async function saveDraftNote(input: {
   revalidatePath("/");
 }
 
-/** Promotes the draft note to a scheduled note on the given day, with no time set. */
+/** Promotes the draft note to a scheduled note on the given local day, with no time set. */
 export async function scheduleDraftNote(input: { noteId: string; day: string; index: number }) {
   const userId = await requireUserId();
-  const date = dayToDate(sanitizeDay(input.day));
+  const day = sanitizeDay(input.day);
+  // An ALL_DAY note is stored as its day, so there's nothing to convert.
+  const startsAt = dayToDate(day);
+  const dayFilter = localDaysFilter(day, nextDay(day), await getTimeZoneForUser(userId));
 
   await prisma.$transaction(async (tx) => {
     const draftNote = await tx.note.findFirst({
@@ -196,7 +222,7 @@ export async function scheduleDraftNote(input: { noteId: string; day: string; in
     }
 
     const dayNotes = await tx.note.findMany({
-      where: { userId, isDraft: false, date },
+      where: { userId, isDraft: false, OR: dayFilter },
       orderBy: { position: "asc" },
     });
 
@@ -209,7 +235,7 @@ export async function scheduleDraftNote(input: { noteId: string; day: string; in
           data: {
             position,
             ...(note.id === input.noteId
-              ? { isDraft: false, date, time: null }
+              ? { isDraft: false, kind: "ALL_DAY" as const, startsAt }
               : {}),
           },
         })
