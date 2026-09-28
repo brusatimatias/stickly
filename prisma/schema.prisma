@@ -11,20 +11,20 @@ datasource db {
 }
 
 model User {
-  id            String         @id @default(cuid())
-  googleId      String         @unique
-  email         String         @unique
-  name          String?
-  imageUrl      String?
-  avatarUrl     String?
-  password      String?
-  /// IANA zone reported by the user's browser (e.g. America/Argentina/Buenos_Aires).
-  /// Used to show TIMED notes in local time, to work out "today" and the local
-  /// week/day boundaries, and by channels without a browser (chat tools).
-  timeZone      String?
-  notes         Note[]
-  webChatUsages WebChatUsage[]
-  createdAt     DateTime       @default(now())
+  id                         String         @id @default(cuid())
+  googleId                   String         @unique
+  email                      String         @unique
+  name                       String?
+  imageUrl                   String?
+  avatarUrl                  String?
+  password                   String?
+  timeZone                   String?
+  googleRefreshToken         String?
+  googleAccessToken          String?
+  googleAccessTokenExpiresAt DateTime?
+  notes                      Note[]
+  webChatUsages              WebChatUsage[]
+  createdAt                  DateTime       @default(now())
 }
 
 /// How a note's `startsAt` is read: TIMED notes are an instant, shown in the
