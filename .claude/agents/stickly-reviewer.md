@@ -26,16 +26,16 @@ Your job is ONLY to review and report: do not edit files.
 - Errors are thrown as bare string codes (`new Error("SOME_CODE")`); every new code has a key in the `errors` namespace of both `messages/en.json` and `messages/es.json`.
 
 **Data model and Prisma**
-- A note's schedule is `startsAt` (`timestamptz`) + `kind`: `TIMED` is an instant in UTC, shown in the viewer's zone; `ALL_DAY` is a day stored as its 00:00 UTC and read in UTC, never converted. `startsAt` is `null` only for the draft note (`isDraft: true`); board queries filter `isDraft: false`.
+- A note's schedule is `startsAt` (`timestamptz`) + `kind`: `TIMED` is an instant in UTC, shown in the viewer's zone; `ALL_DAY` is a day stored as its 00:00 UTC and read in UTC, never converted. `startsAt` is `null` only for draft notes (`isDraft: true`); board queries filter `isDraft: false`.
 - Every conversion between the stored schedule and a local day/time goes through `src/lib/schedule.ts` (`toStoredSchedule`, `toLocalSchedule`, `localDaysFilter`); flag hand-rolled offset math, an `ALL_DAY` value read in a local zone, and any server code that derives a day or "today" from the process time zone (`new Date()` + `format`, `getHours`, `startOfDay` on instants...). "Today" comes from `getTodayInZone` with the user's zone (`getUserTimeZone`).
 - The board converts typed days/times to a stored schedule before calling actions, which validate it with `parseScheduleInput`; chat tool days/times are validated with `sanitizeDay`/`sanitizeTime` (`src/lib/noteInput.ts`) and converted with the zone the browser sent.
-- Single draft per user is enforced in the app: `findFirst({ userId, isDraft: true })` + update-or-create, inside a transaction holding `pg_advisory_xact_lock` keyed on `userId`. No partial unique constraint added in the schema.
+- At most `MAX_DRAFT_NOTES` (4) drafts per user, enforced in the app: every draft is created through `createDraftNoteForUser` (board action and chat tool), which counts the user's drafts inside a transaction holding `pg_advisory_xact_lock` keyed on `userId`. No DB constraint for it.
 - Week and day queries use `localDaysFilter` (TIMED notes between the local midnights in UTC, ALL_DAY notes between the days), on the `[userId, startsAt]` index; no week number is persisted.
 - No `Account`/`Session` models and no `@auth/prisma-adapter`; Google tokens stay in the JWT, not in the DB.
 - Schema changes come with a migration in `prisma/migrations/`; the Prisma client is imported from `src/generated/prisma` / `@/lib/prisma`, not `@prisma/client`.
 
 **Ordering**
-- Multi-step changes to `position` (`moveNote`, `scheduleDraftNote`) run inside `prisma.$transaction` and reassign `position` for every note in the affected day via `insertAtIndex` (+ `sortDoneLast`); no fractional indexing.
+- Multi-step changes to `position` (`moveNote`, `moveDraftNote`, `scheduleDraftNote`) run inside `prisma.$transaction` and reassign `position` for every note in the affected day via `insertAtIndex` (+ `sortDoneLast`); no fractional indexing.
 - New notes get `max(position) + 1` over all the user's notes (which local day a TIMED note is on depends on the viewer's zone); positions only order notes within a day.
 
 **Google Calendar**
@@ -60,7 +60,7 @@ Your job is ONLY to review and report: do not edit files.
 
 ## Response format
 
-- **Blocking**: data leaking across users (missing `userId` scope), a second draft note becoming possible, broken ordering/transactions, Calendar events left orphaned, schema changes without a migration, drag loops coming back, or anything that breaks CI.
+- **Blocking**: data leaking across users (missing `userId` scope), a way to create a draft that skips `createDraftNoteForUser` (going over the draft limit), broken ordering/transactions, Calendar events left orphaned, schema changes without a migration, drag loops coming back, or anything that breaks CI.
 - **To improve**: missing or misplaced tests, missing translation keys, inconsistent patterns, loose types.
 - **OK**: one line confirming what's fine.
 
