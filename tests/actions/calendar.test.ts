@@ -12,31 +12,24 @@ const mockRevalidatePath = vi.hoisted(() => vi.fn());
 const mockEventsInsert = vi.hoisted(() => vi.fn());
 const mockEventsUpdate = vi.hoisted(() => vi.fn());
 const mockEventsDelete = vi.hoisted(() => vi.fn());
-const mockSetCredentials = vi.hoisted(() => vi.fn());
+// The token handling is withGoogleCalendar's job (tested on its own); here it
+// just runs the operation against a fake Calendar client.
+const mockWithGoogleCalendar = vi.hoisted(() =>
+  vi.fn((_userId: string, operation: (calendar: unknown) => unknown) =>
+    operation({
+      events: { insert: mockEventsInsert, update: mockEventsUpdate, delete: mockEventsDelete },
+    })
+  )
+);
 
 vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }));
 vi.mock("@/auth", () => ({ auth: mockAuth }));
 vi.mock("next/cache", () => ({ revalidatePath: mockRevalidatePath }));
-vi.mock("googleapis", () => ({
-  google: {
-    auth: {
-      OAuth2: vi.fn(function (this: { setCredentials: typeof mockSetCredentials }) {
-        this.setCredentials = mockSetCredentials;
-      }),
-    },
-    calendar: vi.fn(() => ({
-      events: {
-        insert: mockEventsInsert,
-        update: mockEventsUpdate,
-        delete: mockEventsDelete,
-      },
-    })),
-  },
-}));
+vi.mock("@/lib/googleCalendar", () => ({ withGoogleCalendar: mockWithGoogleCalendar }));
 
 import { addNoteToGoogleCalendar, unsyncNoteFromGoogleCalendar } from "@/app/actions/calendar";
 
-const SESSION = { user: { id: "user-1" }, accessToken: "token-1" };
+const SESSION = { user: { id: "user-1" } };
 
 const SCHEDULED_NOTE = {
   id: "note-1",
@@ -57,13 +50,6 @@ describe("addNoteToGoogleCalendar", () => {
   test("throws when unauthenticated", async () => {
     mockAuth.mockResolvedValue(null);
     await expect(addNoteToGoogleCalendar("note-1")).rejects.toThrow("UNAUTHORIZED");
-  });
-
-  test("throws when there's no Google access token", async () => {
-    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
-    await expect(addNoteToGoogleCalendar("note-1")).rejects.toThrow(
-      "MISSING_GOOGLE_TOKEN"
-    );
   });
 
   test("throws when the note has no time set", async () => {
@@ -118,16 +104,16 @@ describe("addNoteToGoogleCalendar", () => {
     expect(mockPrisma.note.update).not.toHaveBeenCalled();
   });
 
-  test("surfaces a friendly message when Google returns a 401", async () => {
+  test("calls Calendar as the session's user and lets reconnect errors through", async () => {
     mockPrisma.note.findFirst.mockResolvedValue(SCHEDULED_NOTE);
-    mockEventsInsert.mockRejectedValue({ response: { status: 401 } });
+    mockWithGoogleCalendar.mockRejectedValueOnce(new Error("GOOGLE_RECONNECT_REQUIRED"));
 
-    await expect(addNoteToGoogleCalendar("note-1")).rejects.toThrow(
-      "GOOGLE_SESSION_EXPIRED"
-    );
+    await expect(addNoteToGoogleCalendar("note-1")).rejects.toThrow("GOOGLE_RECONNECT_REQUIRED");
+    expect(mockWithGoogleCalendar).toHaveBeenCalledWith("user-1", expect.any(Function));
+    expect(mockPrisma.note.update).not.toHaveBeenCalled();
   });
 
-  test("rethrows non-auth errors as-is", async () => {
+  test("rethrows other errors as-is", async () => {
     mockPrisma.note.findFirst.mockResolvedValue(SCHEDULED_NOTE);
     mockEventsInsert.mockRejectedValue(new Error("network down"));
 
@@ -144,9 +130,9 @@ describe("unsyncNoteFromGoogleCalendar", () => {
     });
   });
 
-  test("is a no-op without a session or access token", async () => {
+  test("throws when unauthenticated", async () => {
     mockAuth.mockResolvedValue(null);
-    await unsyncNoteFromGoogleCalendar("gcal-1");
+    await expect(unsyncNoteFromGoogleCalendar("gcal-1")).rejects.toThrow("UNAUTHORIZED");
     expect(mockEventsDelete).not.toHaveBeenCalled();
   });
 

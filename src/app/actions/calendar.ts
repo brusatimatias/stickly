@@ -1,40 +1,21 @@
 "use server";
 
-import { google } from "googleapis";
 import { revalidatePath } from "next/cache";
-import { auth } from "@/auth";
+import { withGoogleCalendar } from "@/lib/googleCalendar";
 import { prisma } from "@/lib/prisma";
+import { requireUserId } from "@/lib/session";
 
 const EVENT_DURATION_MINUTES = 60;
-
-function getCalendarClient(accessToken: string) {
-  const oauth2Client = new google.auth.OAuth2();
-  oauth2Client.setCredentials({ access_token: accessToken });
-  return google.calendar({ version: "v3", auth: oauth2Client });
-}
-
-function isAuthError(error: unknown): boolean {
-  const status =
-    (error as { response?: { status?: number } })?.response?.status ??
-    (error as { code?: number })?.code;
-  return status === 401;
-}
 
 /**
  * Creates (or updates, if already synced) a Google Calendar event for a
  * scheduled note, and persists the resulting googleEventId.
  */
 export async function addNoteToGoogleCalendar(noteId: string) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    throw new Error("UNAUTHORIZED");
-  }
-  if (!session.accessToken) {
-    throw new Error("MISSING_GOOGLE_TOKEN");
-  }
+  const userId = await requireUserId();
 
   const note = await prisma.note.findFirst({
-    where: { id: noteId, userId: session.user.id, isDraft: false },
+    where: { id: noteId, userId, isDraft: false },
   });
   if (!note?.startsAt) {
     throw new Error("NOTE_NOT_FOUND");
@@ -42,8 +23,6 @@ export async function addNoteToGoogleCalendar(noteId: string) {
   if (note.kind !== "TIMED") {
     throw new Error("TIME_REQUIRED_FOR_SYNC");
   }
-
-  const calendar = getCalendarClient(session.accessToken);
 
   const requestBody = {
     summary: note.title,
@@ -56,22 +35,12 @@ export async function addNoteToGoogleCalendar(noteId: string) {
     },
   };
 
-  let googleEventId: string | null | undefined;
-  try {
-    const response = note.googleEventId
-      ? await calendar.events.update({
-          calendarId: "primary",
-          eventId: note.googleEventId,
-          requestBody,
-        })
-      : await calendar.events.insert({ calendarId: "primary", requestBody });
-    googleEventId = response.data.id;
-  } catch (error) {
-    if (isAuthError(error)) {
-      throw new Error("GOOGLE_SESSION_EXPIRED");
-    }
-    throw error;
-  }
+  const response = await withGoogleCalendar(userId, (calendar) =>
+    note.googleEventId
+      ? calendar.events.update({ calendarId: "primary", eventId: note.googleEventId, requestBody })
+      : calendar.events.insert({ calendarId: "primary", requestBody })
+  );
+  const googleEventId = response.data.id;
 
   if (googleEventId && googleEventId !== note.googleEventId) {
     try {
@@ -94,14 +63,12 @@ export async function addNoteToGoogleCalendar(noteId: string) {
  * saving the note itself.
  */
 export async function unsyncNoteFromGoogleCalendar(googleEventId: string): Promise<void> {
-  const session = await auth();
-  if (!session?.user?.id || !session.accessToken) {
-    return;
-  }
+  const userId = await requireUserId();
 
   try {
-    const calendar = getCalendarClient(session.accessToken);
-    await calendar.events.delete({ calendarId: "primary", eventId: googleEventId });
+    await withGoogleCalendar(userId, (calendar) =>
+      calendar.events.delete({ calendarId: "primary", eventId: googleEventId })
+    );
   } catch {
     // Known/accepted edge case: event may already be gone, token may be stale.
   }

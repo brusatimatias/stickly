@@ -2,37 +2,10 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import { authorizeCredentials, normalizeEmail } from "@/lib/credentials";
+import { saveGoogleTokens } from "@/lib/googleTokens";
 import { prisma } from "@/lib/prisma";
 
 const GOOGLE_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events";
-const GOOGLE_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
-
-async function refreshGoogleAccessToken(refreshToken: string) {
-  const response = await fetch(GOOGLE_TOKEN_ENDPOINT, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: process.env.GOOGLE_CLIENT_ID!,
-      client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-      grant_type: "refresh_token",
-      refresh_token: refreshToken,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to refresh Google access token: ${response.status}`);
-  }
-
-  const data = (await response.json()) as {
-    access_token: string;
-    expires_in: number;
-  };
-
-  return {
-    accessToken: data.access_token,
-    accessTokenExpiresAt: Date.now() + data.expires_in * 1000,
-  };
-}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
@@ -66,7 +39,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return token;
       }
 
-      // Initial Google sign in: upsert our own User record and persist Google tokens.
+      // Google sign in: upsert our own User record and store the Google tokens
+      // on it (not in the JWT), so any later session of the user, password
+      // ones included, can reach Calendar (see src/lib/googleCalendar.ts).
       if (account?.provider === "google" && profile) {
         const user = await prisma.user.upsert({
           where: { googleId: profile.sub as string },
@@ -83,31 +58,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           },
         });
 
-        token.userId = user.id;
-        token.accessToken = account.access_token;
-        token.refreshToken = account.refresh_token;
-        token.accessTokenExpiresAt = account.expires_at
-          ? account.expires_at * 1000
-          : undefined;
-
-        return token;
-      }
-
-      // Subsequent requests: refresh the Google access token if it's expired.
-      if (
-        token.accessTokenExpiresAt &&
-        Date.now() > (token.accessTokenExpiresAt as number) &&
-        token.refreshToken
-      ) {
-        try {
-          const refreshed = await refreshGoogleAccessToken(
-            token.refreshToken as string
-          );
-          token.accessToken = refreshed.accessToken;
-          token.accessTokenExpiresAt = refreshed.accessTokenExpiresAt;
-        } catch {
-          token.accessToken = undefined;
+        if (account.access_token) {
+          try {
+            await saveGoogleTokens(user.id, {
+              accessToken: account.access_token,
+              refreshToken: account.refresh_token,
+              accessTokenExpiresAt: account.expires_at ? new Date(account.expires_at * 1000) : null,
+            });
+          } catch (error) {
+            // Don't block the sign in (e.g. a missing encryption key): the
+            // board works, and Calendar asks for a new Google sign in.
+            console.error(`[auth] couldn't store the Google tokens of user ${user.id}`, error);
+          }
         }
+
+        token.userId = user.id;
+        return token;
       }
 
       return token;
@@ -117,11 +83,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.id = token.userId as string;
         session.user.image = (token.picture as string | undefined) ?? null;
       }
-      // Server-only: stripped from the public /api/auth/session response. Add
-      // any new secret session field to PRIVATE_SESSION_FIELDS in
-      // src/lib/publicSession.ts too.
-      session.accessToken = token.accessToken as string | undefined;
-
       return session;
     },
   },

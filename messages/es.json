@@ -90,6 +90,7 @@
     "DRAFT_NOTE_NOT_FOUND": "Nota borrador no encontrada",
     "DRAFT_LIMIT_REACHED": "Podés tener hasta 4 notas borrador",
     "MISSING_GOOGLE_TOKEN": "Falta el token de acceso de Google. Iniciá sesión de nuevo.",
+    "GOOGLE_RECONNECT_REQUIRED": "Volvé a iniciar sesión con Google para usar Calendar.",
     "TIME_REQUIRED_FOR_SYNC": "Definí una hora para esta nota antes de sincronizarla con Calendar.",
     "GOOGLE_SESSION_EXPIRED": "Tu sesión de Google expiró. Cerrá sesión y volvé a entrar para reconectar Calendar.",
     "CALENDAR_SAVE_FAILED": "El evento se creó en Calendar, pero no se pudo guardar. Intentá sincronizar de nuevo.",
