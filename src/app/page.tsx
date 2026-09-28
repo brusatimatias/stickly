@@ -100,7 +100,7 @@ export default async function Home({
         key={format(start, "yyyy-MM-dd")}
         days={days}
         notes={notes.map(toStoredNoteDTO)}
-        draftNote={drafts[0] ? toStoredNoteDTO(drafts[0]) : null}
+        draftNotes={drafts.map(toStoredNoteDTO)}
         timeZone={timeZone}
         weekLabel={`${format(start, "MMM d", { locale: dateFnsLocale })} – ${format(addDays(start, 6), "MMM d, yyyy", { locale: dateFnsLocale })}`}
         prevWeekParam={formatWeekParam(getAdjacentWeekStart(start, "prev"))}

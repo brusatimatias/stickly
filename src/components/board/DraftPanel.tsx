@@ -8,11 +8,13 @@ import DraftCard from "@/components/board/DraftCard";
 import DraftForm from "@/components/board/DraftForm";
 import type { NoteDTO } from "@/components/board/types";
 import { PlusIcon } from "@/components/board/icons";
+import { MAX_DRAFT_NOTES } from "@/lib/noteInput";
 
-export default function DraftPanel({ note }: { note: NoteDTO | null }) {
+export default function DraftPanel({ notes }: { notes: NoteDTO[] }) {
   const t = useTranslations("board");
   const { setNodeRef } = useDroppable({ id: "draft" });
   const [isCreating, setIsCreating] = useState(false);
+  const canCreate = notes.length < MAX_DRAFT_NOTES && !isCreating;
 
   return (
     <div
@@ -24,7 +26,7 @@ export default function DraftPanel({ note }: { note: NoteDTO | null }) {
         <p className="text-center text-sm font-semibold text-zinc-700 dark:text-zinc-300">
           {t("draft")}
         </p>
-        {!note ? (
+        {canCreate ? (
           <button
             type="button"
             onClick={() => setIsCreating(true)}
@@ -38,15 +40,16 @@ export default function DraftPanel({ note }: { note: NoteDTO | null }) {
         )}
       </header>
 
-      <SortableContext
-        id="draft"
-        items={note ? [note.id] : []}
-        strategy={rectSortingStrategy}
-      >
-        {note && <DraftCard note={note} />}
+      <SortableContext id="draft" items={notes.map((note) => note.id)} strategy={rectSortingStrategy}>
+        {/* Same grid as the day columns (one column in the narrow desktop
+            panel, several on phones); each draft overlaps the one before it. */}
+        <div className="grid auto-rows-min items-start justify-center gap-2 [grid-template-columns:repeat(auto-fill,minmax(11rem,1fr))] [&>*+*]:-mt-3">
+          {notes.map((note) => (
+            <DraftCard key={note.id} note={note} />
+          ))}
+          {isCreating && <DraftForm onDone={() => setIsCreating(false)} />}
+        </div>
       </SortableContext>
-
-      {!note && isCreating && <DraftForm onDone={() => setIsCreating(false)} />}
     </div>
   );
 }

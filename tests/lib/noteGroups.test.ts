@@ -136,10 +136,6 @@ describe("groupNotesByDay", () => {
 });
 
 describe("toDraftNoteDTO", () => {
-  test("returns null when there's no draft", () => {
-    expect(toDraftNoteDTO(null)).toBeNull();
-  });
-
   test("maps the draft note to a DTO with no time", () => {
     expect(
       toDraftNoteDTO(stored({ id: "draft-1", title: "Draft", location: "Somewhere", startsAt: null }))
