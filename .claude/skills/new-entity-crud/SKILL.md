@@ -11,7 +11,7 @@ CLAUDE.md already covers the architecture. This skill is the ordered checklist p
 **Start from the closest existing feature and copy its shape.** A boolean flag on a note (pinned, priority, archived…) is `isDone` all over again: the `add_note_is_done` migration, `toggleNoteDone` in `actions/notes.ts`, the DTO mappers, the done toggle in `NoteCard`, and its tests. A free-text field copies `location`/`description` through `createNote`/`updateNote`. Skip the sections below that don't apply.
 
 ## 1. Schema + migration
-- Edit `prisma/schema.prisma`. For note fields, think about a `@default` so existing rows migrate cleanly, and whether the draft note (`isDraft: true`, `date: null`) should carry the field too.
+- Edit `prisma/schema.prisma`. For note fields, think about a `@default` so existing rows migrate cleanly, and whether the draft note (`isDraft: true`, `startsAt: null`) should carry the field too.
 - `npx prisma migrate dev --name <snake_case_description>`, then **`npx prisma generate`**. Prisma 7's `migrate dev` no longer regenerates the client, and `postinstall` only runs on `npm install`, so without this step the types in `src/generated/prisma` are stale and type-check fails.
 - Import the client from `@/lib/prisma` and types from `@/generated/prisma`, never from `@prisma/client`.
 

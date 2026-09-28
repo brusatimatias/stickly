@@ -23,9 +23,12 @@ import DayColumn from "@/components/board/DayColumn";
 import DayFocusNav from "@/components/board/DayFocusNav";
 import DraftPanel from "@/components/board/DraftPanel";
 import FoldedCorner from "@/components/board/FoldedCorner";
+import { TimeZoneProvider } from "@/components/board/TimeZoneContext";
 import WeekNav from "@/components/board/WeekNav";
-import type { BoardDay, NoteDTO } from "@/components/board/types";
+import type { BoardDay, NoteDTO, StoredNoteDTO } from "@/components/board/types";
 import { getNoteStyle } from "@/lib/noteColor";
+import { groupNotesByDay, toDraftNoteDTO } from "@/lib/noteGroups";
+import { toScheduleInput, toStoredSchedule } from "@/lib/schedule";
 
 const DRAFT_CONTAINER = "draft";
 
@@ -40,8 +43,9 @@ function findContainer(id: string, notesByDay: NotesByDay): string | undefined {
 
 export default function Board({
   days,
-  notesByDay: initialNotesByDay,
+  notes,
   draftNote,
+  timeZone,
   weekLabel,
   prevWeekParam,
   nextWeekParam,
@@ -50,8 +54,10 @@ export default function Board({
   todayKey,
 }: {
   days: BoardDay[];
-  notesByDay: NotesByDay;
-  draftNote: NoteDTO | null;
+  /** The week's notes as stored (UTC); grouped here into local days of `timeZone`. */
+  notes: StoredNoteDTO[];
+  draftNote: StoredNoteDTO | null;
+  timeZone: string;
   weekLabel: string;
   prevWeekParam: string;
   nextWeekParam: string;
@@ -61,18 +67,25 @@ export default function Board({
 }) {
   const router = useRouter();
   function buildNotesByDay(): NotesByDay {
+    const draft = toDraftNoteDTO(draftNote);
     return {
-      ...initialNotesByDay,
-      [DRAFT_CONTAINER]: draftNote ? [draftNote] : [],
+      ...groupNotesByDay(
+        notes,
+        days.map((day) => day.key),
+        timeZone
+      ),
+      [DRAFT_CONTAINER]: draft ? [draft] : [],
     };
   }
 
   const [notesByDay, setNotesByDay] = useState<NotesByDay>(buildNotesByDay);
-  const [syncedNotesByDay, setSyncedNotesByDay] = useState(initialNotesByDay);
+  const [syncedNotes, setSyncedNotes] = useState(notes);
   const [syncedDraftNote, setSyncedDraftNote] = useState(draftNote);
-  if (initialNotesByDay !== syncedNotesByDay || draftNote !== syncedDraftNote) {
-    setSyncedNotesByDay(initialNotesByDay);
+  const [syncedTimeZone, setSyncedTimeZone] = useState(timeZone);
+  if (notes !== syncedNotes || draftNote !== syncedDraftNote || timeZone !== syncedTimeZone) {
+    setSyncedNotes(notes);
     setSyncedDraftNote(draftNote);
+    setSyncedTimeZone(timeZone);
     setNotesByDay(buildNotesByDay());
   }
   const [, startTransition] = useTransition();
@@ -217,6 +230,10 @@ export default function Board({
     const items = notesByDay[destinationContainer] ?? [];
     const index = items.findIndex((note) => note.id === active.id);
     if (index === -1 || destinationContainer === DRAFT_CONTAINER) return;
+    // Same local time on the new day (or just the new day), stored as UTC.
+    const schedule = toScheduleInput(
+      toStoredSchedule(destinationContainer, items[index].time, timeZone)
+    );
 
     startTransition(async () => {
       if (originContainer === DRAFT_CONTAINER) {
@@ -226,88 +243,95 @@ export default function Board({
           index,
         });
       } else {
-        await moveNote({ noteId: active.id as string, day: destinationContainer, index });
+        await moveNote({
+          noteId: active.id as string,
+          day: destinationContainer,
+          index,
+          schedule,
+        });
       }
       router.refresh();
     });
   }
 
   return (
-    <div className="flex flex-1 flex-col">
-      <WeekNav
-        weekLabel={weekLabel}
-        prevWeekParam={prevWeekParam}
-        nextWeekParam={nextWeekParam}
-        currentWeekParam={currentWeekParam}
-        todayWeekParam={todayWeekParam}
-      />
-      <DndContext
-        id={dndContextId}
-        sensors={sensors}
-        collisionDetection={collisionDetectionStrategy}
-        onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
-        onDragEnd={handleDragEnd}
-        onDragCancel={() => {
-          lastOverIdRef.current = null;
-          setActiveNote(null);
-        }}
-      >
-        <div className="flex flex-col gap-3 p-4 lg:flex-row">
-          <DraftPanel note={notesByDay[DRAFT_CONTAINER][0] ?? null} />
-          {focusedDayInfo ? (
-            <div className="min-w-0 flex-1">
-              <DayFocusNav
-                days={days}
-                focusedDay={focusedDayInfo.key}
-                todayKey={todayKey}
-                onSelect={setFocusedDay}
-                onExit={() => setFocusedDay(null)}
-              />
-              <DayColumn
-                day={focusedDayInfo}
-                notes={notesByDay[focusedDayInfo.key] ?? []}
-                todayKey={todayKey}
-                isFocused
-              />
-            </div>
-          ) : (
-            <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-7">
-              {days.map((day, index) => (
-                <div
-                  key={day.key}
-                  className={
-                    index > 0
-                      ? "shadow-[inset_1px_0_0_rgba(0,0,0,0.1)] dark:shadow-[inset_1px_0_0_rgba(255,255,255,0.08)]"
-                      : ""
-                  }
-                >
-                  <DayColumn
-                    day={day}
-                    notes={notesByDay[day.key] ?? []}
-                    todayKey={todayKey}
-                    onToggleFocus={() => setFocusedDay(day.key)}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-        <DragOverlay>
-          {activeNote &&
-            (() => {
-              const style = getNoteStyle(activeNote.id);
-              return (
-                <div
-                  className={`relative flex h-44 w-44 flex-col justify-center overflow-hidden rounded-sm border p-2 text-sm shadow-lg sm:h-48 sm:w-48 ${style.rotation} ${style.bg} ${style.border} ${style.text}`}
-                >
-                  <FoldedCorner />
-                  <p className="line-clamp-3 font-semibold">{activeNote.title}</p>
-                </div>
-              );
-            })()}
-        </DragOverlay>
-      </DndContext>
-    </div>
+    <TimeZoneProvider value={timeZone}>
+      <div className="flex flex-1 flex-col">
+        <WeekNav
+          weekLabel={weekLabel}
+          prevWeekParam={prevWeekParam}
+          nextWeekParam={nextWeekParam}
+          currentWeekParam={currentWeekParam}
+          todayWeekParam={todayWeekParam}
+        />
+        <DndContext
+          id={dndContextId}
+          sensors={sensors}
+          collisionDetection={collisionDetectionStrategy}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragEnd={handleDragEnd}
+          onDragCancel={() => {
+            lastOverIdRef.current = null;
+            setActiveNote(null);
+          }}
+        >
+          <div className="flex flex-col gap-3 p-4 lg:flex-row">
+            <DraftPanel note={notesByDay[DRAFT_CONTAINER][0] ?? null} />
+            {focusedDayInfo ? (
+              <div className="min-w-0 flex-1">
+                <DayFocusNav
+                  days={days}
+                  focusedDay={focusedDayInfo.key}
+                  todayKey={todayKey}
+                  onSelect={setFocusedDay}
+                  onExit={() => setFocusedDay(null)}
+                />
+                <DayColumn
+                  day={focusedDayInfo}
+                  notes={notesByDay[focusedDayInfo.key] ?? []}
+                  todayKey={todayKey}
+                  isFocused
+                />
+              </div>
+            ) : (
+              <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-7">
+                {days.map((day, index) => (
+                  <div
+                    key={day.key}
+                    className={
+                      index > 0
+                        ? "shadow-[inset_1px_0_0_rgba(0,0,0,0.1)] dark:shadow-[inset_1px_0_0_rgba(255,255,255,0.08)]"
+                        : ""
+                    }
+                  >
+                    <DayColumn
+                      day={day}
+                      notes={notesByDay[day.key] ?? []}
+                      todayKey={todayKey}
+                      onToggleFocus={() => setFocusedDay(day.key)}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <DragOverlay>
+            {activeNote &&
+              (() => {
+                const style = getNoteStyle(activeNote.id);
+                return (
+                  <div
+                    className={`relative flex h-44 w-44 flex-col justify-center overflow-hidden rounded-sm border p-2 text-sm shadow-lg sm:h-48 sm:w-48 ${style.rotation} ${style.bg} ${style.border} ${style.text}`}
+                  >
+                    <FoldedCorner />
+                    <p className="line-clamp-3 font-semibold">{activeNote.title}</p>
+                  </div>
+                );
+              })()}
+          </DragOverlay>
+        </DndContext>
+      </div>
+    </TimeZoneProvider>
   );
 }

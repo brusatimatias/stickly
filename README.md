@@ -57,8 +57,8 @@ A notes/reminders app organized on a whiteboard-style weekly board, with Google 
 
 See `prisma/schema.prisma`. Notable decisions:
 
-- A note's schedule is a `date` plus an optional `time` (`HH:mm`), stored as the user wrote them, with no time zone: a note at 22:00 shows 22:00 from anywhere. The user's time zone (`User.timeZone`, reported by the browser) is only used to work out "today" and to create the Calendar event.
-- `date` is nullable; the only valid case with `null` is the draft note (`isDraft: true`).
+- A note's schedule is `startsAt` plus a `kind`. A note with a time (`TIMED`) is an instant stored in UTC and shown in the time zone you're in: 10:00 written in Buenos Aires shows 09:00 in Miami. A note without a time (`ALL_DAY`) is a calendar day and stays on that day everywhere. The time zone is the one the browser reports, stored in `User.timeZone`.
+- `startsAt` is nullable; the only valid case with `null` is the draft note (`isDraft: true`).
 - The "single draft note per user" rule is enforced at the application level, not in the schema.
-- Composite index `[userId, date]` for the weekly-notes query.
+- Composite index `[userId, startsAt]` for the weekly-notes query.
 - `WebChatUsage` stores one row per chat message (user and timestamp only, never the message text) to enforce the chat's rate limits. Conversations are not persisted: the history lives in the browser and is lost on reload.

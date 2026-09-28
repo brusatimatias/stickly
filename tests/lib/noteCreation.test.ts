@@ -15,8 +15,7 @@ const INPUT = {
   title: "Call the plumber",
   location: "",
   description: "Kitchen sink",
-  day: "2026-09-27",
-  time: "",
+  schedule: { kind: "TIMED" as const, startsAt: new Date("2026-09-27T13:00:00.000Z") },
 };
 
 beforeEach(() => {
@@ -25,18 +24,22 @@ beforeEach(() => {
 });
 
 describe("createNoteForUser", () => {
-  test("uses the given id and returns it with the day", async () => {
+  test("stores the given schedule last among the user's notes, with the given id", async () => {
     const result = await createNoteForUser("user-1", { ...INPUT, id: "client-id" });
 
-    expect(result).toEqual({ id: "client-id", day: "2026-09-27" });
+    expect(result).toEqual({ id: "client-id" });
+    expect(mockPrisma.note.aggregate).toHaveBeenCalledWith({
+      where: { userId: "user-1", isDraft: false },
+      _max: { position: true },
+    });
     expect(mockPrisma.note.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         id: "client-id",
         title: "Call the plumber",
         location: null,
         description: "Kitchen sink",
-        date: new Date("2026-09-27T00:00:00.000Z"),
-        time: null,
+        kind: "TIMED",
+        startsAt: new Date("2026-09-27T13:00:00.000Z"),
         position: 2,
         userId: "user-1",
       }),
