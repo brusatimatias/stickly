@@ -17,7 +17,7 @@ A notes/reminders app organized on a whiteboard-style weekly board, with Google 
 ## Stack
 
 - Next.js (App Router) + TypeScript
-- Auth.js (Google provider, JWT sessions)
+- Auth.js (Google and email/password providers, JWT sessions; Google tokens stored encrypted in the database)
 - PostgreSQL + Prisma (driver adapter `@prisma/adapter-pg`)
 - dnd-kit for drag & drop
 - `googleapis` for the Calendar integration
@@ -36,6 +36,7 @@ A notes/reminders app organized on a whiteboard-style weekly board, with Google 
    - `DATABASE_URL`: connection string to your local Postgres.
    - `AUTH_SECRET`: generate with `openssl rand -base64 32`.
    - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`: OAuth credentials from Google Cloud Console, with the Calendar API enabled and the `https://www.googleapis.com/auth/calendar.events` scope.
+   - `GOOGLE_TOKEN_ENCRYPTION_KEY`: encrypts the Google tokens stored in the database. Keep it safe: if it's lost or changed, every user has to sign in with Google again to reconnect Calendar.
    - `GOOGLE_GENERATIVE_AI_API_KEY`: Gemini API key for the assistant chat, from [Google AI Studio](https://aistudio.google.com/apikey). Create it in a Google Cloud project **without a billing account**, so the free tier quota is a hard cap (requests over it fail with 429, nothing is charged).
    - `CHAT_MODEL` (optional): Gemini model id for the chat. Defaults to `gemini-3.5-flash-lite`.
 

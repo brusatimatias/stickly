@@ -16,7 +16,7 @@ CLAUDE.md already covers the architecture. This skill is the ordered checklist p
 - Import the client from `@/lib/prisma` and types from `@/generated/prisma`, never from `@prisma/client`.
 
 ## 2. Server action (`src/app/actions/<domain>.ts`, `"use server"`)
-- First line: `const userId = await requireUserId();`. Use `auth()` only if you need `session.accessToken` (Calendar), as `calendar.ts` does.
+- First line: `const userId = await requireUserId();`. For Google Calendar, go through `withGoogleCalendar(userId, ...)` (`src/lib/googleCalendar.ts`), never the tokens directly.
 - **Scope every query by `userId`**: `findFirst({ where: { id, userId } })`, `updateMany`/`deleteMany` with `{ id, userId }`. Never read, update, or delete by `id` alone, because that lets one user touch another's note. The exception is `tx.note.update` on ids you just loaded with a `userId` filter.
 - A simple single-row update (a toggle, a field edit) is just a scoped `updateMany` with no transaction and no pre-check, like `toggleNoteDone`. Reach for `findFirst` + throw `NOTE_NOT_FOUND` only when you need the row's current values.
 - Sanitize string input before it hits Prisma (trim + max length). The note sanitizers (`sanitizeTitle`/`sanitizeLocation`/`sanitizeDescription`) live in `src/lib/noteInput.ts`, shared by the board actions and the chat tools; extend them there for simple cases. `sanitizeClientId` (client-generated ids) stays private in `actions/notes.ts`. Put non-trivial new validation in `src/lib/*.ts` (as `lib/profile.ts` → `sanitizeName` does) so it can be unit-tested. Booleans and ids already covered by `sanitizeClientId` need nothing new.
