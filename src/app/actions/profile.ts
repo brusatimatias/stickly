@@ -25,7 +25,7 @@ export async function updateAvatar(dataUrl: string) {
   revalidatePath("/profile");
 }
 
-/** Stores the time zone the browser reports (see `TimeZoneSync`), used to work out "today". */
+/** Stores the time zone the browser reports (see `TimeZoneSync`), which the board shows notes in. */
 export async function updateTimeZone(timeZone: string) {
   const userId = await requireUserId();
   if (!isValidTimeZone(timeZone)) {

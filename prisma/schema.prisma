@@ -19,12 +19,20 @@ model User {
   avatarUrl     String?
   password      String?
   /// IANA zone reported by the user's browser (e.g. America/Argentina/Buenos_Aires).
-  /// Only used to work out "today" and to build Calendar events; note dates and
-  /// times are stored as written, not converted.
+  /// Used to show TIMED notes in local time, to work out "today" and the local
+  /// week/day boundaries, and by channels without a browser (chat tools).
   timeZone      String?
   notes         Note[]
   webChatUsages WebChatUsage[]
   createdAt     DateTime       @default(now())
+}
+
+/// How a note's `startsAt` is read: TIMED notes are an instant, shown in the
+/// viewer's time zone; ALL_DAY notes are a calendar day stored as its 00:00 UTC
+/// and read in UTC, never converted (so they stay on the same day everywhere).
+enum NoteKind {
+  TIMED
+  ALL_DAY
 }
 
 model Note {
@@ -32,11 +40,10 @@ model Note {
   title         String
   location      String?
   description   String?
-  /// Calendar day and wall-clock time as the user wrote them, without a time
-  /// zone. `date` is null only for the draft note; `time` (HH:mm) is null when
-  /// the note has no time.
-  date          DateTime? @db.Date
-  time          String?   @db.VarChar(5)
+  /// Null only for the draft note. See `NoteKind` for how to read it, and
+  /// `src/lib/schedule.ts` for the only place that converts it.
+  startsAt      DateTime? @db.Timestamptz(3)
+  kind          NoteKind  @default(ALL_DAY)
   isDraft       Boolean   @default(false)
   isDone        Boolean   @default(false)
   position      Int       @default(0)
@@ -46,7 +53,7 @@ model Note {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  @@index([userId, date])
+  @@index([userId, startsAt])
 }
 
 /// One row per web chat message, used only to rate-limit the LLM chat

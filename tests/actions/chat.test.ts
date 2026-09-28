@@ -137,7 +137,8 @@ describe("sendChatMessage", () => {
         title: "Llamar al plomero",
         description: "Pérdida en la cocina",
         location: null,
-        time: null,
+        kind: "ALL_DAY",
+        startsAt: new Date("2026-09-27T00:00:00.000Z"),
         userId: "user-1",
       }),
     });
@@ -151,6 +152,24 @@ describe("sendChatMessage", () => {
     const firstCall = model.doGenerateCalls[0];
     expect(JSON.stringify(firstCall.prompt)).toContain("Reply in Spanish");
     expect(firstCall.tools?.map((toolDef) => toolDef.name)).toEqual(["create_note", "list_notes"]);
+  });
+
+  test("converts a time the model gives, in the user's zone, to UTC", async () => {
+    mockModel([
+      toolCall({ title: "Cena", day: "2026-09-27", time: "22:00" }),
+      text("Listo."),
+    ]);
+
+    const result = await sendChatMessage({ messages: MESSAGES, timeZone: TIME_ZONE });
+
+    expect(mockPrisma.note.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        kind: "TIMED",
+        startsAt: new Date("2026-09-28T01:00:00.000Z"),
+      }),
+    });
+    // The board link uses the local day the user asked for, not the UTC one.
+    expect(result.createdNotes).toEqual([{ id: expect.any(String), day: "2026-09-27" }]);
   });
 
   test("returns a recoverable tool error to the model instead of creating the note", async () => {
@@ -187,8 +206,8 @@ describe("sendChatMessage", () => {
         title: "Tomar el té",
         location: null,
         description: null,
-        date: new Date("2026-09-21T00:00:00Z"),
-        time: null,
+        kind: "ALL_DAY",
+        startsAt: new Date("2026-09-21T00:00:00Z"),
         isDone: false,
         googleEventId: null,
       },

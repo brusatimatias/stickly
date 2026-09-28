@@ -22,7 +22,9 @@ import {
 } from "@/lib/noteInput";
 import { listNotesForUser } from "@/lib/notes";
 import { prisma } from "@/lib/prisma";
+import { toStoredSchedule } from "@/lib/schedule";
 import { requireUserId } from "@/lib/session";
+import { resolveTimeZone } from "@/lib/timezone";
 import {
   DAY_MS,
   DEFAULT_CHAT_MODEL,
@@ -100,15 +102,22 @@ export async function sendChatMessage(input: { messages: unknown; timeZone: stri
   const requestLocale = await getLocale();
   const locale = isSupportedLocale(requestLocale) ? requestLocale : DEFAULT_LOCALE;
   const createdNotes: { id: string; day: string }[] = [];
+  // The model works with the user's local days and times; the browser sends
+  // its zone so they can be converted to UTC here (there's no board form).
+  const timeZone = resolveTimeZone(input.timeZone);
 
   const createNote = tool({
     description: CREATE_NOTE_TOOL.description,
     inputSchema: toolSchema(CREATE_NOTE_TOOL.inputSchema),
     execute: async (args: unknown) => {
       try {
-        const note = await createNoteForUser(userId, parseNoteToolInput(args));
-        createdNotes.push(note);
-        return { ok: true, day: note.day };
+        const { day, time, ...fields } = parseNoteToolInput(args);
+        const note = await createNoteForUser(userId, {
+          ...fields,
+          schedule: toStoredSchedule(day, time || null, timeZone),
+        });
+        createdNotes.push({ id: note.id, day });
+        return { ok: true, day };
       } catch (error) {
         return toolErrorResult(CREATE_NOTE_TOOL.name, error, "NOTE_NOT_SAVED");
       }
@@ -120,7 +129,7 @@ export async function sendChatMessage(input: { messages: unknown; timeZone: stri
     inputSchema: toolSchema(LIST_NOTES_TOOL.inputSchema),
     execute: async (args: unknown) => {
       try {
-        return { ok: true, ...(await listNotesForUser(userId, parseListNotesInput(args))) };
+        return { ok: true, ...(await listNotesForUser(userId, parseListNotesInput(args), timeZone)) };
       } catch (error) {
         return toolErrorResult(LIST_NOTES_TOOL.name, error, "NOTES_UNAVAILABLE");
       }
@@ -131,7 +140,7 @@ export async function sendChatMessage(input: { messages: unknown; timeZone: stri
   try {
     const result = await generateText({
       model: google(process.env.CHAT_MODEL || DEFAULT_CHAT_MODEL),
-      system: buildChatSystemPrompt({ today: getUserToday(input.timeZone, new Date()), locale }),
+      system: buildChatSystemPrompt({ today: getUserToday(timeZone, new Date()), locale }),
       messages,
       tools: { [CREATE_NOTE_TOOL.name]: createNote, [LIST_NOTES_TOOL.name]: listNotes },
       stopWhen: isStepCount(MAX_STEPS),

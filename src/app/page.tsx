@@ -4,7 +4,8 @@ import { getLocale, getTranslations } from "next-intl/server";
 import Image from "next/image";
 import Link from "next/link";
 import { auth } from "@/auth";
-import { getDraftNote, getNotesForDays, groupNotesByDay, toDraftNoteDTO } from "@/lib/notes";
+import { toStoredNoteDTO } from "@/lib/noteGroups";
+import { getDraftNote, getNotesForDays } from "@/lib/notes";
 import { prisma } from "@/lib/prisma";
 import { getTodayInZone } from "@/lib/timezone";
 import { getUserTimeZone } from "@/lib/userTimeZone";
@@ -37,13 +38,19 @@ export default async function Home({
     where: { id: session.user.id },
     select: { name: true, avatarUrl: true, imageUrl: true, timeZone: true },
   });
-  // "Today" depends on where the user is; everything else on the board is
-  // plain calendar days, so it's independent of the server's time zone.
-  const todayKey = getTodayInZone(await getUserTimeZone(user?.timeZone), new Date());
+  // Notes are stored in UTC; the board shows them (and "today", and the week's
+  // boundaries) in the user's zone, which the browser keeps up to date.
+  const timeZone = await getUserTimeZone(user?.timeZone);
+  const todayKey = getTodayInZone(timeZone, new Date());
   const { start, end } = getWeekRange(parseWeekParam(week, todayKey));
 
   const [notes, draft, t, locale] = await Promise.all([
-    getNotesForDays(session.user.id, format(start, "yyyy-MM-dd"), format(end, "yyyy-MM-dd")),
+    getNotesForDays(
+      session.user.id,
+      format(start, "yyyy-MM-dd"),
+      format(end, "yyyy-MM-dd"),
+      timeZone
+    ),
     getDraftNote(session.user.id),
     getTranslations("common"),
     getLocale(),
@@ -59,11 +66,6 @@ export default async function Home({
     };
   });
 
-  const notesByDay = groupNotesByDay(
-    notes,
-    days.map((day) => day.key)
-  );
-  const draftNote = toDraftNoteDTO(draft);
   const todayWeekParam = formatWeekParam(parseISO(todayKey));
 
   return (
@@ -97,8 +99,9 @@ export default async function Home({
       <Board
         key={format(start, "yyyy-MM-dd")}
         days={days}
-        notesByDay={notesByDay}
-        draftNote={draftNote}
+        notes={notes.map(toStoredNoteDTO)}
+        draftNote={draft ? toStoredNoteDTO(draft) : null}
+        timeZone={timeZone}
         weekLabel={`${format(start, "MMM d", { locale: dateFnsLocale })} – ${format(addDays(start, 6), "MMM d, yyyy", { locale: dateFnsLocale })}`}
         prevWeekParam={formatWeekParam(getAdjacentWeekStart(start, "prev"))}
         nextWeekParam={formatWeekParam(getAdjacentWeekStart(start, "next"))}

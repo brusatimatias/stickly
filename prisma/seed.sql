@@ -19,7 +19,8 @@ INSERT INTO "User" ("id", "googleId", "email", "name", "password", "timeZone", "
   ('seed_user_bruno', 'seed-google-bruno', 'bruno@stickly.test', 'Bruno Díaz',  '$2b$10$XWnW42mY.pyLX4ztlCv96u5NSJW9mt96Ese54VdhFhG1BBEKYKwdi', 'America/Argentina/Cordoba', now() - interval '10 days');
 
 -- week: 0 = current week, -1 = previous, 1 = next. day: 0 = Monday ... 6 = Sunday.
--- time NULL = note without time. Dates and times are stored as written, with no time zone.
+-- time NULL = note without time (ALL_DAY, stored as the day at 00:00 UTC). Notes with a
+-- time (TIMED) are stored as the instant that time is in the seed users' zone.
 WITH params AS (
   -- The current week as seen from the seed users' time zone.
   SELECT date_trunc('week', (now() AT TIME ZONE 'America/Argentina/Cordoba'))::date AS week_start
@@ -54,14 +55,17 @@ data ("userId", week, day, time, title, location, description, "isDone") AS (
     ('seed_user_bruno', 0, 3, NULL,          'Estudiar para el parcial', NULL, 'Capítulos 4 a 6', false),
     ('seed_user_bruno', 0, 4, '22:00'::time, 'Partido de fútbol 5', 'Complejo La Cancha', NULL, false)
 )
-INSERT INTO "Note" ("id", "title", "location", "description", "date", "time", "isDraft", "isDone", "position", "userId", "createdAt", "updatedAt")
+INSERT INTO "Note" ("id", "title", "location", "description", "kind", "startsAt", "isDraft", "isDone", "position", "userId", "createdAt", "updatedAt")
 SELECT
   'seed_note_' || row_number() OVER (),
   d.title,
   d.location,
   d.description,
-  p.week_start + d.week * 7 + d.day,
-  to_char(d.time, 'HH24:MI'),
+  CASE WHEN d.time IS NULL THEN 'ALL_DAY'::"NoteKind" ELSE 'TIMED'::"NoteKind" END,
+  CASE
+    WHEN d.time IS NULL THEN (p.week_start + d.week * 7 + d.day)::timestamp AT TIME ZONE 'UTC'
+    ELSE (p.week_start + d.week * 7 + d.day + d.time) AT TIME ZONE 'America/Argentina/Cordoba'
+  END,
   false,
   d."isDone",
   -- Positions are contiguous per user and day; done notes go last, as the board shows them.
@@ -71,8 +75,8 @@ SELECT
   now()
 FROM data d CROSS JOIN params p;
 
--- Draft notes: at most one per user, no date.
-INSERT INTO "Note" ("id", "title", "location", "description", "date", "time", "isDraft", "isDone", "position", "userId", "createdAt", "updatedAt") VALUES
-  ('seed_note_draft_ana', 'Ideas para las vacaciones', NULL, 'Bariloche o Salta', NULL, NULL, true, false, 0, 'seed_user_ana', now(), now());
+-- Draft notes: at most one per user, no schedule.
+INSERT INTO "Note" ("id", "title", "location", "description", "startsAt", "isDraft", "isDone", "position", "userId", "createdAt", "updatedAt") VALUES
+  ('seed_note_draft_ana', 'Ideas para las vacaciones', NULL, 'Bariloche o Salta', NULL, true, false, 0, 'seed_user_ana', now(), now());
 
 COMMIT;
