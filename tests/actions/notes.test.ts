@@ -28,12 +28,13 @@ vi.mock("@/app/actions/calendar", () => ({
 vi.mock("@/lib/userTimeZone", () => ({ getTimeZoneForUser: mockGetTimeZoneForUser }));
 
 import {
+  createDraftNote,
   createNote,
   deleteNote,
   moveNote,
-  saveDraftNote,
   scheduleDraftNote,
   toggleNoteDone,
+  updateDraftNote,
   updateNote,
 } from "@/app/actions/notes";
 
@@ -200,27 +201,26 @@ describe("deleteNote", () => {
   });
 });
 
-describe("saveDraftNote", () => {
-  test("updates the existing draft instead of creating a second one", async () => {
-    mockPrisma.note.findFirst.mockResolvedValue({ id: "draft-1" });
+describe("updateDraftNote", () => {
+  test("updates only the user's draft", async () => {
+    await updateDraftNote({ id: "draft-1", title: "Draft", location: "", description: "" });
 
-    await saveDraftNote({ title: "Draft", location: "", description: "" });
-
-    expect(mockPrisma.$executeRaw).toHaveBeenCalled();
-    expect(mockPrisma.note.update).toHaveBeenCalledWith({
-      where: { id: "draft-1" },
+    expect(mockPrisma.note.updateMany).toHaveBeenCalledWith({
+      where: { id: "draft-1", userId: "user-1", isDraft: true },
       data: { title: "Draft", location: null, description: null },
     });
-    expect(mockPrisma.note.create).not.toHaveBeenCalled();
   });
+});
 
-  test("creates a draft when none exists yet", async () => {
-    mockPrisma.note.findFirst.mockResolvedValue(null);
+describe("createDraftNote", () => {
+  test("creates a draft last among the user's drafts", async () => {
+    mockPrisma.note.aggregate.mockResolvedValue({ _count: 1, _max: { position: 0 } });
 
-    await saveDraftNote({ title: "Draft", location: "", description: "" });
+    await createDraftNote({ id: "draft-2", title: "Draft", location: "", description: "" });
 
+    expect(mockPrisma.$executeRaw).toHaveBeenCalled();
     expect(mockPrisma.note.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({ isDraft: true, userId: "user-1" }),
+      data: expect.objectContaining({ id: "draft-2", isDraft: true, userId: "user-1", position: 1 }),
     });
   });
 });

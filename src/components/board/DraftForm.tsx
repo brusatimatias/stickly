@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useTransition } from "react";
-import { saveDraftNote } from "@/app/actions/notes";
+import { createDraftNote, updateDraftNote } from "@/app/actions/notes";
 import FoldedCorner from "@/components/board/FoldedCorner";
 import type { NoteDTO } from "@/components/board/types";
 import { useNoteEditorKeyboard } from "@/components/board/useNoteEditorKeyboard";
@@ -25,6 +25,7 @@ export default function DraftForm({
   const titleRef = useRef<HTMLInputElement>(null);
   const savedRef = useRef(false);
   const stateRef = useRef({ title, location, description });
+  const [newNoteId] = useState(() => crypto.randomUUID());
 
   useEffect(() => {
     stateRef.current = { title, location, description };
@@ -51,7 +52,11 @@ export default function DraftForm({
       return;
     }
     startTransition(async () => {
-      await saveDraftNote({ title: trimmedTitle, location, description });
+      if (note) {
+        await updateDraftNote({ id: note.id, title: trimmedTitle, location, description });
+      } else {
+        await createDraftNote({ id: newNoteId, title: trimmedTitle, location, description });
+      }
       router.refresh();
       onDone();
     });

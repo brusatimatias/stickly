@@ -88,6 +88,7 @@
     "INVALID_NOTE_ID": "Invalid note id",
     "NOTE_NOT_FOUND": "Note not found",
     "DRAFT_NOTE_NOT_FOUND": "Draft note not found",
+    "DRAFT_LIMIT_REACHED": "You can keep up to 4 draft notes",
     "MISSING_GOOGLE_TOKEN": "Missing Google access token. Please sign in again.",
     "TIME_REQUIRED_FOR_SYNC": "Set a time for this note before syncing to Calendar.",
     "GOOGLE_SESSION_EXPIRED": "Your Google session expired. Sign out and back in to reconnect Calendar.",

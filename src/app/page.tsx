@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { auth } from "@/auth";
 import { toStoredNoteDTO } from "@/lib/noteGroups";
-import { getDraftNote, getNotesForDays } from "@/lib/notes";
+import { getDraftNotes, getNotesForDays } from "@/lib/notes";
 import { prisma } from "@/lib/prisma";
 import { getTodayInZone } from "@/lib/timezone";
 import { getUserTimeZone } from "@/lib/userTimeZone";
@@ -44,14 +44,14 @@ export default async function Home({
   const todayKey = getTodayInZone(timeZone, new Date());
   const { start, end } = getWeekRange(parseWeekParam(week, todayKey));
 
-  const [notes, draft, t, locale] = await Promise.all([
+  const [notes, drafts, t, locale] = await Promise.all([
     getNotesForDays(
       session.user.id,
       format(start, "yyyy-MM-dd"),
       format(end, "yyyy-MM-dd"),
       timeZone
     ),
-    getDraftNote(session.user.id),
+    getDraftNotes(session.user.id),
     getTranslations("common"),
     getLocale(),
   ]);
@@ -100,7 +100,7 @@ export default async function Home({
         key={format(start, "yyyy-MM-dd")}
         days={days}
         notes={notes.map(toStoredNoteDTO)}
-        draftNote={draft ? toStoredNoteDTO(draft) : null}
+        draftNote={drafts[0] ? toStoredNoteDTO(drafts[0]) : null}
         timeZone={timeZone}
         weekLabel={`${format(start, "MMM d", { locale: dateFnsLocale })} – ${format(addDays(start, 6), "MMM d, yyyy", { locale: dateFnsLocale })}`}
         prevWeekParam={formatWeekParam(getAdjacentWeekStart(start, "prev"))}

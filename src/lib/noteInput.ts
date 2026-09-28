@@ -8,6 +8,9 @@ const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 // Caps how many notes a single list_notes call can pull into the model.
 const MAX_LIST_RANGE_DAYS = 31;
 
+/** How many draft notes (no date yet) a user can keep at once. */
+export const MAX_DRAFT_NOTES = 4;
+
 export function sanitizeTitle(title: string): string {
   const trimmed = title.trim().slice(0, MAX_TITLE_LENGTH);
   if (!trimmed) {
