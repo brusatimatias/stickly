@@ -5,11 +5,13 @@ const mockPrisma = vi.hoisted(() => ({
     aggregate: vi.fn(),
     create: vi.fn(),
   },
+  $transaction: vi.fn(),
+  $executeRaw: vi.fn(),
 }));
 
 vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }));
 
-import { createNoteForUser } from "@/lib/noteCreation";
+import { createDraftNoteForUser, createNoteForUser } from "@/lib/noteCreation";
 
 const INPUT = {
   title: "Call the plumber",
@@ -21,6 +23,10 @@ const INPUT = {
 beforeEach(() => {
   vi.clearAllMocks();
   mockPrisma.note.aggregate.mockResolvedValue({ _max: { position: 1 } });
+  // The transaction callback runs against the same mock client.
+  mockPrisma.$transaction.mockImplementation((callback: (tx: typeof mockPrisma) => unknown) =>
+    callback(mockPrisma)
+  );
 });
 
 describe("createNoteForUser", () => {
@@ -61,5 +67,58 @@ describe("createNoteForUser", () => {
     );
     expect(mockPrisma.note.aggregate).not.toHaveBeenCalled();
     expect(mockPrisma.note.create).not.toHaveBeenCalled();
+  });
+});
+
+describe("createDraftNoteForUser", () => {
+  const DRAFT = { title: "Buy batteries", location: "", description: "" };
+
+  test("creates the draft last among the user's drafts, under the user's lock", async () => {
+    mockPrisma.note.aggregate.mockResolvedValue({ _count: 2, _max: { position: 5 } });
+
+    const result = await createDraftNoteForUser("user-1", { ...DRAFT, id: "client-id" });
+
+    expect(result).toEqual({ id: "client-id" });
+    expect(mockPrisma.$executeRaw).toHaveBeenCalled();
+    expect(mockPrisma.note.aggregate).toHaveBeenCalledWith({
+      where: { userId: "user-1", isDraft: true },
+      _count: true,
+      _max: { position: true },
+    });
+    expect(mockPrisma.note.create).toHaveBeenCalledWith({
+      data: {
+        id: "client-id",
+        title: "Buy batteries",
+        location: null,
+        description: null,
+        userId: "user-1",
+        isDraft: true,
+        position: 6,
+      },
+    });
+  });
+
+  test("starts at position 0 when the user has no drafts", async () => {
+    mockPrisma.note.aggregate.mockResolvedValue({ _count: 0, _max: { position: null } });
+
+    await createDraftNoteForUser("user-1", DRAFT);
+
+    expect(mockPrisma.note.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ position: 0 }),
+    });
+  });
+
+  test("rejects a fifth draft", async () => {
+    mockPrisma.note.aggregate.mockResolvedValue({ _count: 4, _max: { position: 3 } });
+
+    await expect(createDraftNoteForUser("user-1", DRAFT)).rejects.toThrow("DRAFT_LIMIT_REACHED");
+    expect(mockPrisma.note.create).not.toHaveBeenCalled();
+  });
+
+  test("rejects a blank title before touching the database", async () => {
+    await expect(createDraftNoteForUser("user-1", { ...DRAFT, title: " " })).rejects.toThrow(
+      "TITLE_REQUIRED"
+    );
+    expect(mockPrisma.$transaction).not.toHaveBeenCalled();
   });
 });

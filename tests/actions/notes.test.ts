@@ -31,6 +31,7 @@ import {
   createDraftNote,
   createNote,
   deleteNote,
+  moveDraftNote,
   moveNote,
   scheduleDraftNote,
   toggleNoteDone,
@@ -201,27 +202,102 @@ describe("deleteNote", () => {
   });
 });
 
-describe("updateDraftNote", () => {
-  test("updates only the user's draft", async () => {
-    await updateDraftNote({ id: "draft-1", title: "Draft", location: "", description: "" });
-
-    expect(mockPrisma.note.updateMany).toHaveBeenCalledWith({
-      where: { id: "draft-1", userId: "user-1", isDraft: true },
-      data: { title: "Draft", location: null, description: null },
-    });
-  });
-});
-
 describe("createDraftNote", () => {
-  test("creates a draft last among the user's drafts", async () => {
+  const BASE = { id: "draft-2", title: "Draft", location: "", description: "" };
+
+  test("throws when unauthenticated", async () => {
+    mockAuth.mockResolvedValue(null);
+    await expect(createDraftNote(BASE)).rejects.toThrow("UNAUTHORIZED");
+    expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  test("rejects an empty or oversized client id", async () => {
+    await expect(createDraftNote({ ...BASE, id: "" })).rejects.toThrow("INVALID_NOTE_ID");
+    await expect(createDraftNote({ ...BASE, id: "x".repeat(65) })).rejects.toThrow(
+      "INVALID_NOTE_ID"
+    );
+    expect(mockPrisma.note.create).not.toHaveBeenCalled();
+  });
+
+  test("creates the draft with the client id, last among the user's drafts", async () => {
     mockPrisma.note.aggregate.mockResolvedValue({ _count: 1, _max: { position: 0 } });
 
-    await createDraftNote({ id: "draft-2", title: "Draft", location: "", description: "" });
+    await createDraftNote(BASE);
 
     expect(mockPrisma.$executeRaw).toHaveBeenCalled();
     expect(mockPrisma.note.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ id: "draft-2", isDraft: true, userId: "user-1", position: 1 }),
     });
+    expect(mockRevalidatePath).toHaveBeenCalledWith("/");
+  });
+
+  test("rejects a fifth draft without revalidating", async () => {
+    mockPrisma.note.aggregate.mockResolvedValue({ _count: 4, _max: { position: 3 } });
+
+    await expect(createDraftNote(BASE)).rejects.toThrow("DRAFT_LIMIT_REACHED");
+    expect(mockPrisma.note.create).not.toHaveBeenCalled();
+    expect(mockRevalidatePath).not.toHaveBeenCalled();
+  });
+});
+
+describe("updateDraftNote", () => {
+  const BASE = { id: "draft-1", title: "Draft", location: "", description: "" };
+
+  test("throws when unauthenticated", async () => {
+    mockAuth.mockResolvedValue(null);
+    await expect(updateDraftNote(BASE)).rejects.toThrow("UNAUTHORIZED");
+    expect(mockPrisma.note.updateMany).not.toHaveBeenCalled();
+  });
+
+  test("updates only a draft of the user", async () => {
+    await updateDraftNote(BASE);
+
+    expect(mockPrisma.note.updateMany).toHaveBeenCalledWith({
+      where: { id: "draft-1", userId: "user-1", isDraft: true },
+      data: { title: "Draft", location: null, description: null },
+    });
+    expect(mockRevalidatePath).toHaveBeenCalledWith("/");
+  });
+
+  test("rejects a blank title", async () => {
+    await expect(updateDraftNote({ ...BASE, title: " " })).rejects.toThrow("TITLE_REQUIRED");
+    expect(mockPrisma.note.updateMany).not.toHaveBeenCalled();
+  });
+});
+
+describe("moveDraftNote", () => {
+  const DRAFTS = [{ id: "a" }, { id: "b" }, { id: "c" }];
+
+  test("throws when unauthenticated", async () => {
+    mockAuth.mockResolvedValue(null);
+    await expect(moveDraftNote({ noteId: "c", index: 0 })).rejects.toThrow("UNAUTHORIZED");
+    expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  test("reinserts the draft at the index and renumbers the user's drafts", async () => {
+    mockPrisma.note.findMany.mockResolvedValue(DRAFTS);
+
+    await moveDraftNote({ noteId: "c", index: 0 });
+
+    expect(mockPrisma.note.findMany).toHaveBeenCalledWith({
+      where: { userId: "user-1", isDraft: true },
+      orderBy: [{ position: "asc" }, { createdAt: "asc" }],
+    });
+    expect(mockPrisma.note.update.mock.calls.map(([args]) => args)).toEqual([
+      { where: { id: "c" }, data: { position: 0 } },
+      { where: { id: "a" }, data: { position: 1 } },
+      { where: { id: "b" }, data: { position: 2 } },
+    ]);
+    expect(mockRevalidatePath).toHaveBeenCalledWith("/");
+  });
+
+  test("rejects a note that isn't one of the user's drafts", async () => {
+    mockPrisma.note.findMany.mockResolvedValue(DRAFTS);
+
+    await expect(moveDraftNote({ noteId: "other-user-note", index: 0 })).rejects.toThrow(
+      "DRAFT_NOTE_NOT_FOUND"
+    );
+    expect(mockPrisma.note.update).not.toHaveBeenCalled();
   });
 });
 

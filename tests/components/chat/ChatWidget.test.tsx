@@ -90,6 +90,20 @@ describe("ChatWidget", () => {
     expect(link.getAttribute("href")).toBe("/?week=2026-09-28");
   });
 
+  test("refreshes the board for a draft without linking to any week", async () => {
+    mockSendChatMessage.mockResolvedValue({
+      reply: "Listo, quedó en tus borradores.",
+      createdNotes: [{ id: "draft-1", day: null }],
+    });
+    renderWidget();
+
+    await sendMessage("Anotame como borrador comprar pilas");
+
+    expect(screen.getByText("Listo, quedó en tus borradores.")).toBeTruthy();
+    expect(mockRefresh).toHaveBeenCalled();
+    expect(screen.queryByRole("link")).toBeNull();
+  });
+
   test("shows the translated error and gives the text back for a retry", async () => {
     mockSendChatMessage.mockRejectedValue(new Error("CHAT_RATE_LIMITED"));
     renderWidget();
