@@ -1,4 +1,9 @@
-import { sanitizeDescription, sanitizeLocation, sanitizeTitle } from "@/lib/noteInput";
+import {
+  MAX_DRAFT_NOTES,
+  sanitizeDescription,
+  sanitizeLocation,
+  sanitizeTitle,
+} from "@/lib/noteInput";
 import { prisma } from "@/lib/prisma";
 import type { StoredSchedule } from "@/lib/schedule";
 
@@ -46,6 +51,55 @@ export async function createNoteForUser(
       position,
       userId,
     },
+  });
+
+  return { id };
+}
+
+/**
+ * Creates a draft note (no date) last among the user's drafts. Shared by the
+ * board's `createDraftNote` action and the web chat's `create_draft_note`
+ * tool; same `userId` and `id` caveats as `createNoteForUser`.
+ *
+ * The count-then-create runs in a transaction holding a Postgres advisory
+ * lock scoped to the user, so concurrent calls (double click, two tabs, the
+ * chat) can't all see room for one more and go over `MAX_DRAFT_NOTES`. The
+ * limit is enforced here, not by a DB constraint (see CLAUDE.md).
+ */
+export async function createDraftNoteForUser(
+  userId: string,
+  input: { id?: string; title: string; location: string; description: string }
+): Promise<{ id: string }> {
+  const id = input.id ?? crypto.randomUUID();
+  const title = sanitizeTitle(input.title);
+  const location = sanitizeLocation(input.location);
+  const description = sanitizeDescription(input.description);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${userId})::bigint)`;
+
+    const drafts = await tx.note.aggregate({
+      where: { userId, isDraft: true },
+      _count: true,
+      _max: { position: true },
+    });
+    if (drafts._count >= MAX_DRAFT_NOTES) {
+      throw new Error("DRAFT_LIMIT_REACHED");
+    }
+
+    // Drafts are ordered among themselves; scheduleDraftNote gives a draft
+    // its position in the day it's dropped on.
+    await tx.note.create({
+      data: {
+        id,
+        title,
+        location,
+        description,
+        userId,
+        isDraft: true,
+        position: (drafts._max.position ?? -1) + 1,
+      },
+    });
   });
 
   return { id };

@@ -19,33 +19,33 @@ Your job is ONLY to review and report: do not edit files.
 
 **Server actions**
 - Mutations are server actions in `src/app/actions/*.ts` (`"use server"`), not API routes.
-- Every action resolves the user with `requireUserId()` (`calendar.ts` uses `auth()` directly because it needs `accessToken`) and ends with `revalidatePath("/")`.
+- Every action resolves the user with `requireUserId()` and ends with `revalidatePath("/")`.
 - Every query/mutation on a note is scoped by `userId` (`findFirst`/`updateMany`/`deleteMany` with `{ id, userId }`), never by `id` alone — except `tx.note.update` on ids that were just loaded with a `userId` filter.
 - User input goes through the sanitizers (trim + max length, `TITLE_REQUIRED`, `sanitizeClientId`); new validation logic lives in `src/lib/*` so it can be tested without Prisma.
 - Chat tool arguments (`src/app/actions/chat.ts`) are untrusted: each tool's `execute` runs them through its parser in `src/lib/noteInput.ts` and never throws (the AI SDK would hand the raw error to the model); unexpected errors go through `toolErrorResult`. New tools follow the same shape, and the chat stays behind `consumeChatQuota`.
 - Errors are thrown as bare string codes (`new Error("SOME_CODE")`); every new code has a key in the `errors` namespace of both `messages/en.json` and `messages/es.json`.
 
 **Data model and Prisma**
-- A note's schedule is `startsAt` (`timestamptz`) + `kind`: `TIMED` is an instant in UTC, shown in the viewer's zone; `ALL_DAY` is a day stored as its 00:00 UTC and read in UTC, never converted. `startsAt` is `null` only for the draft note (`isDraft: true`); board queries filter `isDraft: false`.
+- A note's schedule is `startsAt` (`timestamptz`) + `kind`: `TIMED` is an instant in UTC, shown in the viewer's zone; `ALL_DAY` is a day stored as its 00:00 UTC and read in UTC, never converted. `startsAt` is `null` only for draft notes (`isDraft: true`); board queries filter `isDraft: false`.
 - Every conversion between the stored schedule and a local day/time goes through `src/lib/schedule.ts` (`toStoredSchedule`, `toLocalSchedule`, `localDaysFilter`); flag hand-rolled offset math, an `ALL_DAY` value read in a local zone, and any server code that derives a day or "today" from the process time zone (`new Date()` + `format`, `getHours`, `startOfDay` on instants...). "Today" comes from `getTodayInZone` with the user's zone (`getUserTimeZone`).
 - The board converts typed days/times to a stored schedule before calling actions, which validate it with `parseScheduleInput`; chat tool days/times are validated with `sanitizeDay`/`sanitizeTime` (`src/lib/noteInput.ts`) and converted with the zone the browser sent.
-- Single draft per user is enforced in the app: `findFirst({ userId, isDraft: true })` + update-or-create, inside a transaction holding `pg_advisory_xact_lock` keyed on `userId`. No partial unique constraint added in the schema.
+- At most `MAX_DRAFT_NOTES` (4) drafts per user, enforced in the app: every draft is created through `createDraftNoteForUser` (board action and chat tool), which counts the user's drafts inside a transaction holding `pg_advisory_xact_lock` keyed on `userId`. No DB constraint for it.
 - Week and day queries use `localDaysFilter` (TIMED notes between the local midnights in UTC, ALL_DAY notes between the days), on the `[userId, startsAt]` index; no week number is persisted.
-- No `Account`/`Session` models and no `@auth/prisma-adapter`; Google tokens stay in the JWT, not in the DB.
+- No `Account`/`Session` models and no `@auth/prisma-adapter`. Google tokens are stored on `User`, always encrypted with `src/lib/tokenCrypto.ts` (never plaintext, never in the JWT or the session).
 - Schema changes come with a migration in `prisma/migrations/`; the Prisma client is imported from `src/generated/prisma` / `@/lib/prisma`, not `@prisma/client`.
 
 **Ordering**
-- Multi-step changes to `position` (`moveNote`, `scheduleDraftNote`) run inside `prisma.$transaction` and reassign `position` for every note in the affected day via `insertAtIndex` (+ `sortDoneLast`); no fractional indexing.
+- Multi-step changes to `position` (`moveNote`, `moveDraftNote`, `scheduleDraftNote`) run inside `prisma.$transaction` and reassign `position` for every note in the affected day via `insertAtIndex` (+ `sortDoneLast`); no fractional indexing.
 - New notes get `max(position) + 1` over all the user's notes (which local day a TIMED note is on depends on the viewer's zone); positions only order notes within a day.
 
 **Google Calendar**
 - The event is built from `startsAt` as a UTC `dateTime` (one hour long), and `title`/`location`/`description` (`location` is its own event field); only `TIMED` notes can be synced.
-- Deleting a note or clearing its time unsyncs the event (`unsyncNoteFromGoogleCalendar`, best-effort, never throws) and clears `googleEventId`.
-- A 401 from Google maps to `GOOGLE_SESSION_EXPIRED`; a missing token (Credentials session) to `MISSING_GOOGLE_TOKEN`.
+- Every Calendar call goes through `withGoogleCalendar(userId, fn)` (`src/lib/googleCalendar.ts`); nothing else reads the stored tokens or builds a Calendar client. It refreshes before expiry, retries once on a 401, and maps a revoked refresh token to clearing the tokens + `GOOGLE_RECONNECT_REQUIRED`.
+- Deleting a note or clearing its time deletes the event with `deleteCalendarEvent` (best-effort, never throws, logs failures) and clears `googleEventId`. It's in `src/lib`, not a server action.
 
 **Auth (`src/auth.ts`)**
-- The app's `User` row is upserted in the `jwt` callback on Google sign-in (keyed on `googleId`); the expired access token is refreshed there with `refreshGoogleAccessToken`.
-- The Credentials provider compares with `bcrypt` against `User.password` and never adds Google tokens to the token.
+- The app's `User` row is upserted in the `jwt` callback on Google sign-in (keyed on `googleId`), which also stores the Google tokens on it (`saveGoogleTokens`); a failure there is logged and doesn't block sign in.
+- The Credentials provider compares with `bcrypt` against `User.password` and never touches the Google tokens.
 
 **Board UI**
 - dnd-kit changes in `Board.tsx`/`DayColumn.tsx` don't reintroduce the drag infinite loops (see commits `5dd3e9f` and `d55e0d1`): keep the custom `collisionDetectionStrategy` (pointer-first, sticky `lastOverIdRef` right after a cross-container move) and don't set state during `dragOver` when nothing actually changed.
@@ -60,7 +60,7 @@ Your job is ONLY to review and report: do not edit files.
 
 ## Response format
 
-- **Blocking**: data leaking across users (missing `userId` scope), a second draft note becoming possible, broken ordering/transactions, Calendar events left orphaned, schema changes without a migration, drag loops coming back, or anything that breaks CI.
+- **Blocking**: data leaking across users (missing `userId` scope), Google tokens stored unencrypted or reaching the client or the logs, a way to create a draft that skips `createDraftNoteForUser` (going over the draft limit), broken ordering/transactions, Calendar events left orphaned, schema changes without a migration, drag loops coming back, or anything that breaks CI.
 - **To improve**: missing or misplaced tests, missing translation keys, inconsistent patterns, loose types.
 - **OK**: one line confirming what's fine.
 

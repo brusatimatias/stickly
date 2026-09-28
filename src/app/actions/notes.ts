@@ -1,9 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { unsyncNoteFromGoogleCalendar } from "@/app/actions/calendar";
 import { dayToDate, nextDay } from "@/lib/datetime";
-import { createNoteForUser } from "@/lib/noteCreation";
+import { deleteCalendarEvent } from "@/lib/googleCalendar";
+import { createDraftNoteForUser, createNoteForUser } from "@/lib/noteCreation";
 import {
   sanitizeDay,
   sanitizeDescription,
@@ -71,7 +71,7 @@ export async function updateNote(input: {
 
   const clearingTime = existing.kind === "TIMED" && kind === "ALL_DAY" && existing.googleEventId;
   if (clearingTime) {
-    await unsyncNoteFromGoogleCalendar(existing.googleEventId!);
+    await deleteCalendarEvent(userId, existing.googleEventId!);
   }
 
   await prisma.note.updateMany({
@@ -99,7 +99,7 @@ export async function deleteNote(id: string) {
   const userId = await requireUserId();
   const existing = await prisma.note.findFirst({ where: { id, userId } });
   if (existing?.googleEventId) {
-    await unsyncNoteFromGoogleCalendar(existing.googleEventId);
+    await deleteCalendarEvent(userId, existing.googleEventId);
   }
   await prisma.note.deleteMany({ where: { id, userId } });
   revalidatePath("/");
@@ -157,55 +157,69 @@ export async function moveNote(input: {
   revalidatePath("/");
 }
 
-/**
- * Upserts the single draft note for the current user, per the
- * application-level "one draft per user" rule (see CLAUDE.md).
- *
- * The check-then-act (findFirst, then create/update) is wrapped in a
- * transaction holding a Postgres advisory lock scoped to the user, so two
- * concurrent calls (double click, two tabs) can't both see "no draft yet"
- * and create duplicates. This is app-level serialization, not a DB
- * constraint, matching the documented decision in CLAUDE.md.
- */
-export async function saveDraftNote(input: {
+/** Creates a draft note, up to `MAX_DRAFT_NOTES` per user (see `createDraftNoteForUser`). */
+export async function createDraftNote(input: {
+  id: string;
   title: string;
   location: string;
   description: string;
 }) {
   const userId = await requireUserId();
-  const title = sanitizeTitle(input.title);
-  const location = sanitizeLocation(input.location);
-  const description = sanitizeDescription(input.description);
+  await createDraftNoteForUser(userId, { ...input, id: sanitizeClientId(input.id) });
 
-  await prisma.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${userId})::bigint)`;
+  revalidatePath("/");
+}
 
-    const existingDraft = await tx.note.findFirst({
-      where: { userId, isDraft: true },
-    });
-
-    if (existingDraft) {
-      await tx.note.update({
-        where: { id: existingDraft.id },
-        data: { title, location, description },
-      });
-    } else {
-      await tx.note.create({
-        data: {
-          title,
-          location,
-          description,
-          userId,
-          isDraft: true,
-        },
-      });
-    }
+export async function updateDraftNote(input: {
+  id: string;
+  title: string;
+  location: string;
+  description: string;
+}) {
+  const userId = await requireUserId();
+  await prisma.note.updateMany({
+    where: { id: input.id, userId, isDraft: true },
+    data: {
+      title: sanitizeTitle(input.title),
+      location: sanitizeLocation(input.location),
+      description: sanitizeDescription(input.description),
+    },
   });
 
   revalidatePath("/");
 }
 
-/** Promotes the draft note to a scheduled note on the given local day, with no time set. */
+/** Moves a draft note to position `index` among the user's drafts. */
+export async function moveDraftNote(input: { noteId: string; index: number }) {
+  const userId = await requireUserId();
+
+  await prisma.$transaction(async (tx) => {
+    const drafts = await tx.note.findMany({
+      where: { userId, isDraft: true },
+      orderBy: [{ position: "asc" }, { createdAt: "asc" }],
+    });
+    const movingNote = drafts.find((note) => note.id === input.noteId);
+    if (!movingNote) {
+      throw new Error("DRAFT_NOTE_NOT_FOUND");
+    }
+
+    const ordered = insertAtIndex(
+      drafts.filter((note) => note.id !== input.noteId),
+      movingNote,
+      input.index
+    );
+
+    await Promise.all(
+      ordered.map((note, position) =>
+        tx.note.update({ where: { id: note.id }, data: { position } })
+      )
+    );
+  });
+
+  revalidatePath("/");
+}
+
+/** Promotes a draft note to a scheduled note on the given local day, with no time set. */
 export async function scheduleDraftNote(input: { noteId: string; day: string; index: number }) {
   const userId = await requireUserId();
   const day = sanitizeDay(input.day);

@@ -11,12 +11,12 @@ CLAUDE.md already covers the architecture. This skill is the ordered checklist p
 **Start from the closest existing feature and copy its shape.** A boolean flag on a note (pinned, priority, archived…) is `isDone` all over again: the `add_note_is_done` migration, `toggleNoteDone` in `actions/notes.ts`, the DTO mappers, the done toggle in `NoteCard`, and its tests. A free-text field copies `location`/`description` through `createNote`/`updateNote`. Skip the sections below that don't apply.
 
 ## 1. Schema + migration
-- Edit `prisma/schema.prisma`. For note fields, think about a `@default` so existing rows migrate cleanly, and whether the draft note (`isDraft: true`, `startsAt: null`) should carry the field too.
+- Edit `prisma/schema.prisma`. For note fields, think about a `@default` so existing rows migrate cleanly, and whether draft notes (`isDraft: true`, `startsAt: null`) should carry the field too.
 - `npx prisma migrate dev --name <snake_case_description>`, then **`npx prisma generate`**. Prisma 7's `migrate dev` no longer regenerates the client, and `postinstall` only runs on `npm install`, so without this step the types in `src/generated/prisma` are stale and type-check fails.
 - Import the client from `@/lib/prisma` and types from `@/generated/prisma`, never from `@prisma/client`.
 
 ## 2. Server action (`src/app/actions/<domain>.ts`, `"use server"`)
-- First line: `const userId = await requireUserId();`. Use `auth()` only if you need `session.accessToken` (Calendar), as `calendar.ts` does.
+- First line: `const userId = await requireUserId();`. For Google Calendar, go through `withGoogleCalendar(userId, ...)` (`src/lib/googleCalendar.ts`), never the tokens directly.
 - **Scope every query by `userId`**: `findFirst({ where: { id, userId } })`, `updateMany`/`deleteMany` with `{ id, userId }`. Never read, update, or delete by `id` alone, because that lets one user touch another's note. The exception is `tx.note.update` on ids you just loaded with a `userId` filter.
 - A simple single-row update (a toggle, a field edit) is just a scoped `updateMany` with no transaction and no pre-check, like `toggleNoteDone`. Reach for `findFirst` + throw `NOTE_NOT_FOUND` only when you need the row's current values.
 - Sanitize string input before it hits Prisma (trim + max length). The note sanitizers (`sanitizeTitle`/`sanitizeLocation`/`sanitizeDescription`) live in `src/lib/noteInput.ts`, shared by the board actions and the chat tools; extend them there for simple cases. `sanitizeClientId` (client-generated ids) stays private in `actions/notes.ts`. Put non-trivial new validation in `src/lib/*.ts` (as `lib/profile.ts` → `sanitizeName` does) so it can be unit-tested. Booleans and ids already covered by `sanitizeClientId` need nothing new.
@@ -25,13 +25,13 @@ CLAUDE.md already covers the architecture. This skill is the ordered checklist p
 
 ## 3. Concurrency / ordering (only if the feature reorders notes or has a uniqueness rule)
 - Decide explicitly whether the new field affects order within a day. If it does (e.g. "priority notes first"), that means changing `sortDoneLast`/`ordering.ts` and the cross-group handling in `Board.tsx`'s `handleDragOver`/`handleDragEnd`, not just the query.
-- Anything that reads positions and then writes them (`moveNote`, `scheduleDraftNote`) goes inside `prisma.$transaction`. Reassign `position` for the whole affected day via `insertAtIndex` + `sortDoneLast` (`src/lib/ordering.ts`); never use fractional positions. New notes get `max(position) + 1` in their day.
-- For check-then-create that must be unique per user (the single-draft rule), take `pg_advisory_xact_lock(hashtext(userId)::bigint)` inside the transaction, as `saveDraftNote` does. Don't add a partial unique constraint to the schema.
+- Anything that reads positions and then writes them (`moveNote`, `moveDraftNote`, `scheduleDraftNote`) goes inside `prisma.$transaction`. Reassign `position` for the whole affected day (or the drafts) via `insertAtIndex` + `sortDoneLast` (`src/lib/ordering.ts`); never use fractional positions. New notes get the user's `max(position) + 1`.
+- For a per-user check-then-create rule (like the draft limit), take `pg_advisory_xact_lock(hashtext(userId)::bigint)` inside the transaction, as `createDraftNoteForUser` does. Don't add a DB constraint for it.
 
 ## 4. Wiring a new note field to the board
 A new column on `Note` doesn't reach the UI by itself. Update each of these:
-1. `ScheduledNote` type in `src/lib/notes.ts`.
-2. Both mappers there: `groupNotesByDay` (scheduled notes) and `toDraftNoteDTO` (the draft).
+1. `StoredNoteDTO` in `src/components/board/types.ts` (what `page.tsx` passes to the board).
+2. The mappers in `src/lib/noteGroups.ts`: `toStoredNoteDTO`, `groupNotesByDay` (scheduled notes) and `toDraftNoteDTO` (drafts).
 3. `NoteDTO` in `src/components/board/types.ts`.
 4. The `lastServerNote` comparison in `NoteCard.tsx`. It decides when the server copy has changed and the optimistic copy can be dropped, so it should compare every DTO field. If a field is missing, the card can keep showing stale optimistic data.
 5. The form (`NoteForm.tsx` / `DraftForm.tsx`) and the card display. Follow the `ui-conventions` skill for these. If the field is visible on the card, also consider the simplified card copy in `Board.tsx`'s `DragOverlay`.
@@ -41,7 +41,7 @@ A new column on `Note` doesn't reach the UI by itself. Update each of these:
 ## 5. Tests
 - Pure logic in `src/lib` → `tests/lib/<file>.test.ts`, no mocks needed.
 - Actions → `tests/actions/<domain>.test.ts`. There's no test DB: mock `@/lib/prisma`, `@/auth`, and `next/cache` with `vi.hoisted` + `vi.mock` (including `$transaction`/`$executeRaw` if used), then import the action. Copy the mock setup from `tests/actions/notes.test.ts` instead of writing it from scratch. Cover at least: the unauthorized path (`mockAuth.mockResolvedValue(null)`, since `requireUserId` calls `auth()`; assert it rejects with `UNAUTHORIZED` and that Prisma wasn't called), the `userId` scoping (assert the `where` includes `userId`), and each new error code.
-- Update the mapper tests in `tests/lib/notes.test.ts` if you touched `groupNotesByDay`/`toDraftNoteDTO`.
+- Update the mapper tests in `tests/lib/noteGroups.test.ts` if you touched `groupNotesByDay`/`toDraftNoteDTO`.
 
 ## Before finishing
 - The `Stop` hook (`.claude/hooks/verify.sh`) runs lint, type-check and tests, so there's no need to run them by hand.

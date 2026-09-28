@@ -10,7 +10,7 @@ The look is "sticky notes on a whiteboard". New UI should look like it belongs t
 
 ## Component map (`src/components/board/`)
 - `Board.tsx`: top-level client component. Owns `DndContext`, the `DragOverlay`, `notesByDay` state, and focus-day mode.
-- `DayColumn.tsx` (one day, a `SortableContext`), `DraftPanel.tsx` (the draft slot), `WeekNav.tsx`, `DayFocusNav.tsx`.
+- `DayColumn.tsx` (one day, a `SortableContext`), `DraftPanel.tsx` (the drafts, up to `MAX_DRAFT_NOTES`), `WeekNav.tsx`, `DayFocusNav.tsx`.
 - Cards: `NoteCard.tsx` / `DraftCard.tsx`. Their in-place edit forms: `NoteForm.tsx` / `DraftForm.tsx`, which render in the same card shape and colors as the card they replace.
 - `useNoteEditorKeyboard.ts`: shared keyboard handling (Shift+Enter submits, etc.). Any new editor form should use it instead of adding its own `onKeyDown` logic.
 - `FoldedCorner.tsx`, `icons.tsx`, `ConfirmDialog.tsx`, `TimePicker.tsx`: reuse them before adding new ones.
@@ -22,9 +22,10 @@ The look is "sticky notes on a whiteboard". New UI should look like it belongs t
 - **Rotation**: a Tailwind class from `ROTATIONS`. **Overlap**: inline `marginTop`/`marginLeft` from `OVERLAPS`, not a class.
 - **Card shell**: `relative flex h-44 w-44 sm:h-48 sm:w-48 overflow-hidden rounded-sm border p-2 text-sm` + `<FoldedCorner />`. Every card-like thing renders `FoldedCorner`: cards, forms, the drag overlay, and the sign-in stickers.
 - **Shadows**: regular cards and `NoteForm` use `shadow-[2px_4px_6px_rgba(0,0,0,0.3)]` with a `dark:` variant at 0.6 and a heavier hover shadow. The draft uses `shadow-md`/`hover:shadow-lg`, and the drag overlay uses `shadow-lg`.
-- **Hover**: `group`, `hover:-translate-y-1 hover:z-10`. Card controls (drag handle, done toggle, delete) sit at `opacity-30` and go to `group-hover:opacity-70`.
+- **Hover**: `group`, `transition-[top] hover:-top-1 hover:z-10` (the cards are already `relative`). Card controls (drag handle, done toggle, delete) sit at `opacity-30` and go to `group-hover:opacity-70`.
+- **Keep card text sharp**: cards are rotated, so anything that gives the text its own compositing layer makes it render blurry. Lift cards on hover with `top`, not a `transform` (`translate`), and dim editable fields with the text color (`text-current/80`), not `opacity` (a focused, dimmed textarea blurred while typing).
 - **Done**: an overlay `bg-zinc-500/40 mix-blend-multiply dark:bg-zinc-400/30` over the palette color, plus `line-through` on the title only. Done notes also sort last in their day (`sortDoneLast`).
-- **Draft**: fixed orange trio (`bg-orange-200 border-orange-300 text-orange-950`), fixed `-rotate-1`, no overlap offset. This is what distinguishes it from dated notes, so don't route it through `getNoteStyle`. The classes are duplicated in `DraftCard.tsx` and `DraftForm.tsx`; change both, or pull them into a shared constant.
+- **Draft**: fixed orange trio (`bg-orange-200 border-orange-300 text-orange-950`), fixed `-rotate-1`, and in the panel each draft overlaps the one before it by a fixed `-mt-3` instead of the hash-based offset. This is what distinguishes it from dated notes, so don't route it through `getNoteStyle`. The classes are duplicated in `DraftCard.tsx` and `DraftForm.tsx`; change both, or pull them into a shared constant.
 - **Card colors are coupled**: the done overlay is `mix-blend-multiply` over the palette color, and the card also hardcodes status colors on top of it (the Calendar-synced icon `text-emerald-600 dark:text-emerald-400`, the error line `text-red-700`). Changing the palette changes how all of these read, so check them together.
 
 ## Dark mode
@@ -40,7 +41,7 @@ Both of these caused infinite render loops before (commits `5dd3e9f`, `d55e0d1`)
 - **Keep the custom `collisionDetectionStrategy` in `Board.tsx`** (`pointerWithin` → `rectIntersection` fallback, sticky `lastOverIdRef` right after a cross-container move). Don't switch back to `closestCenter`: when a note crosses into another day, the rects shift and closestCenter moves it back, over and over. If you add a new droppable container, reset the refs in `onDragEnd`/`onDragCancel` the way the existing code does.
 - **Day columns lay out sortable items with CSS grid** (`[grid-template-columns:repeat(auto-fill,minmax(11rem,1fr))]`), not `flex-wrap`. With flex-wrap, reordering reflowed the items and the sort flipped back and forth.
 - Drag feedback: the source card goes to `opacity: 0.5` (inline style) and `z-20`. `DragOverlay` in `Board.tsx` renders a simplified copy (palette + rotation + FoldedCorner + title).
-- A drop calls `moveNote` / `scheduleDraftNote` inside `startTransition` and then `router.refresh()`.
+- A drop calls `moveNote` / `moveDraftNote` / `scheduleDraftNote` inside `startTransition` and then `router.refresh()`.
 - **Keep `id={useId()}` on `DndContext`.** Without it dnd-kit numbers its `aria-describedby` ids from a module-level counter that differs between server and client, which causes a hydration mismatch warning and leaves the attribute pointing at a missing element.
 
 ## React state patterns

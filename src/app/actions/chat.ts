@@ -13,10 +13,12 @@ import {
 import { getLocale } from "next-intl/server";
 import { revalidatePath } from "next/cache";
 import { isSupportedLocale, DEFAULT_LOCALE } from "@/i18n/locales";
-import { createNoteForUser } from "@/lib/noteCreation";
+import { createDraftNoteForUser, createNoteForUser } from "@/lib/noteCreation";
 import {
+  CREATE_DRAFT_NOTE_TOOL,
   CREATE_NOTE_TOOL,
   LIST_NOTES_TOOL,
+  parseDraftNoteToolInput,
   parseListNotesInput,
   parseNoteToolInput,
 } from "@/lib/noteInput";
@@ -43,6 +45,7 @@ const RECOVERABLE_TOOL_ERRORS = new Set([
   "INVALID_TIME",
   "INVALID_DATE_RANGE",
   "INVALID_NOTE_INPUT",
+  "DRAFT_LIMIT_REACHED",
 ]);
 
 // A tool call plus the final reply is 2 steps; the extra room covers a
@@ -101,7 +104,8 @@ export async function sendChatMessage(input: { messages: unknown; timeZone: stri
 
   const requestLocale = await getLocale();
   const locale = isSupportedLocale(requestLocale) ? requestLocale : DEFAULT_LOCALE;
-  const createdNotes: { id: string; day: string }[] = [];
+  // `day` is null for drafts, which have no date.
+  const createdNotes: { id: string; day: string | null }[] = [];
   // The model works with the user's local days and times; the browser sends
   // its zone so they can be converted to UTC here (there's no board form).
   const timeZone = resolveTimeZone(input.timeZone);
@@ -124,6 +128,20 @@ export async function sendChatMessage(input: { messages: unknown; timeZone: stri
     },
   });
 
+  const createDraftNote = tool({
+    description: CREATE_DRAFT_NOTE_TOOL.description,
+    inputSchema: toolSchema(CREATE_DRAFT_NOTE_TOOL.inputSchema),
+    execute: async (args: unknown) => {
+      try {
+        const note = await createDraftNoteForUser(userId, parseDraftNoteToolInput(args));
+        createdNotes.push({ id: note.id, day: null });
+        return { ok: true };
+      } catch (error) {
+        return toolErrorResult(CREATE_DRAFT_NOTE_TOOL.name, error, "NOTE_NOT_SAVED");
+      }
+    },
+  });
+
   const listNotes = tool({
     description: LIST_NOTES_TOOL.description,
     inputSchema: toolSchema(LIST_NOTES_TOOL.inputSchema),
@@ -142,7 +160,11 @@ export async function sendChatMessage(input: { messages: unknown; timeZone: stri
       model: google(process.env.CHAT_MODEL || DEFAULT_CHAT_MODEL),
       system: buildChatSystemPrompt({ today: getUserToday(timeZone, new Date()), locale }),
       messages,
-      tools: { [CREATE_NOTE_TOOL.name]: createNote, [LIST_NOTES_TOOL.name]: listNotes },
+      tools: {
+        [CREATE_NOTE_TOOL.name]: createNote,
+        [CREATE_DRAFT_NOTE_TOOL.name]: createDraftNote,
+        [LIST_NOTES_TOOL.name]: listNotes,
+      },
       stopWhen: isStepCount(MAX_STEPS),
       // A 429 won't clear up within a retry, and retries spend free-tier quota.
       maxRetries: 0,
