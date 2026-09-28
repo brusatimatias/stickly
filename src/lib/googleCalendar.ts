@@ -106,3 +106,23 @@ export async function withGoogleCalendar<T>(
     throw error;
   }
 }
+
+/**
+ * Best-effort delete of a note's Calendar event, for callers that must go on
+ * saving or deleting the note anyway. Never throws; an event that's already
+ * gone counts as deleted, and any other failure is logged, since the event is
+ * left behind in the user's calendar.
+ */
+export async function deleteCalendarEvent(userId: string, googleEventId: string): Promise<void> {
+  try {
+    await withGoogleCalendar(userId, (calendar) =>
+      calendar.events.delete({ calendarId: "primary", eventId: googleEventId })
+    );
+  } catch (error) {
+    const status = getStatus(error);
+    if (status === 404 || status === 410) {
+      return;
+    }
+    console.error(`[google] couldn't delete Calendar event ${googleEventId} of user ${userId}`, error);
+  }
+}

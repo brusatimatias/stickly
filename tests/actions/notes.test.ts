@@ -16,15 +16,13 @@ const mockPrisma = vi.hoisted(() => ({
 
 const mockAuth = vi.hoisted(() => vi.fn());
 const mockRevalidatePath = vi.hoisted(() => vi.fn());
-const mockUnsync = vi.hoisted(() => vi.fn());
+const mockDeleteCalendarEvent = vi.hoisted(() => vi.fn());
 const mockGetTimeZoneForUser = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }));
 vi.mock("@/auth", () => ({ auth: mockAuth }));
 vi.mock("next/cache", () => ({ revalidatePath: mockRevalidatePath }));
-vi.mock("@/app/actions/calendar", () => ({
-  unsyncNoteFromGoogleCalendar: mockUnsync,
-}));
+vi.mock("@/lib/googleCalendar", () => ({ deleteCalendarEvent: mockDeleteCalendarEvent }));
 vi.mock("@/lib/userTimeZone", () => ({ getTimeZoneForUser: mockGetTimeZoneForUser }));
 
 import {
@@ -148,7 +146,7 @@ describe("updateNote", () => {
 
     await updateNote({ ...BASE, schedule: ALL_DAY });
 
-    expect(mockUnsync).toHaveBeenCalledWith("gcal-1");
+    expect(mockDeleteCalendarEvent).toHaveBeenCalledWith("user-1", "gcal-1");
     expect(mockPrisma.note.updateMany).toHaveBeenCalledWith({
       where: { id: "id-1", userId: "user-1" },
       data: expect.objectContaining({
@@ -173,7 +171,7 @@ describe("updateNote", () => {
 
     await updateNote({ ...BASE, schedule: { kind: "TIMED", startsAt: "2026-09-16T14:00:00.000Z" } });
 
-    expect(mockUnsync).not.toHaveBeenCalled();
+    expect(mockDeleteCalendarEvent).not.toHaveBeenCalled();
     expect(mockPrisma.note.updateMany).toHaveBeenCalledWith({
       where: { id: "id-1", userId: "user-1" },
       data: expect.objectContaining({ kind: "TIMED", startsAt: new Date("2026-09-16T14:00:00.000Z") }),

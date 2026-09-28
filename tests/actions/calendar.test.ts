@@ -11,13 +11,12 @@ const mockAuth = vi.hoisted(() => vi.fn());
 const mockRevalidatePath = vi.hoisted(() => vi.fn());
 const mockEventsInsert = vi.hoisted(() => vi.fn());
 const mockEventsUpdate = vi.hoisted(() => vi.fn());
-const mockEventsDelete = vi.hoisted(() => vi.fn());
 // The token handling is withGoogleCalendar's job (tested on its own); here it
 // just runs the operation against a fake Calendar client.
 const mockWithGoogleCalendar = vi.hoisted(() =>
   vi.fn((_userId: string, operation: (calendar: unknown) => unknown) =>
     operation({
-      events: { insert: mockEventsInsert, update: mockEventsUpdate, delete: mockEventsDelete },
+      events: { insert: mockEventsInsert, update: mockEventsUpdate },
     })
   )
 );
@@ -27,7 +26,7 @@ vi.mock("@/auth", () => ({ auth: mockAuth }));
 vi.mock("next/cache", () => ({ revalidatePath: mockRevalidatePath }));
 vi.mock("@/lib/googleCalendar", () => ({ withGoogleCalendar: mockWithGoogleCalendar }));
 
-import { addNoteToGoogleCalendar, unsyncNoteFromGoogleCalendar } from "@/app/actions/calendar";
+import { addNoteToGoogleCalendar } from "@/app/actions/calendar";
 
 const SESSION = { user: { id: "user-1" } };
 
@@ -118,26 +117,5 @@ describe("addNoteToGoogleCalendar", () => {
     mockEventsInsert.mockRejectedValue(new Error("network down"));
 
     await expect(addNoteToGoogleCalendar("note-1")).rejects.toThrow("network down");
-  });
-});
-
-describe("unsyncNoteFromGoogleCalendar", () => {
-  test("deletes the Calendar event", async () => {
-    await unsyncNoteFromGoogleCalendar("gcal-1");
-    expect(mockEventsDelete).toHaveBeenCalledWith({
-      calendarId: "primary",
-      eventId: "gcal-1",
-    });
-  });
-
-  test("throws when unauthenticated", async () => {
-    mockAuth.mockResolvedValue(null);
-    await expect(unsyncNoteFromGoogleCalendar("gcal-1")).rejects.toThrow("UNAUTHORIZED");
-    expect(mockEventsDelete).not.toHaveBeenCalled();
-  });
-
-  test("swallows errors instead of throwing", async () => {
-    mockEventsDelete.mockRejectedValue(new Error("already deleted"));
-    await expect(unsyncNoteFromGoogleCalendar("gcal-1")).resolves.toBeUndefined();
   });
 });

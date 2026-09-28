@@ -56,20 +56,3 @@ export async function addNoteToGoogleCalendar(noteId: string) {
 
   revalidatePath("/");
 }
-
-/**
- * Best-effort delete of a note's Google Calendar event. Never throws: a
- * stale token or an already-deleted event must not block the caller from
- * saving the note itself.
- */
-export async function unsyncNoteFromGoogleCalendar(googleEventId: string): Promise<void> {
-  const userId = await requireUserId();
-
-  try {
-    await withGoogleCalendar(userId, (calendar) =>
-      calendar.events.delete({ calendarId: "primary", eventId: googleEventId })
-    );
-  } catch {
-    // Known/accepted edge case: event may already be gone, token may be stale.
-  }
-}
