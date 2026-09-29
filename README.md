@@ -39,6 +39,7 @@ A notes/reminders app organized on a whiteboard-style weekly board, with Google 
    - `GOOGLE_TOKEN_ENCRYPTION_KEY`: encrypts the Google tokens stored in the database. Keep it safe: if it's lost or changed, every user has to sign in with Google again to reconnect Calendar.
    - `GOOGLE_GENERATIVE_AI_API_KEY`: Gemini API key for the assistant chat, from [Google AI Studio](https://aistudio.google.com/apikey). Create it in a Google Cloud project **without a billing account**, so the free tier quota is a hard cap (requests over it fail with 429, nothing is charged).
    - `CHAT_MODEL` (optional): Gemini model id for the chat. Defaults to `gemini-3.5-flash-lite`.
+   - `CHAT_FALLBACK_MODEL` (optional): Gemini model id to retry with once when the main model answers 503 ("high demand").
 
 3. Apply Prisma migrations:
 
