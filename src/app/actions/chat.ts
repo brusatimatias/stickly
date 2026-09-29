@@ -71,6 +71,12 @@ function toolErrorResult(toolName: string, error: unknown, genericCode: string) 
   return { ok: false, error: genericCode };
 }
 
+/** The HTTP status of a failed model call, if the provider answered with one. */
+function providerStatusCode(error: unknown): number | undefined {
+  const apiError = RetryError.isInstance(error) ? error.lastError : error;
+  return APICallError.isInstance(apiError) ? apiError.statusCode : undefined;
+}
+
 /**
  * Records this message and enforces the per-user and global limits over
  * rolling windows. Best-effort, without a lock: insert-then-count means
@@ -154,10 +160,9 @@ export async function sendChatMessage(input: { messages: unknown; timeZone: stri
     },
   });
 
-  let reply: string;
-  try {
-    const result = await generateText({
-      model: google(process.env.CHAT_MODEL || DEFAULT_CHAT_MODEL),
+  const generate = (modelId: string) =>
+    generateText({
+      model: google(modelId),
       system: buildChatSystemPrompt({ today: getUserToday(timeZone, new Date()), locale }),
       messages,
       tools: {
@@ -169,14 +174,37 @@ export async function sendChatMessage(input: { messages: unknown; timeZone: stri
       // A 429 won't clear up within a retry, and retries spend free-tier quota.
       maxRetries: 0,
     });
+
+  let reply: string;
+  try {
+    let result: Awaited<ReturnType<typeof generate>>;
+    try {
+      result = await generate(process.env.CHAT_MODEL || DEFAULT_CHAT_MODEL);
+    } catch (error) {
+      // A 503 ("high demand") is the model being overloaded, so retrying the
+      // same one is poor; another model usually answers. Not once a note was
+      // saved, though: the retry would create it again.
+      const fallbackModel = process.env.CHAT_FALLBACK_MODEL;
+      if (!fallbackModel || createdNotes.length > 0 || providerStatusCode(error) !== 503) {
+        throw error;
+      }
+      console.warn("[chat] model unavailable, retrying with the fallback model", error);
+      result = await generate(fallbackModel);
+    }
     reply = result.text.trim();
   } catch (error) {
-    const apiError = RetryError.isInstance(error) ? error.lastError : error;
-    if (APICallError.isInstance(apiError) && apiError.statusCode === 429) {
+    if (createdNotes.length > 0) {
+      // The notes are saved, so this is a success without a reply (the widget
+      // shows a generic confirmation). An error would make the user resend
+      // the message and duplicate them.
+      console.error("[chat] generateText failed after saving notes", error);
+      reply = "";
+    } else if (providerStatusCode(error) === 429) {
       throw new Error("CHAT_QUOTA_EXCEEDED");
+    } else {
+      console.error("[chat] generateText failed", error);
+      throw new Error("CHAT_UNAVAILABLE");
     }
-    console.error("[chat] generateText failed", error);
-    throw new Error("CHAT_UNAVAILABLE");
   } finally {
     if (createdNotes.length > 0) {
       revalidatePath("/");

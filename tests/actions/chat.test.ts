@@ -1,6 +1,6 @@
 import { APICallError } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 const mockPrisma = vi.hoisted(() => ({
   note: {
@@ -314,6 +314,107 @@ describe("sendChatMessage", () => {
     await expect(sendChatMessage({ messages: MESSAGES, timeZone: TIME_ZONE })).rejects.toThrow(
       "CHAT_QUOTA_EXCEEDED"
     );
+  });
+
+  describe("when the model is unavailable (503)", () => {
+    const DEFAULT_MODEL = "gemini-main";
+    const FALLBACK_MODEL = "gemini-fallback";
+
+    function providerError(statusCode: number) {
+      return new APICallError({
+        message: "The model is overloaded",
+        url: "https://generativelanguage.googleapis.com",
+        requestBodyValues: {},
+        statusCode,
+      });
+    }
+
+    /** The main model runs `mainSteps` and then fails with `statusCode`; the fallback answers `fallbackSteps`. */
+    function mockModels(mainSteps: Content[], statusCode: number, fallbackSteps: Content[]) {
+      const fallback = mockModel(fallbackSteps);
+      const main = mockModel(mainSteps);
+      let call = 0;
+      const generate = main.doGenerate;
+      main.doGenerate = async (options) => {
+        call += 1;
+        if (call > mainSteps.length) {
+          throw providerError(statusCode);
+        }
+        return generate(options);
+      };
+      mockGoogle.mockImplementation((modelId: string) => (modelId === FALLBACK_MODEL ? fallback : main));
+      return { main, fallback };
+    }
+
+    beforeEach(() => {
+      vi.spyOn(console, "warn").mockImplementation(() => {});
+      vi.spyOn(console, "error").mockImplementation(() => {});
+      vi.stubEnv("CHAT_MODEL", DEFAULT_MODEL);
+      vi.stubEnv("CHAT_FALLBACK_MODEL", FALLBACK_MODEL);
+    });
+
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    test("retries once with the fallback model", async () => {
+      const { fallback } = mockModels([], 503, [text("¿Para qué día?")]);
+
+      const result = await sendChatMessage({ messages: MESSAGES, timeZone: TIME_ZONE });
+
+      expect(mockGoogle).toHaveBeenLastCalledWith(FALLBACK_MODEL);
+      expect(fallback.doGenerateCalls).toHaveLength(1);
+      expect(result).toEqual({ reply: "¿Para qué día?", createdNotes: [] });
+    });
+
+    test("retries only once when the fallback model is unavailable too", async () => {
+      const { fallback } = mockModels([], 503, [text("unused")]);
+      fallback.doGenerate = async () => {
+        throw providerError(503);
+      };
+
+      await expect(sendChatMessage({ messages: MESSAGES, timeZone: TIME_ZONE })).rejects.toThrow(
+        "CHAT_UNAVAILABLE"
+      );
+      expect(mockGoogle.mock.calls).toEqual([[DEFAULT_MODEL], [FALLBACK_MODEL]]);
+    });
+
+    test("fails with CHAT_UNAVAILABLE when no fallback model is configured", async () => {
+      vi.stubEnv("CHAT_FALLBACK_MODEL", "");
+      const { fallback } = mockModels([], 503, [text("unused")]);
+
+      await expect(sendChatMessage({ messages: MESSAGES, timeZone: TIME_ZONE })).rejects.toThrow(
+        "CHAT_UNAVAILABLE"
+      );
+      expect(fallback.doGenerateCalls).toHaveLength(0);
+    });
+
+    test("doesn't retry a 429 with the fallback model", async () => {
+      const { fallback } = mockModels([], 429, [text("unused")]);
+
+      await expect(sendChatMessage({ messages: MESSAGES, timeZone: TIME_ZONE })).rejects.toThrow(
+        "CHAT_QUOTA_EXCEEDED"
+      );
+      expect(fallback.doGenerateCalls).toHaveLength(0);
+    });
+
+    test("returns the notes already saved instead of retrying or failing", async () => {
+      const { fallback } = mockModels(
+        [toolCall({ title: "Llamar al plomero", day: "2026-09-30" })],
+        503,
+        [text("unused")]
+      );
+
+      const result = await sendChatMessage({ messages: MESSAGES, timeZone: TIME_ZONE });
+
+      expect(fallback.doGenerateCalls).toHaveLength(0);
+      expect(mockPrisma.note.create).toHaveBeenCalledTimes(1);
+      expect(result).toEqual({
+        reply: "",
+        createdNotes: [{ id: expect.any(String), day: "2026-09-30" }],
+      });
+      expect(mockRevalidatePath).toHaveBeenCalledWith("/");
+    });
   });
 
   test("maps any other provider failure to CHAT_UNAVAILABLE", async () => {
