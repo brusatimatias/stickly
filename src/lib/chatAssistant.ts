@@ -8,7 +8,6 @@ import {
   tool,
   type JSONSchema7,
 } from "ai";
-import { revalidatePath } from "next/cache";
 import type { Locale } from "@/i18n/locales";
 import { createDraftNoteForUser, createNoteForUser } from "@/lib/noteCreation";
 import {
@@ -104,7 +103,8 @@ export type ChatTurn = {
   messages: ChatMessage[];
   /** The user's IANA zone: the model works with local days and times, converted to UTC here. */
   timeZone: string;
-  locale: Locale;
+  /** The language to reply in, or null to reply in the one the user writes in (WhatsApp has no locale). */
+  locale: Locale | null;
 };
 
 export type ChatTurnResult = {
@@ -117,8 +117,10 @@ export type ChatTurnResult = {
  * Runs one assistant turn: the model answers the conversation, creating or
  * listing the user's notes through the tools. Shared by every chat channel,
  * which authenticate the user, sanitize the conversation and consume the
- * quota before calling it. Throws `CHAT_QUOTA_EXCEEDED` or `CHAT_UNAVAILABLE`
- * when the model fails before saving anything.
+ * quota before calling it. Revalidating the board when notes were created is
+ * also up to the caller.
+ * Throws `CHAT_QUOTA_EXCEEDED` or `CHAT_UNAVAILABLE` when the model fails
+ * before saving anything.
  */
 export async function runChatTurn({
   userId,
@@ -216,10 +218,6 @@ export async function runChatTurn({
     } else {
       console.error("[chat] generateText failed", error);
       throw new Error("CHAT_UNAVAILABLE");
-    }
-  } finally {
-    if (createdNotes.length > 0) {
-      revalidatePath("/");
     }
   }
 

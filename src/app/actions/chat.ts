@@ -1,6 +1,7 @@
 "use server";
 
 import { getLocale } from "next-intl/server";
+import { revalidatePath } from "next/cache";
 import { isSupportedLocale, DEFAULT_LOCALE } from "@/i18n/locales";
 import { consumeChatQuota, runChatTurn } from "@/lib/chatAssistant";
 import { requireUserId } from "@/lib/session";
@@ -15,5 +16,14 @@ export async function sendChatMessage(input: { messages: unknown; timeZone: stri
   const requestLocale = await getLocale();
   const locale = isSupportedLocale(requestLocale) ? requestLocale : DEFAULT_LOCALE;
   // The browser sends its zone with each message.
-  return runChatTurn({ userId, messages, timeZone: resolveTimeZone(input.timeZone), locale });
+  const result = await runChatTurn({
+    userId,
+    messages,
+    timeZone: resolveTimeZone(input.timeZone),
+    locale,
+  });
+  if (result.createdNotes.length > 0) {
+    revalidatePath("/");
+  }
+  return result;
 }
