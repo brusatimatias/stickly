@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { type ChangeEvent, useEffect, useRef, useState, useTransition } from "react";
 import { setPassword, updateAvatar, updateProfileName } from "@/app/actions/profile";
 import { EyeIcon, EyeOffIcon, UserIcon } from "@/components/profile/icons";
+import WhatsAppLink from "@/components/profile/WhatsAppLink";
 import { resizeImageToDataUrl } from "@/lib/image";
 
 const AVATAR_TARGET_SIZE = 128;
@@ -32,11 +33,14 @@ export default function ProfileForm({
   email,
   avatarSrc,
   hasPassword,
+  whatsapp,
 }: {
   name: string;
   email: string;
   avatarSrc: string | null;
   hasPassword: boolean;
+  /** Null when the WhatsApp chat isn't configured, which hides the section. */
+  whatsapp: { linkedNumber: string | null; botNumber: string } | null;
 }) {
   const t = useTranslations("profile");
   const tCommon = useTranslations("common");
@@ -195,7 +199,7 @@ export default function ProfileForm({
         )}
       </section>
 
-      <section className="flex flex-col gap-2 pt-6">
+      <section className={`flex flex-col gap-2 pt-6 ${whatsapp ? "pb-6" : ""}`}>
         <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
           {hasPassword ? t("changePassword") : t("setPassword")}
         </label>
@@ -274,6 +278,8 @@ export default function ProfileForm({
           </p>
         )}
       </section>
+
+      {whatsapp && <WhatsAppLink {...whatsapp} />}
     </div>
   );
 }

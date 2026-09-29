@@ -76,7 +76,19 @@
     "saved": "Saved",
     "currentPasswordPlaceholder": "Current password",
     "showCurrentPassword": "Show current password",
-    "hideCurrentPassword": "Hide current password"
+    "hideCurrentPassword": "Hide current password",
+    "whatsapp": {
+      "title": "WhatsApp",
+      "hint": "Link your number to create notes by messaging Stickly on WhatsApp.",
+      "link": "Link WhatsApp",
+      "sendCode": "Send this code on WhatsApp to {number}:",
+      "expiresAt": "Expires at {time}.",
+      "openWhatsApp": "Open WhatsApp",
+      "sent": "I sent it",
+      "newCode": "Get a new code",
+      "linkedTo": "Linked to {number}. Message Stickly to create notes.",
+      "unlink": "Unlink"
+    }
   },
   "errors": {
     "NAME_REQUIRED": "Name is required",
