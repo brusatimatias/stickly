@@ -87,8 +87,12 @@
       "sent": "Ya lo envié",
       "newCode": "Generar otro código",
       "linkedTo": "Vinculado a {number}. Escribile a Stickly para crear notas.",
-      "unlink": "Desvincular"
-    }
+      "unlink": "Desvincular",
+      "unlinked": "Número desvinculado",
+      "confirmUnlinkTitle": "¿Desvincular WhatsApp?",
+      "confirmUnlinkMessage": "Vas a dejar de poder crear notas desde WhatsApp y se borra la conversación con el asistente. Podés volver a vincularlo cuando quieras."
+    },
+    "cancel": "Cancelar"
   },
   "errors": {
     "NAME_REQUIRED": "El nombre es obligatorio",

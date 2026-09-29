@@ -4,10 +4,17 @@ import { useFormatter, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { createWhatsAppLinkCode, unlinkWhatsApp } from "@/app/actions/whatsapp";
+import ConfirmDialog from "@/components/board/ConfirmDialog";
+import {
+  DANGER_BUTTON,
+  HINT_CLASS,
+  LABEL_CLASS,
+  PRIMARY_BUTTON,
+  SECONDARY_BUTTON,
+  StatusMessage,
+  type Status,
+} from "@/components/profile/ui";
 import { formatWhatsAppNumber, whatsAppChatUrl } from "@/lib/whatsappNumber";
-
-const BUTTON_CLASS =
-  "rounded-full border border-zinc-300 px-4 py-1.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900";
 
 /**
  * Links the user's WhatsApp number: they get a code here and send it from
@@ -26,16 +33,17 @@ export default function WhatsAppLink({
   const format = useFormatter();
   const router = useRouter();
   const [pendingCode, setPendingCode] = useState<{ code: string; expiresAt: Date } | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<Status>(null);
+  const [isConfirmingUnlink, setIsConfirmingUnlink] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   function run(action: () => Promise<void>) {
-    setError(null);
+    setStatus(null);
     startTransition(async () => {
       try {
         await action();
       } catch {
-        setError(tErrors("GENERIC"));
+        setStatus({ type: "error", text: tErrors("GENERIC") });
       }
     });
   }
@@ -45,34 +53,41 @@ export default function WhatsAppLink({
   }
 
   function unlink() {
+    setIsConfirmingUnlink(false);
     run(async () => {
       await unlinkWhatsApp();
       setPendingCode(null);
+      setStatus({ type: "success", text: t("unlinked") });
       router.refresh();
     });
   }
 
   return (
     <section className="flex flex-col gap-2 pt-6">
-      <h2 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("title")}</h2>
+      <h2 className={LABEL_CLASS}>{t("title")}</h2>
       {linkedNumber ? (
         <>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          <p className={HINT_CLASS}>
             {t("linkedTo", { number: formatWhatsAppNumber(linkedNumber) })}
           </p>
-          <button type="button" onClick={unlink} disabled={isPending} className={`self-start ${BUTTON_CLASS}`}>
+          <button
+            type="button"
+            onClick={() => setIsConfirmingUnlink(true)}
+            disabled={isPending}
+            className={`self-start ${DANGER_BUTTON}`}
+          >
             {t("unlink")}
           </button>
         </>
       ) : pendingCode ? (
         <>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          <p className={HINT_CLASS}>
             {t("sendCode", { number: formatWhatsAppNumber(botNumber) })}
           </p>
           <p className="font-mono text-2xl tracking-[0.3em] text-zinc-900 dark:text-zinc-50">
             {pendingCode.code}
           </p>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          <p className={HINT_CLASS}>
             {t("expiresAt", { time: format.dateTime(pendingCode.expiresAt, { timeStyle: "short" }) })}
           </p>
           <div className="flex flex-wrap gap-2">
@@ -80,27 +95,41 @@ export default function WhatsAppLink({
               href={whatsAppChatUrl(botNumber, pendingCode.code)}
               target="_blank"
               rel="noopener noreferrer"
-              className={BUTTON_CLASS}
+              className={PRIMARY_BUTTON}
             >
               {t("openWhatsApp")}
             </a>
-            <button type="button" onClick={() => router.refresh()} className={BUTTON_CLASS}>
+            <button type="button" onClick={() => router.refresh()} className={SECONDARY_BUTTON}>
               {t("sent")}
             </button>
-            <button type="button" onClick={generateCode} disabled={isPending} className={BUTTON_CLASS}>
+            <button type="button" onClick={generateCode} disabled={isPending} className={SECONDARY_BUTTON}>
               {t("newCode")}
             </button>
           </div>
         </>
       ) : (
         <>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">{t("hint")}</p>
-          <button type="button" onClick={generateCode} disabled={isPending} className={`self-start ${BUTTON_CLASS}`}>
+          <p className={HINT_CLASS}>{t("hint")}</p>
+          <button
+            type="button"
+            onClick={generateCode}
+            disabled={isPending}
+            className={`self-start ${PRIMARY_BUTTON}`}
+          >
             {t("link")}
           </button>
         </>
       )}
-      {error && <p className="text-xs text-red-500">{error}</p>}
+      <StatusMessage status={status} />
+      {isConfirmingUnlink && (
+        <ConfirmDialog
+          title={t("confirmUnlinkTitle")}
+          message={t("confirmUnlinkMessage")}
+          confirmLabel={t("unlink")}
+          onConfirm={unlink}
+          onCancel={() => setIsConfirmingUnlink(false)}
+        />
+      )}
     </section>
   );
 }

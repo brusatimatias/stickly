@@ -87,8 +87,12 @@
       "sent": "I sent it",
       "newCode": "Get a new code",
       "linkedTo": "Linked to {number}. Message Stickly to create notes.",
-      "unlink": "Unlink"
-    }
+      "unlink": "Unlink",
+      "unlinked": "Number unlinked",
+      "confirmUnlinkTitle": "Unlink WhatsApp?",
+      "confirmUnlinkMessage": "You won't be able to create notes from WhatsApp anymore, and the conversation with the assistant is deleted. You can link it again any time."
+    },
+    "cancel": "Cancel"
   },
   "errors": {
     "NAME_REQUIRED": "Name is required",

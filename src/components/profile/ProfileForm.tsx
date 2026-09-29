@@ -2,17 +2,24 @@
 
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { type ChangeEvent, useEffect, useRef, useState, useTransition } from "react";
+import { type ChangeEvent, type FormEvent, useEffect, useId, useRef, useState, useTransition } from "react";
 import { setPassword, updateAvatar, updateProfileName } from "@/app/actions/profile";
-import { EyeIcon, EyeOffIcon, UserIcon } from "@/components/profile/icons";
+import { CameraIcon, EyeIcon, EyeOffIcon, UserIcon } from "@/components/profile/icons";
+import {
+  HINT_CLASS,
+  INPUT_CLASS,
+  LABEL_CLASS,
+  PRIMARY_BUTTON,
+  SECONDARY_BUTTON,
+  StatusMessage,
+  type Status,
+} from "@/components/profile/ui";
 import WhatsAppLink from "@/components/profile/WhatsAppLink";
 import { resizeImageToDataUrl } from "@/lib/image";
 
 const AVATAR_TARGET_SIZE = 128;
 const MIN_PASSWORD_LENGTH = 8;
 const STATUS_CLEAR_DELAY_MS = 2500;
-
-type Status = { type: "success" | "error"; text: string } | null;
 
 /** Clears a success status message a couple seconds after it's set. */
 function useAutoClearStatus(status: Status, clear: () => void) {
@@ -62,7 +69,9 @@ export default function ProfileForm({
   const [passwordStatus, setPasswordStatus] = useState<Status>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [isEditingPassword, setIsEditingPassword] = useState(false);
   const [isPasswordPending, startPasswordTransition] = useTransition();
+  const ids = { name: useId(), currentPassword: useId(), password: useId(), confirmPassword: useId() };
 
   useAutoClearStatus(nameStatus, () => setNameStatus(null));
   useAutoClearStatus(avatarStatus, () => setAvatarStatus(null));
@@ -78,8 +87,9 @@ export default function ProfileForm({
     password === confirmPassword &&
     (!hasPassword || currentPassword.length > 0);
 
-  function saveName() {
-    if (!canSaveName) return;
+  function saveName(event: FormEvent) {
+    event.preventDefault();
+    if (!canSaveName || isNamePending) return;
     setNameStatus(null);
     startNameTransition(async () => {
       try {
@@ -114,15 +124,23 @@ export default function ProfileForm({
     }
   }
 
-  function savePassword() {
-    if (!canSavePassword) return;
+  function closePasswordForm() {
+    setIsEditingPassword(false);
+    setCurrentPassword("");
+    setPasswordValue("");
+    setConfirmPassword("");
+    setShowPassword(false);
+    setShowCurrentPassword(false);
+  }
+
+  function savePassword(event: FormEvent) {
+    event.preventDefault();
+    if (!canSavePassword || isPasswordPending) return;
     setPasswordStatus(null);
     startPasswordTransition(async () => {
       try {
         await setPassword(password, hasPassword ? currentPassword : undefined);
-        setCurrentPassword("");
-        setPasswordValue("");
-        setConfirmPassword("");
+        closePasswordForm();
         setPasswordStatus({ type: "success", text: t("saved") });
         // A first-time password flips hasPassword, which the server provides.
         router.refresh();
@@ -132,26 +150,42 @@ export default function ProfileForm({
     });
   }
 
+  const eyeButtonClass =
+    "absolute inset-y-0 right-2 flex cursor-pointer items-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300";
+
   return (
     <div className="flex w-full max-w-sm flex-col divide-y divide-zinc-200 rounded-2xl border border-zinc-200 bg-white p-8 shadow-xl dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-950">
       <section className="flex flex-col items-center gap-3 pb-6">
-        {avatarPreview ? (
-          // eslint-disable-next-line @next/next/no-img-element -- may be a data URL, no need for next/image optimization here
-          <img
-            src={avatarPreview}
-            alt={name || tCommon("yourAvatar")}
-            className="h-24 w-24 rounded-full object-cover"
-          />
-        ) : (
-          <div className="flex h-24 w-24 items-center justify-center rounded-full bg-zinc-200 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-500">
-            <UserIcon className="h-12 w-12" />
-          </div>
-        )}
+        {/* A shortcut for the mouse; keyboard and screen readers use the text button below. */}
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={isAvatarPending}
-          className="rounded-full border border-zinc-300 px-4 py-1.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+          tabIndex={-1}
+          aria-hidden
+          className="group relative h-24 w-24 cursor-pointer overflow-hidden rounded-full disabled:cursor-wait"
+        >
+          {avatarPreview ? (
+            // eslint-disable-next-line @next/next/no-img-element -- may be a data URL, no need for next/image optimization here
+            <img
+              src={avatarPreview}
+              alt={name || tCommon("yourAvatar")}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <span className="flex h-full w-full items-center justify-center bg-zinc-200 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-500">
+              <UserIcon className="h-12 w-12" />
+            </span>
+          )}
+          <span className="absolute inset-0 flex items-center justify-center bg-black/45 text-white opacity-0 transition-opacity group-hover:opacity-100">
+            <CameraIcon className="h-7 w-7" />
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isAvatarPending}
+          className={SECONDARY_BUTTON}
         >
           {isAvatarPending ? t("uploading") : t("changeAvatar")}
         </button>
@@ -162,121 +196,134 @@ export default function ProfileForm({
           onChange={handleAvatarChange}
           className="hidden"
         />
-        {avatarStatus && (
-          <p
-            className={`text-xs ${avatarStatus.type === "error" ? "text-red-500" : "text-zinc-500"}`}
-          >
-            {avatarStatus.text}
-          </p>
-        )}
+        <StatusMessage status={avatarStatus} />
       </section>
 
-      <section className="flex flex-col gap-2 py-6">
-        <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+      <form onSubmit={saveName} className="flex flex-col gap-2 py-6">
+        <label htmlFor={ids.name} className={LABEL_CLASS}>
           {t("name")}
         </label>
         <div className="flex gap-2">
           <input
+            id={ids.name}
             value={name}
             onChange={(event) => setName(event.target.value)}
-            className="flex-1 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm outline-none focus:border-amber-500 dark:border-zinc-700 dark:bg-zinc-900"
+            autoComplete="name"
+            className={`flex-1 ${INPUT_CLASS}`}
           />
-          <button
-            type="button"
-            onClick={saveName}
-            disabled={!canSaveName || isNamePending}
-            className="rounded-full border border-zinc-300 px-4 py-1.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
-          >
+          <button type="submit" disabled={!canSaveName || isNamePending} className={PRIMARY_BUTTON}>
             {isNamePending ? t("saving") : t("save")}
           </button>
         </div>
-        {nameStatus && (
-          <p
-            className={`text-xs ${nameStatus.type === "error" ? "text-red-500" : "text-zinc-500"}`}
-          >
-            {nameStatus.text}
-          </p>
-        )}
-      </section>
+        <StatusMessage status={nameStatus} />
+      </form>
 
       <section className={`flex flex-col gap-2 pt-6 ${whatsapp ? "pb-6" : ""}`}>
-        <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-          {hasPassword ? t("changePassword") : t("setPassword")}
-        </label>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          {t("passwordHint", { email })}
-        </p>
-        {hasPassword && (
-          <div className="relative">
+        <h2 className={LABEL_CLASS}>{hasPassword ? t("changePassword") : t("setPassword")}</h2>
+        <p className={HINT_CLASS}>{t("passwordHint", { email })}</p>
+        {isEditingPassword ? (
+          <form onSubmit={savePassword} className="flex flex-col gap-2">
+            {hasPassword && (
+              <div className="relative">
+                <label htmlFor={ids.currentPassword} className="sr-only">
+                  {t("currentPasswordPlaceholder")}
+                </label>
+                <input
+                  id={ids.currentPassword}
+                  type={showCurrentPassword ? "text" : "password"}
+                  placeholder={t("currentPasswordPlaceholder")}
+                  autoComplete="current-password"
+                  autoFocus
+                  value={currentPassword}
+                  onChange={(event) => setCurrentPassword(event.target.value)}
+                  className={`${INPUT_CLASS} pr-9`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrentPassword((value) => !value)}
+                  aria-label={showCurrentPassword ? t("hideCurrentPassword") : t("showCurrentPassword")}
+                  className={eyeButtonClass}
+                >
+                  {showCurrentPassword ? (
+                    <EyeOffIcon className="h-4 w-4" />
+                  ) : (
+                    <EyeIcon className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+            )}
+            <div className="relative">
+              <label htmlFor={ids.password} className="sr-only">
+                {t("newPasswordPlaceholder")}
+              </label>
+              <input
+                id={ids.password}
+                type={showPassword ? "text" : "password"}
+                placeholder={t("newPasswordPlaceholder")}
+                autoComplete="new-password"
+                autoFocus={!hasPassword}
+                value={password}
+                onChange={(event) => setPasswordValue(event.target.value)}
+                aria-invalid={tooShort}
+                className={`${INPUT_CLASS} pr-9`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((value) => !value)}
+                aria-label={showPassword ? t("hidePasswords") : t("showPasswords")}
+                className={eyeButtonClass}
+              >
+                {showPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+              </button>
+            </div>
+            <p className={`text-xs ${tooShort ? "text-red-500 dark:text-red-400" : "text-zinc-500 dark:text-zinc-400"}`}>
+              {t("mustBeAtLeast", { count: MIN_PASSWORD_LENGTH })}
+            </p>
+            <label htmlFor={ids.confirmPassword} className="sr-only">
+              {t("confirmPasswordPlaceholder")}
+            </label>
             <input
-              type={showCurrentPassword ? "text" : "password"}
-              placeholder={t("currentPasswordPlaceholder")}
-              autoComplete="current-password"
-              value={currentPassword}
-              onChange={(event) => setCurrentPassword(event.target.value)}
-              className="w-full rounded-lg border border-zinc-300 px-3 py-1.5 pr-9 text-sm outline-none focus:border-amber-500 dark:border-zinc-700 dark:bg-zinc-900"
+              id={ids.confirmPassword}
+              type={showPassword ? "text" : "password"}
+              placeholder={t("confirmPasswordPlaceholder")}
+              autoComplete="new-password"
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+              aria-invalid={mismatched}
+              className={INPUT_CLASS}
             />
-            <button
-              type="button"
-              onClick={() => setShowCurrentPassword((value) => !value)}
-              aria-label={showCurrentPassword ? t("hideCurrentPassword") : t("showCurrentPassword")}
-              className="absolute inset-y-0 right-2 flex items-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
-            >
-              {showCurrentPassword ? (
-                <EyeOffIcon className="h-4 w-4" />
-              ) : (
-                <EyeIcon className="h-4 w-4" />
-              )}
-            </button>
-          </div>
-        )}
-        <div className="relative">
-          <input
-            type={showPassword ? "text" : "password"}
-            placeholder={t("newPasswordPlaceholder")}
-            autoComplete="new-password"
-            value={password}
-            onChange={(event) => setPasswordValue(event.target.value)}
-            className="w-full rounded-lg border border-zinc-300 px-3 py-1.5 pr-9 text-sm outline-none focus:border-amber-500 dark:border-zinc-700 dark:bg-zinc-900"
-          />
+            {mismatched && <p className="text-xs text-red-500 dark:text-red-400">{t("passwordsDontMatch")}</p>}
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                disabled={!canSavePassword || isPasswordPending}
+                className={PRIMARY_BUTTON}
+              >
+                {isPasswordPending ? t("saving") : t("savePassword")}
+              </button>
+              <button
+                type="button"
+                onClick={closePasswordForm}
+                disabled={isPasswordPending}
+                className={SECONDARY_BUTTON}
+              >
+                {t("cancel")}
+              </button>
+            </div>
+          </form>
+        ) : (
           <button
             type="button"
-            onClick={() => setShowPassword((value) => !value)}
-            aria-label={showPassword ? t("hidePasswords") : t("showPasswords")}
-            className="absolute inset-y-0 right-2 flex items-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+            onClick={() => {
+              setPasswordStatus(null);
+              setIsEditingPassword(true);
+            }}
+            className={`self-start ${SECONDARY_BUTTON}`}
           >
-            {showPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+            {hasPassword ? t("changePassword") : t("setPassword")}
           </button>
-        </div>
-        {tooShort && (
-          <p className="text-xs text-red-500">
-            {t("mustBeAtLeast", { count: MIN_PASSWORD_LENGTH })}
-          </p>
         )}
-        <input
-          type={showPassword ? "text" : "password"}
-          placeholder={t("confirmPasswordPlaceholder")}
-          autoComplete="new-password"
-          value={confirmPassword}
-          onChange={(event) => setConfirmPassword(event.target.value)}
-          className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm outline-none focus:border-amber-500 dark:border-zinc-700 dark:bg-zinc-900"
-        />
-        {mismatched && <p className="text-xs text-red-500">{t("passwordsDontMatch")}</p>}
-        <button
-          type="button"
-          onClick={savePassword}
-          disabled={!canSavePassword || isPasswordPending}
-          className="self-start rounded-full border border-zinc-300 px-4 py-1.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
-        >
-          {isPasswordPending ? t("saving") : t("savePassword")}
-        </button>
-        {passwordStatus && (
-          <p
-            className={`text-xs ${passwordStatus.type === "error" ? "text-red-500" : "text-zinc-500"}`}
-          >
-            {passwordStatus.text}
-          </p>
-        )}
+        <StatusMessage status={passwordStatus} />
       </section>
 
       {whatsapp && <WhatsAppLink {...whatsapp} />}

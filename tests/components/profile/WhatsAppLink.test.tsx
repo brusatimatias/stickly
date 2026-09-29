@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import messages from "../../../messages/es.json";
@@ -56,12 +56,27 @@ describe("WhatsAppLink", () => {
     renderLink("5491122334455");
 
     expect(screen.getByText(/\+5491122334455/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: t.unlink }));
+    expect(mockUnlink).not.toHaveBeenCalled();
+
+    const dialog = screen.getByRole("alertdialog");
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: t.unlink }));
+      fireEvent.click(within(dialog).getByRole("button", { name: t.unlink }));
     });
 
     expect(mockUnlink).toHaveBeenCalled();
     expect(mockRefresh).toHaveBeenCalled();
+    expect(screen.getByText(t.unlinked)).toBeTruthy();
+  });
+
+  test("keeps the number linked when the unlink is cancelled", () => {
+    renderLink("5491122334455");
+
+    fireEvent.click(screen.getByRole("button", { name: t.unlink }));
+    fireEvent.click(screen.getByRole("button", { name: messages.board.cancel }));
+
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    expect(mockUnlink).not.toHaveBeenCalled();
   });
 
   test("shows a generic error when the code can't be generated", async () => {
