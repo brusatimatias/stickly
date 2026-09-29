@@ -11,9 +11,9 @@ datasource db {
 }
 
 model User {
-  id                         String         @id @default(cuid())
-  googleId                   String         @unique
-  email                      String         @unique
+  id                         String            @id @default(cuid())
+  googleId                   String            @unique
+  email                      String            @unique
   name                       String?
   imageUrl                   String?
   avatarUrl                  String?
@@ -22,9 +22,14 @@ model User {
   googleRefreshToken         String?
   googleAccessToken          String?
   googleAccessTokenExpiresAt DateTime?
+  /// Linked WhatsApp number, as Meta sends it in `from`: E.164 digits without
+  /// the leading "+".
+  whatsappNumber             String?           @unique
   notes                      Note[]
   webChatUsages              WebChatUsage[]
-  createdAt                  DateTime       @default(now())
+  whatsappLinkCode           WhatsAppLinkCode?
+  whatsappMessages           WhatsAppMessage[]
+  createdAt                  DateTime          @default(now())
 }
 
 /// How a note's `startsAt` is read: TIMED notes are an instant, shown in the
@@ -67,4 +72,47 @@ model WebChatUsage {
 
   @@index([userId, createdAt])
   @@index([createdAt])
+}
+
+/// The pending code a user sends from WhatsApp to link their number (one per
+/// user; generating a new one replaces it). Only a keyed hash of the code is
+/// stored, so it can be looked up by what the webhook receives.
+model WhatsAppLinkCode {
+  userId    String   @id
+  user      User     @relation(fields: [userId], references: [id])
+  codeHash  String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+/// Every message received by the WhatsApp webhook, linked number or not.
+/// Meta may deliver a message more than once, so the webhook records its id
+/// before handling it and skips ids it already has. Also rate-limits link
+/// code attempts from unlinked numbers. Pruned after a day.
+model WhatsAppInboundMessage {
+  wamid     String   @id
+  from      String
+  createdAt DateTime @default(now())
+
+  @@index([from, createdAt])
+  @@index([createdAt])
+}
+
+enum ChatRole {
+  USER
+  ASSISTANT
+}
+
+/// Short WhatsApp conversation history of a linked user, so the assistant can
+/// ask for a missing date and use the answer. Turns older than the idle
+/// window are deleted before each new message.
+model WhatsAppMessage {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  role      ChatRole
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
 }
