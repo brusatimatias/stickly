@@ -88,13 +88,15 @@ model WhatsAppLinkCode {
 /// Every message received by the WhatsApp webhook, linked number or not.
 /// Meta may deliver a message more than once, so the webhook records its id
 /// before handling it and skips ids it already has. Also rate-limits link
-/// code attempts from unlinked numbers. Pruned after a day.
+/// code attempts per sender. Pruned after a day.
 model WhatsAppInboundMessage {
-  wamid     String   @id
-  from      String
-  createdAt DateTime @default(now())
+  wamid         String   @id
+  from          String
+  /// The message was a link code, which counts toward the sender's attempts.
+  isLinkAttempt Boolean  @default(false)
+  createdAt     DateTime @default(now())
 
-  @@index([from, createdAt])
+  @@index([from, isLinkAttempt, createdAt])
   @@index([createdAt])
 }
 
