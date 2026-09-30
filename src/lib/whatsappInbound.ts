@@ -68,10 +68,15 @@ const CHAT_ERROR_REPLIES: Record<string, string> = {
  * Recorded before handling on purpose: if handling then fails, the message is
  * lost rather than retried (Meta already got its 200 anyway), but a message is
  * never handled twice, which could create a note twice.
+ * Also prunes, for everyone, ids older than a day and conversation turns past
+ * the idle window, so a user who stops writing doesn't keep theirs forever.
  */
 async function recordInbound(message: InboundMessage, isLinkAttempt: boolean): Promise<boolean> {
   await prisma.whatsAppInboundMessage.deleteMany({
     where: { createdAt: { lt: new Date(Date.now() - DAY_MS) } },
+  });
+  await prisma.whatsAppMessage.deleteMany({
+    where: { createdAt: { lt: new Date(Date.now() - HISTORY_IDLE_MS) } },
   });
   try {
     await prisma.whatsAppInboundMessage.create({
@@ -132,12 +137,10 @@ async function linkNumber(from: string, code: string): Promise<string> {
 
 /**
  * The recent conversation plus the new message. Turns older than the idle
- * window are deleted first, so a conversation left alone starts over.
+ * window were already pruned by `recordInbound`, so a conversation left alone
+ * starts over.
  */
 async function loadConversation(userId: string, text: string): Promise<ChatMessage[]> {
-  await prisma.whatsAppMessage.deleteMany({
-    where: { userId, createdAt: { lt: new Date(Date.now() - HISTORY_IDLE_MS) } },
-  });
   const history = await prisma.whatsAppMessage.findMany({
     where: { userId },
     orderBy: { createdAt: "desc" },

@@ -19,6 +19,7 @@ vi.mock("@/lib/chatAssistant", () => ({
 }));
 
 import {
+  HISTORY_IDLE_MS,
   MAX_LINK_ATTEMPTS_PER_HOUR,
   WHATSAPP_REPLIES,
   handleInboundMessage,
@@ -73,6 +74,35 @@ describe("handleInboundMessage", () => {
       [{ data: { wamid: "wamid.1", from: FROM, isLinkAttempt: false } }],
       [{ data: { wamid: "wamid.2", from: FROM, isLinkAttempt: true } }],
     ]);
+  });
+
+  describe("prunes everyone's expired conversation turns", () => {
+    const prune = { where: { createdAt: { lt: expect.any(Date) } } };
+
+    test.each([
+      ["a linked user's message", "hola", { id: "user-1", timeZone: null }],
+      ["an unlinked number's message", "hola", null],
+      ["a link code", "123456", null],
+    ])("on %s", async (_, text, user) => {
+      mockPrisma.user.findUnique.mockResolvedValue(user);
+
+      await handleInboundMessage(message(text));
+
+      expect(mockPrisma.whatsAppMessage.deleteMany).toHaveBeenCalledWith(prune);
+    });
+
+    test("with the idle window as the cutoff", async () => {
+      vi.useFakeTimers({ now: new Date("2026-09-30T12:00:00Z") });
+      try {
+        await handleInboundMessage(message("hola"));
+      } finally {
+        vi.useRealTimers();
+      }
+
+      expect(mockPrisma.whatsAppMessage.deleteMany).toHaveBeenCalledWith({
+        where: { createdAt: { lt: new Date(Date.parse("2026-09-30T12:00:00Z") - HISTORY_IDLE_MS) } },
+      });
+    });
   });
 
   test("answers an unlinked number without calling anything else", async () => {
@@ -165,9 +195,6 @@ describe("handleInboundMessage", () => {
 
       await handleInboundMessage(message("el viernes"));
 
-      expect(mockPrisma.whatsAppMessage.deleteMany).toHaveBeenCalledWith({
-        where: { userId: "user-1", createdAt: { lt: expect.any(Date) } },
-      });
       expect(mockConsumeQuota).toHaveBeenCalledWith("user-1");
       expect(mockRunChatTurn).toHaveBeenCalledWith({
         userId: "user-1",
