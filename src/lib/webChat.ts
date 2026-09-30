@@ -9,9 +9,9 @@ export const DEFAULT_CHAT_MODEL = "gemini-3.5-flash-lite";
 export const MAX_MESSAGE_LENGTH = 500;
 // Assistant turns come back from the client too, so they're capped as well,
 // but truncated rather than rejected: the user didn't write them.
-const MAX_ASSISTANT_MESSAGE_LENGTH = 1000;
+export const MAX_ASSISTANT_MESSAGE_LENGTH = 1000;
 // Only the most recent turns are sent to the model, to cap tokens per request.
-const MAX_HISTORY_MESSAGES = 12;
+export const MAX_HISTORY_MESSAGES = 12;
 
 /**
  * Sized for Gemini's free tier, whose quota is per API key (shared by every
@@ -113,9 +113,17 @@ export function getChatRateLimitError(counts: {
 
 const LANGUAGE_NAMES: Record<Locale, string> = { en: "English", es: "Spanish" };
 
+function replyLanguage(locale: Locale | null): string {
+  if (!locale) {
+    return "Reply in the language the user writes in, and write weekday names in that language.";
+  }
+  return `Reply in ${LANGUAGE_NAMES[locale]} unless the user writes in another language, and translate weekday names to that language.`;
+}
+
 export function buildChatSystemPrompt(context: {
   today: UserToday;
-  locale: Locale;
+  /** Null when the channel has no locale (WhatsApp): reply in the user's language. */
+  locale: Locale | null;
 }): string {
   const { today, locale } = context;
   return `You are the assistant of Stickly, a weekly board of sticky notes and reminders.
@@ -146,5 +154,5 @@ Errors and scope:
 - If a tool returns an error, explain it briefly or ask for what is missing. NOTE_NOT_SAVED and NOTES_UNAVAILABLE mean a temporary problem: say so and suggest trying again.
 - If the user asks for anything other than creating notes or asking about them, say briefly that you can only help with their notes.
 
-Reply in ${LANGUAGE_NAMES[locale]} unless the user writes in another language, and translate weekday names to that language. Use plain text, no markdown.`;
+${replyLanguage(locale)} Use plain text, no markdown.`;
 }

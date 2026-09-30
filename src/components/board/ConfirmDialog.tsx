@@ -8,11 +8,14 @@ import { WarningIcon } from "@/components/board/icons";
 export default function ConfirmDialog({
   title,
   message,
+  confirmLabel,
   onConfirm,
   onCancel,
 }: {
   title: string;
   message: string;
+  /** Defaults to "Delete note", the board's use. */
+  confirmLabel?: string;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
@@ -68,7 +71,7 @@ export default function ConfirmDialog({
             onClick={onConfirm}
             className="cursor-pointer rounded-full bg-red-600 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400"
           >
-            {t("deleteNote")}
+            {confirmLabel ?? t("deleteNote")}
           </button>
         </div>
       </div>

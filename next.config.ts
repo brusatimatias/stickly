@@ -5,6 +5,7 @@ import { STATIC_SECURITY_HEADERS } from "./src/lib/securityHeaders";
 const withNextIntl = createNextIntlPlugin();
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ["*.ngrok-free.app"],
   images: {
     remotePatterns: [{ hostname: "lh3.googleusercontent.com" }],
   },

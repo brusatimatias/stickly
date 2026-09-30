@@ -76,7 +76,23 @@
     "saved": "Guardado",
     "currentPasswordPlaceholder": "Contraseña actual",
     "showCurrentPassword": "Mostrar contraseña actual",
-    "hideCurrentPassword": "Ocultar contraseña actual"
+    "hideCurrentPassword": "Ocultar contraseña actual",
+    "whatsapp": {
+      "title": "WhatsApp",
+      "hint": "Vinculá tu número para crear notas escribiéndole a Stickly por WhatsApp.",
+      "link": "Vincular WhatsApp",
+      "sendCode": "Enviá este código por WhatsApp a {number}:",
+      "expiresAt": "Vence a las {time}.",
+      "openWhatsApp": "Abrir WhatsApp",
+      "sent": "Ya lo envié",
+      "newCode": "Generar otro código",
+      "linkedTo": "Vinculado a {number}. Escribile a Stickly para crear notas.",
+      "unlink": "Desvincular",
+      "unlinked": "Número desvinculado",
+      "confirmUnlinkTitle": "¿Desvincular WhatsApp?",
+      "confirmUnlinkMessage": "Vas a dejar de poder crear notas desde WhatsApp y se borra la conversación con el asistente. Podés volver a vincularlo cuando quieras."
+    },
+    "cancel": "Cancelar"
   },
   "errors": {
     "NAME_REQUIRED": "El nombre es obligatorio",
