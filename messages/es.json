@@ -77,6 +77,8 @@
     "currentPasswordPlaceholder": "Contraseña actual",
     "showCurrentPassword": "Mostrar contraseña actual",
     "hideCurrentPassword": "Ocultar contraseña actual",
+    "forgotPasswordConfirmWithGoogle": "¿La olvidaste? Confirmá con Google",
+    "recentGoogleSignInHint": "Acabás de iniciar sesión con Google, así que no hace falta tu contraseña actual.",
     "whatsapp": {
       "title": "WhatsApp",
       "hint": "Vinculá tu número para crear notas escribiéndole a Stickly por WhatsApp.",
