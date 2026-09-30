@@ -140,6 +140,7 @@
     "send": "Send",
     "emptyHint": "I can add reminders to your board and tell you what's still pending.",
     "thinking": "Thinking…",
+    "charCount": "{count} / {max}",
     "noteCreated": "Done, the note is on your board.",
     "noReply": "I couldn't answer that. Try rephrasing it.",
     "viewWeek": "View {day} on the board",

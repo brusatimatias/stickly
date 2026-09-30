@@ -140,6 +140,7 @@
     "send": "Enviar",
     "emptyHint": "Puedo anotar recordatorios en tu tablero y contarte qué tenés pendiente.",
     "thinking": "Pensando…",
+    "charCount": "{count} / {max}",
     "noteCreated": "Listo, la nota está en tu tablero.",
     "noReply": "No pude responder eso. Probá reformularlo.",
     "viewWeek": "Ver {day} en el tablero",

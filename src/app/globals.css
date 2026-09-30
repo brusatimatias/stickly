@@ -96,9 +96,73 @@ body {
   animation: overlay-in 0.15s ease-out;
 }
 
+@keyframes dialog-out {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95) translateY(4px);
+  }
+}
+
+@keyframes overlay-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.animate-dialog-out {
+  animation: dialog-out 0.12s ease-in forwards;
+}
+
+.animate-overlay-out {
+  animation: overlay-out 0.12s ease-in forwards;
+}
+
+@keyframes message-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-message-in {
+  animation: message-in 0.2s ease-out;
+}
+
+@keyframes typing-dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
+.animate-typing-dot {
+  animation: typing-dot 1.2s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-dialog-in,
-  .animate-overlay-in {
+  .animate-overlay-in,
+  .animate-dialog-out,
+  .animate-overlay-out,
+  .animate-message-in,
+  .animate-typing-dot {
     animation: none;
   }
 }
