@@ -151,5 +151,10 @@
     "exampleCreate": "Recordame mañana a las 10 llamar al plomero",
     "exampleWeek": "¿Qué tengo sin hacer esta semana?",
     "exampleToday": "¿Qué tengo para hoy?"
+  },
+  "notFound": {
+    "title": "Esta página no existe",
+    "message": "Quizás se cayó del tablero, o el enlace está mal.",
+    "backToBoard": "Volver al tablero"
   }
 }

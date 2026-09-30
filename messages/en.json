@@ -151,5 +151,10 @@
     "exampleCreate": "Remind me tomorrow at 10 to call the plumber",
     "exampleWeek": "What's left to do this week?",
     "exampleToday": "What do I have today?"
+  },
+  "notFound": {
+    "title": "This page doesn't exist",
+    "message": "Maybe it fell off the board, or the link is wrong.",
+    "backToBoard": "Back to the board"
   }
 }
