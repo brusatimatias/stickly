@@ -10,6 +10,7 @@ import ConfirmDialog from "@/components/board/ConfirmDialog";
 import DraftForm from "@/components/board/DraftForm";
 import FoldedCorner from "@/components/board/FoldedCorner";
 import type { NoteDTO } from "@/components/board/types";
+import { DRAFT_COLOR } from "@/lib/noteColor";
 
 export default function DraftCard({ note }: { note: NoteDTO }) {
   const t = useTranslations("board");
@@ -43,7 +44,7 @@ export default function DraftCard({ note }: { note: NoteDTO }) {
       ref={setNodeRef}
       style={style}
       onClick={() => setIsEditing(true)}
-      className="group relative flex h-44 w-44 -rotate-1 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border border-orange-300 bg-orange-200 p-2 text-sm text-orange-950 shadow-md transition-[top] hover:z-10 hover:-top-1 hover:shadow-lg sm:h-48 sm:w-48"
+      className={`group relative flex h-44 w-44 -rotate-1 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border p-2 text-sm shadow-md transition-[top] hover:z-10 hover:-top-1 hover:shadow-lg sm:h-48 sm:w-48 ${DRAFT_COLOR}`}
     >
       <FoldedCorner />
       <button
