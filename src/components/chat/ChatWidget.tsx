@@ -11,6 +11,7 @@ import { ChatIcon, CloseIcon, SendIcon } from "@/components/board/icons";
 import { MAX_MESSAGE_LENGTH, type ChatMessage } from "@/lib/webChat";
 import { formatWeekParam } from "@/lib/week";
 import { FOCUS_RING } from "@/components/focusRing";
+import { animatesExit } from "@/components/motion";
 
 // `day` is null for drafts, which are always in view in the draft panel.
 type DisplayMessage = ChatMessage & { notes?: { id: string; day: string | null }[] };
@@ -21,15 +22,6 @@ const EXAMPLE_KEYS = ["exampleCreate", "exampleWeek", "exampleToday"] as const;
 const COUNTER_THRESHOLD = 0.8;
 
 const TYPING_DOT_DELAYS_MS = [0, 150, 300];
-
-// Without animations (reduced motion, or no matchMedia at all, as in jsdom)
-// `animationend` never fires, so the panel has to unmount right away.
-function animatesExit() {
-  return (
-    typeof window.matchMedia === "function" &&
-    !window.matchMedia("(prefers-reduced-motion: reduce)").matches
-  );
-}
 
 /**
  * Floating assistant that creates notes from natural language. The

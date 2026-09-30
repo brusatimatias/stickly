@@ -3,29 +3,31 @@
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
 import NoteCard from "@/components/board/NoteCard";
 import NoteForm from "@/components/board/NoteForm";
 import type { BoardDay, NoteDTO } from "@/components/board/types";
 import { ExpandIcon, PlusIcon } from "@/components/board/icons";
+import { useFormTransition } from "@/components/board/useFormTransition";
 import { FOCUS_RING } from "@/components/focusRing";
 
 export default function DayColumn({
   day,
   notes,
+  newNoteIds,
   todayKey,
   isFocused = false,
   onToggleFocus,
 }: {
   day: BoardDay;
   notes: NoteDTO[];
+  newNoteIds: ReadonlySet<string>;
   todayKey: string;
   isFocused?: boolean;
   onToggleFocus?: () => void;
 }) {
   const t = useTranslations("board");
   const { setNodeRef, isOver } = useDroppable({ id: day.key });
-  const [isAdding, setIsAdding] = useState(false);
+  const form = useFormTransition();
   const isCurrentDay = day.key === todayKey;
 
   return (
@@ -70,7 +72,7 @@ export default function DayColumn({
           )}
           <button
             type="button"
-            onClick={() => setIsAdding(true)}
+            onClick={form.open}
             aria-label={t("addNote")}
             className={`inline-flex items-center justify-center rounded-full p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 pointer-coarse:size-10 dark:text-zinc-600 dark:hover:bg-zinc-900 dark:hover:text-zinc-300 ${FOCUS_RING}`}
           >
@@ -81,13 +83,17 @@ export default function DayColumn({
 
       <SortableContext id={day.key} items={notes.map((note) => note.id)} strategy={rectSortingStrategy}>
         <div className="grid flex-1 auto-rows-min items-start justify-center gap-2 pt-3 [grid-template-columns:repeat(auto-fill,minmax(11rem,1fr))]">
-          {notes.length === 0 && !isAdding && (
+          {notes.length === 0 && !form.isMounted && (
             <p className="text-xs text-zinc-400 dark:text-zinc-600">{t("noNotesYet")}</p>
           )}
           {notes.map((note) => (
-            <NoteCard key={note.id} day={day.key} note={note} />
+            <NoteCard key={note.id} day={day.key} note={note} isNew={newNoteIds.has(note.id)} />
           ))}
-          {isAdding && <NoteForm day={day.key} onDone={() => setIsAdding(false)} />}
+          {form.isMounted && (
+            <div {...form.transitionProps}>
+              <NoteForm day={day.key} onDone={form.close} />
+            </div>
+          )}
         </div>
       </SortableContext>
     </div>

@@ -23,7 +23,16 @@ import {
   SquareIcon,
 } from "@/components/board/icons";
 
-export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) {
+export default function NoteCard({
+  day,
+  note,
+  isNew = false,
+}: {
+  day: string;
+  note: NoteDTO;
+  /** Just appeared on the board, so it animates in. */
+  isNew?: boolean;
+}) {
   const t = useTranslations("board");
   const tErrors = useTranslations("errors");
   const router = useRouter();
@@ -107,7 +116,7 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
       ref={setNodeRef}
       style={style}
       onClick={() => setIsEditing(true)}
-      className={`group relative flex h-44 w-44 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border p-2 text-sm shadow-[2px_4px_6px_rgba(0,0,0,0.3)] transition-[top] hover:z-10 hover:-top-1 hover:shadow-[3px_6px_10px_rgba(0,0,0,0.35)] dark:shadow-[2px_4px_6px_rgba(0,0,0,0.6)] dark:hover:shadow-[3px_6px_10px_rgba(0,0,0,0.7)] sm:h-48 sm:w-48 ${isDragging ? "z-20" : ""} ${noteStyle.rotation} ${noteStyle.bg} ${noteStyle.border} ${noteStyle.text}`}
+      className={`${isNew ? "animate-note-in" : ""} group relative flex h-44 w-44 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border p-2 text-sm shadow-[2px_4px_6px_rgba(0,0,0,0.3)] transition-[top] hover:z-10 hover:-top-1 hover:shadow-[3px_6px_10px_rgba(0,0,0,0.35)] dark:shadow-[2px_4px_6px_rgba(0,0,0,0.6)] dark:hover:shadow-[3px_6px_10px_rgba(0,0,0,0.7)] sm:h-48 sm:w-48 ${isDragging ? "z-20" : ""} ${noteStyle.rotation} ${noteStyle.bg} ${noteStyle.border} ${noteStyle.text}`}
     >
       {displayNote.isDone && (
         <div className="pointer-events-none absolute inset-0 bg-zinc-500/40 mix-blend-multiply dark:bg-zinc-400/30" />

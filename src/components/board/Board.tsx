@@ -83,7 +83,18 @@ export default function Board({
   const [syncedNotes, setSyncedNotes] = useState(notes);
   const [syncedDraftNotes, setSyncedDraftNotes] = useState(draftNotes);
   const [syncedTimeZone, setSyncedTimeZone] = useState(timeZone);
+  // Notes that weren't in the previous server data (just created, here or
+  // from the chat) animate in. A note moved to another day or a scheduled
+  // draft keeps its id, so it doesn't. The set only changes when something
+  // new arrives: any other refresh (e.g. marking a note done) right after a
+  // save would otherwise drop the class and cut the animation short.
+  const [newNoteIds, setNewNoteIds] = useState<ReadonlySet<string>>(() => new Set());
   if (notes !== syncedNotes || draftNotes !== syncedDraftNotes || timeZone !== syncedTimeZone) {
+    const previousIds = new Set([...syncedNotes, ...syncedDraftNotes].map((note) => note.id));
+    const addedIds = [...notes, ...draftNotes]
+      .map((note) => note.id)
+      .filter((id) => !previousIds.has(id));
+    if (addedIds.length > 0) setNewNoteIds(new Set(addedIds));
     setSyncedNotes(notes);
     setSyncedDraftNotes(draftNotes);
     setSyncedTimeZone(timeZone);
@@ -149,6 +160,8 @@ export default function Board({
   );
 
   function handleDragStart(event: DragStartEvent) {
+    // A card dragged into another day remounts there; don't replay its entrance.
+    setNewNoteIds(new Set());
     const container = findContainer(event.active.id as string, notesByDay) ?? null;
     originContainerRef.current = container;
     setActiveNote(
@@ -294,9 +307,9 @@ export default function Board({
         >
           {/* Bottom padding so the chat launcher never covers the last notes. */}
           <div className="flex flex-col gap-3 p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:flex-row">
-            <DraftPanel notes={notesByDay[DRAFT_CONTAINER]} />
+            <DraftPanel notes={notesByDay[DRAFT_CONTAINER]} newNoteIds={newNoteIds} />
             {focusedDayInfo ? (
-              <div className="min-w-0 flex-1">
+              <div className="animate-week-in min-w-0 flex-1">
                 <DayFocusNav
                   days={days}
                   focusedDay={focusedDayInfo.key}
@@ -307,12 +320,13 @@ export default function Board({
                 <DayColumn
                   day={focusedDayInfo}
                   notes={notesByDay[focusedDayInfo.key] ?? []}
+                  newNoteIds={newNoteIds}
                   todayKey={todayKey}
                   isFocused
                 />
               </div>
             ) : (
-              <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-7">
+              <div className="animate-week-in grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-7">
                 {days.map((day, index) => (
                   <div
                     key={day.key}
@@ -325,6 +339,7 @@ export default function Board({
                     <DayColumn
                       day={day}
                       notes={notesByDay[day.key] ?? []}
+                      newNoteIds={newNoteIds}
                       todayKey={todayKey}
                       onToggleFocus={() => setFocusedDay(day.key)}
                     />

@@ -156,7 +156,72 @@ body {
   animation: typing-dot 1.2s ease-in-out infinite;
 }
 
+/* Cards and forms animate `translate`/`scale`, never `transform`: dnd-kit
+   sets an inline `transform` on sortable cards, which the animation would
+   override, and the cards' tilt is the separate `rotate` property. */
+@keyframes note-in {
+  from {
+    opacity: 0;
+    translate: 0 8px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+.animate-note-in {
+  animation: note-in 0.25s ease-out;
+}
+
+@keyframes form-in {
+  from {
+    opacity: 0;
+    scale: 0.95;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes form-out {
+  from {
+    opacity: 1;
+    scale: 1;
+  }
+  to {
+    opacity: 0;
+    scale: 0.95;
+  }
+}
+
+.animate-form-in {
+  animation: form-in 0.15s ease-out;
+}
+
+.animate-form-out {
+  animation: form-out 0.12s ease-in forwards;
+}
+
+@keyframes week-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-week-in {
+  animation: week-in 0.2s ease-out;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .animate-note-in,
+  .animate-form-in,
+  .animate-form-out,
+  .animate-week-in,
   .animate-dialog-in,
   .animate-overlay-in,
   .animate-dialog-out,

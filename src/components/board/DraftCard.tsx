@@ -13,7 +13,14 @@ import type { NoteDTO } from "@/components/board/types";
 import { DRAFT_COLOR } from "@/lib/noteColor";
 import { FOCUS_RING } from "@/components/focusRing";
 
-export default function DraftCard({ note }: { note: NoteDTO }) {
+export default function DraftCard({
+  note,
+  isNew = false,
+}: {
+  note: NoteDTO;
+  /** Just appeared in the panel, so it animates in. */
+  isNew?: boolean;
+}) {
   const t = useTranslations("board");
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
@@ -45,7 +52,7 @@ export default function DraftCard({ note }: { note: NoteDTO }) {
       ref={setNodeRef}
       style={style}
       onClick={() => setIsEditing(true)}
-      className={`group relative flex h-44 w-44 -rotate-1 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border p-2 text-sm shadow-md transition-[top] hover:z-10 hover:-top-1 hover:shadow-lg sm:h-48 sm:w-48 ${DRAFT_COLOR}`}
+      className={`${isNew ? "animate-note-in" : ""} group relative flex h-44 w-44 -rotate-1 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border p-2 text-sm shadow-md transition-[top] hover:z-10 hover:-top-1 hover:shadow-lg sm:h-48 sm:w-48 ${DRAFT_COLOR}`}
     >
       <FoldedCorner />
       <button
