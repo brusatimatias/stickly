@@ -9,6 +9,7 @@ import DraftForm from "@/components/board/DraftForm";
 import type { NoteDTO } from "@/components/board/types";
 import { PlusIcon } from "@/components/board/icons";
 import { MAX_DRAFT_NOTES } from "@/lib/noteInput";
+import { FOCUS_RING } from "@/components/focusRing";
 
 export default function DraftPanel({ notes }: { notes: NoteDTO[] }) {
   const t = useTranslations("board");
@@ -21,7 +22,7 @@ export default function DraftPanel({ notes }: { notes: NoteDTO[] }) {
       ref={setNodeRef}
       className="flex w-full flex-col gap-3 rounded-lg border border-dashed border-zinc-200 p-3 dark:border-zinc-800 lg:w-44"
     >
-      <header className="grid grid-cols-[1.25rem_1fr_1.25rem] items-center">
+      <header className="grid grid-cols-[1.25rem_1fr_1.25rem] pointer-coarse:grid-cols-[2.5rem_1fr_2.5rem] items-center">
         <span aria-hidden />
         <p className="text-center text-sm font-semibold text-zinc-700 dark:text-zinc-300">
           {t("draft")}
@@ -31,7 +32,7 @@ export default function DraftPanel({ notes }: { notes: NoteDTO[] }) {
             type="button"
             onClick={() => setIsCreating(true)}
             aria-label={t("newDraftNote")}
-            className="justify-self-end rounded-full p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:text-zinc-600 dark:hover:bg-zinc-900 dark:hover:text-zinc-300"
+            className={`inline-flex items-center justify-center justify-self-end rounded-full p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 pointer-coarse:size-10 dark:text-zinc-600 dark:hover:bg-zinc-900 dark:hover:text-zinc-300 ${FOCUS_RING}`}
           >
             <PlusIcon className="h-3.5 w-3.5" />
           </button>

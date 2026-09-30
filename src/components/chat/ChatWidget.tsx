@@ -10,6 +10,7 @@ import { sendChatMessage } from "@/app/actions/chat";
 import { ChatIcon, CloseIcon, SendIcon } from "@/components/board/icons";
 import { MAX_MESSAGE_LENGTH, type ChatMessage } from "@/lib/webChat";
 import { formatWeekParam } from "@/lib/week";
+import { FOCUS_RING } from "@/components/focusRing";
 
 // `day` is null for drafts, which are always in view in the draft panel.
 type DisplayMessage = ChatMessage & { notes?: { id: string; day: string | null }[] };
@@ -154,7 +155,7 @@ export default function ChatWidget({ weekDays }: { weekDays: string[] }) {
             onAnimationEnd={(event) => {
               if (!isOpen && event.target === event.currentTarget) setIsClosing(false);
             }}
-            className={`${isOpen ? "animate-dialog-in" : "animate-dialog-out"} fixed right-4 bottom-20 z-40 flex h-[28rem] max-h-[calc(100dvh-7rem)] w-[calc(100vw-2rem)] max-w-sm flex-col overflow-hidden rounded-2xl border border-zinc-300 bg-white shadow-2xl dark:border-zinc-700 dark:bg-zinc-900`}
+            className={`${isOpen ? "animate-dialog-in" : "animate-dialog-out"} fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-40 flex h-[28rem] max-h-[calc(100dvh-7rem-env(safe-area-inset-bottom))] w-[calc(100vw-2rem)] max-w-sm flex-col overflow-hidden rounded-2xl border border-zinc-300 bg-white shadow-2xl dark:border-zinc-700 dark:bg-zinc-900`}
           >
             <header className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-700">
               <h2 className="flex items-center gap-2 font-semibold text-zinc-900 dark:text-zinc-100">
@@ -165,7 +166,7 @@ export default function ChatWidget({ weekDays }: { weekDays: string[] }) {
                 type="button"
                 onClick={close}
                 aria-label={t("close")}
-                className="cursor-pointer rounded-full p-1 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                className={`cursor-pointer rounded-full p-1 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 pointer-coarse:p-2.5 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100 ${FOCUS_RING}`}
               >
                 <CloseIcon className="h-4 w-4" />
               </button>
@@ -190,7 +191,7 @@ export default function ChatWidget({ weekDays }: { weekDays: string[] }) {
                         setDraft(t(key));
                         inputRef.current?.focus();
                       }}
-                      className="cursor-pointer rounded-lg border border-dashed border-zinc-300 px-3 py-2 text-left text-zinc-700 transition-colors hover:border-zinc-400 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-500 dark:hover:bg-zinc-800"
+                      className={`cursor-pointer rounded-lg border border-dashed border-zinc-300 px-3 py-2 text-left text-zinc-700 transition-colors hover:border-zinc-400 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-500 dark:hover:bg-zinc-800 ${FOCUS_RING}`}
                     >
                       {t(key)}
                     </button>
@@ -284,7 +285,7 @@ export default function ChatWidget({ weekDays }: { weekDays: string[] }) {
                 type="submit"
                 disabled={isPending || !draft.trim()}
                 aria-label={t("send")}
-                className="cursor-pointer rounded-full bg-zinc-900 p-2 text-white shadow-sm hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+                className={`cursor-pointer rounded-full bg-zinc-900 p-2 text-white shadow-sm hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-40 pointer-coarse:p-3 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white ${FOCUS_RING}`}
               >
                 <SendIcon className="h-4 w-4" />
               </button>
@@ -299,7 +300,7 @@ export default function ChatWidget({ weekDays }: { weekDays: string[] }) {
         onClick={isOpen ? close : open}
         aria-label={isOpen ? t("close") : t("open")}
         aria-expanded={isOpen}
-        className="fixed right-4 bottom-4 z-40 cursor-pointer rounded-full bg-zinc-900 p-3.5 text-white shadow-lg transition-transform hover:-translate-y-0.5 hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+        className={`fixed right-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-40 cursor-pointer rounded-full bg-zinc-900 p-3.5 text-white shadow-lg transition-transform hover:-translate-y-0.5 hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white ${FOCUS_RING}`}
       >
         {isOpen ? <CloseIcon className="h-5 w-5" /> : <ChatIcon className="h-5 w-5" />}
       </button>

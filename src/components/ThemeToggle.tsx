@@ -6,6 +6,7 @@ import { useTransition } from "react";
 import { setTheme } from "@/app/actions/theme";
 import { MoonIcon, SunIcon } from "@/components/board/icons";
 import { THEMES, getNextTheme, type Theme } from "@/lib/theme";
+import { FOCUS_RING } from "@/components/focusRing";
 
 function readCurrentTheme(): Theme | null {
   const classList = document.documentElement.classList;
@@ -41,7 +42,7 @@ export default function ThemeToggle() {
       type="button"
       onClick={handleToggle}
       disabled={isPending}
-      className="rounded-full border border-zinc-300 p-1.5 text-zinc-500 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-900"
+      className={`rounded-full border border-zinc-300 p-1.5 text-zinc-500 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-900 ${FOCUS_RING}`}
     >
       <MoonIcon className="h-3.5 w-3.5 dark:hidden" />
       <span className="sr-only dark:hidden">{t("switchToDark")}</span>

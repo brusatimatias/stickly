@@ -8,6 +8,7 @@ import NoteCard from "@/components/board/NoteCard";
 import NoteForm from "@/components/board/NoteForm";
 import type { BoardDay, NoteDTO } from "@/components/board/types";
 import { ExpandIcon, PlusIcon } from "@/components/board/icons";
+import { FOCUS_RING } from "@/components/focusRing";
 
 export default function DayColumn({
   day,
@@ -40,11 +41,11 @@ export default function DayColumn({
         {/* Invisible mirror of the right-side button cluster so the label stays centered regardless of how many buttons are shown there. */}
         <div className="flex items-center gap-0.5 opacity-0" aria-hidden>
           {!isFocused && onToggleFocus && (
-            <span className="rounded-full p-1">
+            <span className="inline-flex items-center justify-center rounded-full p-1 pointer-coarse:size-10">
               <ExpandIcon className="h-3.5 w-3.5" />
             </span>
           )}
-          <span className="rounded-full p-1">
+          <span className="inline-flex items-center justify-center rounded-full p-1 pointer-coarse:size-10">
             <PlusIcon className="h-3.5 w-3.5" />
           </span>
         </div>
@@ -62,7 +63,7 @@ export default function DayColumn({
               type="button"
               onClick={onToggleFocus}
               aria-label={t("focusDay")}
-              className="rounded-full p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:text-zinc-600 dark:hover:bg-zinc-900 dark:hover:text-zinc-300"
+              className={`inline-flex items-center justify-center rounded-full p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 pointer-coarse:size-10 dark:text-zinc-600 dark:hover:bg-zinc-900 dark:hover:text-zinc-300 ${FOCUS_RING}`}
             >
               <ExpandIcon className="h-3.5 w-3.5" />
             </button>
@@ -71,7 +72,7 @@ export default function DayColumn({
             type="button"
             onClick={() => setIsAdding(true)}
             aria-label={t("addNote")}
-            className="rounded-full p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:text-zinc-600 dark:hover:bg-zinc-900 dark:hover:text-zinc-300"
+            className={`inline-flex items-center justify-center rounded-full p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 pointer-coarse:size-10 dark:text-zinc-600 dark:hover:bg-zinc-900 dark:hover:text-zinc-300 ${FOCUS_RING}`}
           >
             <PlusIcon className="h-3.5 w-3.5" />
           </button>

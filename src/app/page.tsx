@@ -22,6 +22,8 @@ import ChatWidget from "@/components/chat/ChatWidget";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
 import ThemeToggle from "@/components/ThemeToggle";
 import TimeZoneSync from "@/components/TimeZoneSync";
+import { FOCUS_RING } from "@/components/focusRing";
+import { UserIcon } from "@/components/profile/icons";
 
 export default async function Home({
   searchParams,
@@ -74,10 +76,10 @@ export default async function Home({
         <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
           Stickly
         </h1>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <Link
             href="/profile"
-            className="flex items-center gap-2 text-sm font-medium text-zinc-700 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100"
+            className={`flex items-center gap-2 rounded-full text-sm font-medium text-zinc-700 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100 ${FOCUS_RING}`}
           >
             {avatarSrc ? (
               <Image
@@ -88,8 +90,13 @@ export default async function Home({
                 unoptimized={avatarSrc.startsWith("data:")}
                 className="rounded-full"
               />
-            ) : null}
-            {user?.name ? <span>{user.name}</span> : null}
+            ) : (
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-200 text-zinc-500 sm:hidden dark:bg-zinc-800 dark:text-zinc-400">
+                <UserIcon className="h-4 w-4" />
+              </span>
+            )}
+            {/* The name only fits next to the header controls from `sm:` up; below that it stays as the link's accessible name. */}
+            {user?.name ? <span className="sr-only sm:not-sr-only">{user.name}</span> : null}
           </Link>
           <ThemeToggle />
           <LocaleSwitcher />

@@ -12,6 +12,7 @@ import ConfirmDialog from "@/components/board/ConfirmDialog";
 import FoldedCorner from "@/components/board/FoldedCorner";
 import NoteForm from "@/components/board/NoteForm";
 import type { NoteDTO } from "@/components/board/types";
+import { FOCUS_RING } from "@/components/focusRing";
 import {
   CalendarCheckIcon,
   CalendarIcon,
@@ -119,7 +120,7 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
           onClick={(event) => event.stopPropagation()}
           {...attributes}
           {...listeners}
-          className="cursor-grab select-none opacity-30 transition-opacity group-hover:opacity-70 active:cursor-grabbing"
+          className={`cursor-grab touch-none select-none rounded-sm opacity-30 transition-opacity group-hover:opacity-70 active:cursor-grabbing pointer-coarse:-m-2 pointer-coarse:p-2 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING}`}
         >
           ⠿
         </button>
@@ -132,7 +133,7 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
               handleToggleDone();
             }}
             disabled={isToggling}
-            className="opacity-30 transition-opacity group-hover:opacity-70 disabled:opacity-40"
+            className={`rounded-sm opacity-30 transition-opacity group-hover:opacity-70 disabled:opacity-40 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING}`}
           >
             {displayNote.isDone ? (
               <CheckSquareIcon className="h-3.5 w-3.5" />
@@ -140,7 +141,7 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
               <SquareIcon className="h-3.5 w-3.5" />
             )}
           </button>
-          <span className="pointer-events-none absolute left-0 top-full mt-1 whitespace-nowrap rounded bg-zinc-900 px-1.5 py-0.5 text-[10px] text-white opacity-0 transition-opacity group-hover/done:opacity-90 dark:bg-zinc-100 dark:text-zinc-900">
+          <span className="pointer-events-none absolute left-0 top-full mt-1 whitespace-nowrap rounded bg-zinc-900 px-1.5 py-0.5 text-[10px] text-white opacity-0 transition-opacity group-hover/done:opacity-90 group-has-[:focus-visible]/done:opacity-90 dark:bg-zinc-100 dark:text-zinc-900">
             {displayNote.isDone ? t("markAsPending") : t("markAsDone")}
           </span>
         </div>
@@ -153,7 +154,7 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
           setIsConfirmingDelete(true);
         }}
         disabled={isPending}
-        className="absolute right-1 top-1 opacity-30 transition-opacity group-hover:opacity-70 disabled:opacity-30"
+        className={`absolute right-1 top-1 rounded-sm opacity-30 transition-opacity group-hover:opacity-70 disabled:opacity-30 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING}`}
       >
         ✕
       </button>
@@ -201,7 +202,7 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
               handleSyncToCalendar();
             }}
             disabled={isSyncing || !displayNote.time}
-            className={`rounded-full p-1 opacity-30 transition-opacity group-hover:opacity-70 disabled:opacity-40 ${
+            className={`rounded-full p-1 opacity-30 transition-opacity group-hover:opacity-70 disabled:opacity-40 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING} ${
               displayNote.googleEventId ? "text-emerald-600 dark:text-emerald-400" : ""
             }`}
           >
@@ -213,7 +214,7 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
               <CalendarIcon className="h-8 w-8" />
             )}
           </button>
-          <span className="pointer-events-none absolute bottom-full right-0 mb-1 whitespace-nowrap rounded bg-zinc-900 px-1.5 py-0.5 text-[10px] text-white opacity-0 transition-opacity group-hover/sync:opacity-90 dark:bg-zinc-100 dark:text-zinc-900">
+          <span className="pointer-events-none absolute bottom-full right-0 mb-1 whitespace-nowrap rounded bg-zinc-900 px-1.5 py-0.5 text-[10px] text-white opacity-0 transition-opacity group-hover/sync:opacity-90 group-has-[:focus-visible]/sync:opacity-90 dark:bg-zinc-100 dark:text-zinc-900">
             {!displayNote.time
               ? t("setTimeToSyncShort")
               : isSyncing

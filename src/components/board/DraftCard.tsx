@@ -11,6 +11,7 @@ import DraftForm from "@/components/board/DraftForm";
 import FoldedCorner from "@/components/board/FoldedCorner";
 import type { NoteDTO } from "@/components/board/types";
 import { DRAFT_COLOR } from "@/lib/noteColor";
+import { FOCUS_RING } from "@/components/focusRing";
 
 export default function DraftCard({ note }: { note: NoteDTO }) {
   const t = useTranslations("board");
@@ -53,7 +54,7 @@ export default function DraftCard({ note }: { note: NoteDTO }) {
         onClick={(event) => event.stopPropagation()}
         {...attributes}
         {...listeners}
-        className="absolute left-1 top-1 cursor-grab select-none opacity-0 transition-opacity group-hover:opacity-70 active:cursor-grabbing"
+        className={`absolute left-1 top-1 cursor-grab touch-none select-none rounded-sm opacity-0 transition-opacity group-hover:opacity-70 active:cursor-grabbing pointer-coarse:-m-2 pointer-coarse:p-2 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING}`}
       >
         ⠿
       </button>
@@ -65,7 +66,7 @@ export default function DraftCard({ note }: { note: NoteDTO }) {
           setIsConfirmingDelete(true);
         }}
         disabled={isPending}
-        className="absolute right-1 top-1 opacity-0 transition-opacity group-hover:opacity-70 disabled:opacity-30"
+        className={`absolute right-1 top-1 rounded-sm opacity-0 transition-opacity group-hover:opacity-70 disabled:opacity-30 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING}`}
       >
         ✕
       </button>

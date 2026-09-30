@@ -4,7 +4,8 @@ import {
   DndContext,
   DragOverlay,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   getFirstCollision,
   pointerWithin,
   rectIntersection,
@@ -105,7 +106,11 @@ export default function Board({
   // stable id from useId makes them deterministic.
   const dndContextId = useId();
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    // Mouse and touch instead of PointerSensor, which would also start a drag
+    // on touch right away. On touch, a drag needs a short press on the handle,
+    // so a swipe over it still scrolls the page.
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
@@ -287,7 +292,8 @@ export default function Board({
             setActiveNote(null);
           }}
         >
-          <div className="flex flex-col gap-3 p-4 lg:flex-row">
+          {/* Bottom padding so the chat launcher never covers the last notes. */}
+          <div className="flex flex-col gap-3 p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:flex-row">
             <DraftPanel notes={notesByDay[DRAFT_CONTAINER]} />
             {focusedDayInfo ? (
               <div className="min-w-0 flex-1">
