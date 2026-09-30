@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -9,6 +10,12 @@ import ProfileForm from "@/components/profile/ProfileForm";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
 import ThemeToggle from "@/components/ThemeToggle";
 import { ChevronLeftIcon } from "@/components/board/icons";
+import { FOCUS_RING } from "@/components/focusRing";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("metadata");
+  return { title: t("profileTitle") };
+}
 
 export default async function ProfilePage({
   searchParams,
@@ -43,7 +50,7 @@ export default async function ProfilePage({
       <header className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
         <Link
           href="/"
-          className="flex items-center gap-1 rounded-full py-1.5 pr-3 pl-1.5 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-50"
+          className={`flex items-center gap-1 rounded-full py-1.5 pr-3 pl-1.5 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-50 ${FOCUS_RING}`}
         >
           <ChevronLeftIcon className="h-4 w-4" />
           {t("backToBoard")}

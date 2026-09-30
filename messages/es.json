@@ -158,5 +158,9 @@
     "title": "Esta página no existe",
     "message": "Quizás se cayó del tablero, o el enlace está mal.",
     "backToBoard": "Volver al tablero"
+  },
+  "metadata": {
+    "description": "Tu semana como un tablero de notas adhesivas: arrastralas entre días, guardá borradores, sincronizá con Google Calendar y agregá recordatorios desde un chat o WhatsApp.",
+    "profileTitle": "Perfil"
   }
 }

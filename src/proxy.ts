@@ -26,8 +26,9 @@ export function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     {
-      // Pages only: skip API routes, static assets and the generated icon.
-      source: "/((?!api|_next/static|_next/image|favicon.ico|icon).*)",
+      // Pages only: skip API routes, static assets and the generated images
+      // (icon, apple-icon, opengraph-image).
+      source: "/((?!api|_next/static|_next/image|favicon.ico|icon|apple-icon|opengraph-image).*)",
       missing: [
         { type: "header", key: "next-router-prefetch" },
         { type: "header", key: "purpose", value: "prefetch" },

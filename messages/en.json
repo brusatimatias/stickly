@@ -158,5 +158,9 @@
     "title": "This page doesn't exist",
     "message": "Maybe it fell off the board, or the link is wrong.",
     "backToBoard": "Back to the board"
+  },
+  "metadata": {
+    "description": "Your week as a board of sticky notes: drag them between days, keep drafts, sync with Google Calendar and add reminders from a chat or WhatsApp.",
+    "profileTitle": "Profile"
   }
 }
