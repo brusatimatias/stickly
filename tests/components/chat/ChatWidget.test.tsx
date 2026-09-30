@@ -35,7 +35,10 @@ beforeEach(() => {
   Element.prototype.scrollTo = vi.fn();
 });
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 describe("ChatWidget", () => {
   test("sends the conversation with the user's time zone and shows the reply", async () => {
@@ -158,5 +161,60 @@ describe("ChatWidget", () => {
     await sendMessage("Recordame mañana llamar al plomero");
 
     expect(screen.getByText(messages.chat.noteCreated)).toBeTruthy();
+  });
+
+  test("announces the conversation as a polite live log", () => {
+    renderWidget();
+
+    const log = screen.getByRole("log");
+    expect(log.getAttribute("aria-live")).toBe("polite");
+  });
+
+  test("gives focus back to the launcher when the panel closes", () => {
+    renderWidget();
+    expect(document.activeElement).toBe(screen.getByLabelText(messages.chat.placeholder));
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    expect(screen.queryByRole("region", { name: messages.chat.title })).toBeNull();
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: messages.chat.open }));
+  });
+
+  test("keeps the panel mounted until its exit animation ends", () => {
+    vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: false })));
+    renderWidget();
+
+    fireEvent.click(screen.getByRole("button", { name: messages.chat.close, expanded: true }));
+
+    const panel = screen.getByRole("region", { name: messages.chat.title, hidden: true });
+    expect(panel.hasAttribute("inert")).toBe(true);
+    // jsdom has no AnimationEvent, so React listens for the prefixed name.
+    fireEvent(panel, new Event("webkitAnimationEnd", { bubbles: true }));
+    expect(screen.queryByRole("region", { name: messages.chat.title, hidden: true })).toBeNull();
+  });
+
+  test("shows the character counter only past 80% of the limit", () => {
+    renderWidget();
+    const input = screen.getByLabelText(messages.chat.placeholder);
+
+    fireEvent.change(input, { target: { value: "a".repeat(400) } });
+    expect(screen.queryByText("400 / 500")).toBeNull();
+    expect(input.getAttribute("aria-describedby")).toBeNull();
+
+    fireEvent.change(input, { target: { value: "a".repeat(401) } });
+    const counter = screen.getByText("401 / 500");
+    expect(input.getAttribute("aria-describedby")).toBe(counter.id);
+  });
+
+  test("shows a typing indicator while waiting for the reply", async () => {
+    let resolveReply: (value: unknown) => void = () => {};
+    mockSendChatMessage.mockReturnValue(new Promise((resolve) => (resolveReply = resolve)));
+    renderWidget();
+
+    await sendMessage("Recordame mañana llamar al plomero");
+    expect(screen.getByText(messages.chat.thinking)).toBeTruthy();
+
+    await act(async () => resolveReply({ reply: "¿A qué hora?", createdNotes: [] }));
+    expect(screen.queryByText(messages.chat.thinking)).toBeNull();
   });
 });

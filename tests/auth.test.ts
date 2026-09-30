@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
 type JwtCallback = (params: Record<string, unknown>) => Promise<Record<string, unknown>>;
+type SessionCallback = JwtCallback;
 
 // Capture the config passed to NextAuth so the callbacks can be called directly.
-const captured = vi.hoisted(() => ({ config: undefined as { callbacks: { jwt: JwtCallback } } | undefined }));
+const captured = vi.hoisted(() => ({ config: undefined as { callbacks: { jwt: JwtCallback; session: SessionCallback } } | undefined }));
 const mockPrisma = vi.hoisted(() => ({ user: { upsert: vi.fn() } }));
 const mockSaveGoogleTokens = vi.hoisted(() => vi.fn());
 
@@ -20,6 +21,7 @@ vi.mock("@/lib/googleTokens", () => ({ saveGoogleTokens: mockSaveGoogleTokens })
 
 await import("@/auth");
 const jwt = (params: Record<string, unknown>) => captured.config!.callbacks.jwt(params);
+const sessionCallback = (params: Record<string, unknown>) => captured.config!.callbacks.session(params);
 
 const PROFILE = { sub: "google-sub-1", email: "Ada@Example.com", name: "Ada", picture: "https://img" };
 const GOOGLE_ACCOUNT = {
@@ -46,7 +48,7 @@ describe("jwt callback", () => {
       refreshToken: "refresh-1",
       accessTokenExpiresAt: new Date(1_790_000_000 * 1000),
     });
-    expect(token).toEqual({ userId: "user-1" });
+    expect(token).toEqual({ userId: "user-1", authProvider: "google", authAt: expect.any(Number) });
   });
 
   test("still signs in when the tokens can't be stored (e.g. no encryption key)", async () => {
@@ -55,7 +57,7 @@ describe("jwt callback", () => {
 
     const token = await jwt({ token: {}, account: GOOGLE_ACCOUNT, profile: PROFILE });
 
-    expect(token).toEqual({ userId: "user-1" });
+    expect(token).toEqual({ userId: "user-1", authProvider: "google", authAt: expect.any(Number) });
     expect(consoleError).toHaveBeenCalled();
   });
 
@@ -66,15 +68,42 @@ describe("jwt callback", () => {
       user: { id: "user-1" },
     });
 
-    expect(token).toEqual({ userId: "user-1" });
+    expect(token).toEqual({ userId: "user-1", authProvider: "credentials", authAt: expect.any(Number) });
     expect(mockSaveGoogleTokens).not.toHaveBeenCalled();
   });
 
-  test("later requests keep the token as is, without calling Google or the database", async () => {
-    const token = await jwt({ token: { userId: "user-1" } });
+  test("records when the session signed in", async () => {
+    vi.useFakeTimers({ now: new Date("2026-09-30T12:00:00Z") });
+    try {
+      const token = await jwt({ token: {}, account: GOOGLE_ACCOUNT, profile: PROFILE });
 
-    expect(token).toEqual({ userId: "user-1" });
+      expect(token.authAt).toBe(Date.parse("2026-09-30T12:00:00Z"));
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("later requests keep the token as is, without calling Google or the database", async () => {
+    const signedIn = { userId: "user-1", authProvider: "google", authAt: 1_790_000_000_000 };
+    const token = await jwt({ token: { ...signedIn } });
+
+    expect(token).toEqual(signedIn);
     expect(mockPrisma.user.upsert).not.toHaveBeenCalled();
     expect(mockSaveGoogleTokens).not.toHaveBeenCalled();
+  });
+});
+
+describe("session callback", () => {
+  test("passes how and when the session signed in on to the server", async () => {
+    const session = await sessionCallback({
+      session: { user: { name: "Ada" } },
+      token: { userId: "user-1", authProvider: "google", authAt: 1_790_000_000_000 },
+    });
+
+    expect(session).toMatchObject({
+      user: { id: "user-1", name: "Ada" },
+      authProvider: "google",
+      authAt: 1_790_000_000_000,
+    });
   });
 });

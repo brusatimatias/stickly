@@ -33,6 +33,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   callbacks: {
     async jwt({ token, account, profile, user }) {
+      // `account` is only there on a sign in. Remembering how and when lets a
+      // recent Google sign in stand in for the current password (setPassword).
+      if (account) {
+        token.authProvider = account.provider;
+        token.authAt = Date.now();
+      }
+
       // Password login: no Google tokens available in this session.
       if (account?.provider === "credentials") {
         token.userId = user!.id;
@@ -83,6 +90,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.id = token.userId as string;
         session.user.image = (token.picture as string | undefined) ?? null;
       }
+      // Read by the server through auth(); stripped from /api/auth/session.
+      session.authProvider = token.authProvider as string | undefined;
+      session.authAt = token.authAt as number | undefined;
       return session;
     },
   },

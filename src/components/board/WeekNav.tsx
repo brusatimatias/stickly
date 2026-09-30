@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { useRef } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarIcon, ChevronLeftIcon, ChevronRightIcon } from "@/components/board/icons";
+import { FOCUS_RING } from "@/components/focusRing";
 
 export default function WeekNav({
   weekLabel,
@@ -40,7 +41,7 @@ export default function WeekNav({
       <Link
         href={`/?week=${prevWeekParam}`}
         aria-label={t("previousWeek")}
-        className="rounded-full bg-zinc-900 p-1.5 text-white shadow-sm hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+        className={`rounded-full bg-zinc-900 p-1.5 text-white shadow-sm hover:bg-zinc-700 pointer-coarse:p-3 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white ${FOCUS_RING}`}
       >
         <ChevronLeftIcon className="h-4 w-4" />
       </Link>
@@ -50,7 +51,7 @@ export default function WeekNav({
           <button
             type="button"
             onClick={openPicker}
-            className="flex cursor-pointer items-center gap-1.5 rounded-full bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+            className={`flex cursor-pointer items-center gap-1.5 rounded-full bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-zinc-700 pointer-coarse:py-2.5 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white ${FOCUS_RING}`}
           >
             <CalendarIcon className="h-4 w-4 opacity-80" />
             {weekLabel}
@@ -66,13 +67,13 @@ export default function WeekNav({
           />
         </div>
         {isCurrentWeek ? (
-          <span className="rounded-full bg-zinc-200 px-3 py-1.5 text-sm font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-500">
+          <span className="rounded-full bg-zinc-200 px-3 py-1.5 pointer-coarse:py-2.5 text-sm font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-500">
             {t("today")}
           </span>
         ) : (
           <Link
             href={`/?week=${todayWeekParam}`}
-            className="rounded-full bg-amber-500 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-amber-600"
+            className={`rounded-full bg-amber-500 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-amber-600 pointer-coarse:py-2.5 ${FOCUS_RING}`}
           >
             {t("today")}
           </Link>
@@ -82,7 +83,7 @@ export default function WeekNav({
       <Link
         href={`/?week=${nextWeekParam}`}
         aria-label={t("nextWeek")}
-        className="rounded-full bg-zinc-900 p-1.5 text-white shadow-sm hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+        className={`rounded-full bg-zinc-900 p-1.5 text-white shadow-sm hover:bg-zinc-700 pointer-coarse:p-3 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white ${FOCUS_RING}`}
       >
         <ChevronRightIcon className="h-4 w-4" />
       </Link>

@@ -1,4 +1,20 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+
+function sha256(value: string): Buffer {
+  return createHash("sha256").update(value, "utf8").digest();
+}
+
+/**
+ * Whether `received` (the `hub.verify_token` of Meta's verification request)
+ * is the configured verify token. Compares digests in constant time: they're
+ * always the same length, so neither the content nor the length leaks.
+ */
+export function isValidVerifyToken(received: string | null, expected: string | undefined): boolean {
+  if (!received || !expected) {
+    return false;
+  }
+  return timingSafeEqual(sha256(received), sha256(expected));
+}
 
 /**
  * Whether `signatureHeader` (Meta's `X-Hub-Signature-256`, "sha256=<hex>") is

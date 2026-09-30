@@ -15,6 +15,12 @@ describe("toPublicSession", () => {
     });
   });
 
+  test("removes how and when the session signed in", () => {
+    const session = { user: { id: "user-1" }, authProvider: "google", authAt: 1_790_000_000_000 };
+
+    expect(toPublicSession(session)).toEqual({ user: { id: "user-1" } });
+  });
+
   test("does not mutate the original session", () => {
     const session = { user: { id: "user-1" }, accessToken: "google-token" };
     toPublicSession(session);

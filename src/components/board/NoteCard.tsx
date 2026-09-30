@@ -12,6 +12,7 @@ import ConfirmDialog from "@/components/board/ConfirmDialog";
 import FoldedCorner from "@/components/board/FoldedCorner";
 import NoteForm from "@/components/board/NoteForm";
 import type { NoteDTO } from "@/components/board/types";
+import { FOCUS_RING } from "@/components/focusRing";
 import {
   CalendarCheckIcon,
   CalendarIcon,
@@ -22,7 +23,16 @@ import {
   SquareIcon,
 } from "@/components/board/icons";
 
-export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) {
+export default function NoteCard({
+  day,
+  note,
+  isNew = false,
+}: {
+  day: string;
+  note: NoteDTO;
+  /** Just appeared on the board, so it animates in. */
+  isNew?: boolean;
+}) {
   const t = useTranslations("board");
   const tErrors = useTranslations("errors");
   const router = useRouter();
@@ -106,7 +116,7 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
       ref={setNodeRef}
       style={style}
       onClick={() => setIsEditing(true)}
-      className={`group relative flex h-44 w-44 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border p-2 text-sm shadow-[2px_4px_6px_rgba(0,0,0,0.3)] transition-[top] hover:z-10 hover:-top-1 hover:shadow-[3px_6px_10px_rgba(0,0,0,0.35)] dark:shadow-[2px_4px_6px_rgba(0,0,0,0.6)] dark:hover:shadow-[3px_6px_10px_rgba(0,0,0,0.7)] sm:h-48 sm:w-48 ${isDragging ? "z-20" : ""} ${noteStyle.rotation} ${noteStyle.bg} ${noteStyle.border} ${noteStyle.text}`}
+      className={`${isNew ? "animate-note-in" : ""} group relative flex h-44 w-44 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border p-2 text-sm shadow-[2px_4px_6px_rgba(0,0,0,0.3)] transition-[top] hover:z-10 hover:-top-1 hover:shadow-[3px_6px_10px_rgba(0,0,0,0.35)] dark:shadow-[2px_4px_6px_rgba(0,0,0,0.6)] dark:hover:shadow-[3px_6px_10px_rgba(0,0,0,0.7)] sm:h-48 sm:w-48 ${isDragging ? "z-20" : ""} ${noteStyle.rotation} ${noteStyle.bg} ${noteStyle.border} ${noteStyle.text}`}
     >
       {displayNote.isDone && (
         <div className="pointer-events-none absolute inset-0 bg-zinc-500/40 mix-blend-multiply dark:bg-zinc-400/30" />
@@ -119,7 +129,7 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
           onClick={(event) => event.stopPropagation()}
           {...attributes}
           {...listeners}
-          className="cursor-grab select-none opacity-30 transition-opacity group-hover:opacity-70 active:cursor-grabbing"
+          className={`cursor-grab touch-none select-none rounded-sm opacity-30 transition-opacity group-hover:opacity-70 active:cursor-grabbing pointer-coarse:-m-2 pointer-coarse:p-2 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING}`}
         >
           ⠿
         </button>
@@ -132,7 +142,7 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
               handleToggleDone();
             }}
             disabled={isToggling}
-            className="opacity-30 transition-opacity group-hover:opacity-70 disabled:opacity-40"
+            className={`rounded-sm opacity-30 transition-opacity group-hover:opacity-70 disabled:opacity-40 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING}`}
           >
             {displayNote.isDone ? (
               <CheckSquareIcon className="h-3.5 w-3.5" />
@@ -140,7 +150,7 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
               <SquareIcon className="h-3.5 w-3.5" />
             )}
           </button>
-          <span className="pointer-events-none absolute left-0 top-full mt-1 whitespace-nowrap rounded bg-zinc-900 px-1.5 py-0.5 text-[10px] text-white opacity-0 transition-opacity group-hover/done:opacity-90 dark:bg-zinc-100 dark:text-zinc-900">
+          <span className="pointer-events-none absolute left-0 top-full mt-1 whitespace-nowrap rounded bg-zinc-900 px-1.5 py-0.5 text-[10px] text-white opacity-0 transition-opacity group-hover/done:opacity-90 group-has-[:focus-visible]/done:opacity-90 dark:bg-zinc-100 dark:text-zinc-900">
             {displayNote.isDone ? t("markAsPending") : t("markAsDone")}
           </span>
         </div>
@@ -153,7 +163,7 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
           setIsConfirmingDelete(true);
         }}
         disabled={isPending}
-        className="absolute right-1 top-1 opacity-30 transition-opacity group-hover:opacity-70 disabled:opacity-30"
+        className={`absolute right-1 top-1 rounded-sm opacity-30 transition-opacity group-hover:opacity-70 disabled:opacity-30 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING}`}
       >
         ✕
       </button>
@@ -163,7 +173,11 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
           <ClockIcon className="h-3 w-3 shrink-0" />
           {displayNote.time ?? "--:--"}
         </p>
-        <p className={`break-words font-semibold ${displayNote.isDone ? "line-through" : ""}`}>
+        {/* Clamped so a long title can't push the description out; hover shows it whole. */}
+        <p
+          title={displayNote.title}
+          className={`line-clamp-3 shrink-0 break-words font-semibold ${displayNote.isDone ? "line-through" : ""}`}
+        >
           {displayNote.title}
         </p>
         {displayNote.description && (
@@ -197,7 +211,7 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
               handleSyncToCalendar();
             }}
             disabled={isSyncing || !displayNote.time}
-            className={`rounded-full p-1 opacity-30 transition-opacity group-hover:opacity-70 disabled:opacity-40 ${
+            className={`rounded-full p-1 opacity-30 transition-opacity group-hover:opacity-70 disabled:opacity-40 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING} ${
               displayNote.googleEventId ? "text-emerald-600 dark:text-emerald-400" : ""
             }`}
           >
@@ -209,7 +223,7 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
               <CalendarIcon className="h-8 w-8" />
             )}
           </button>
-          <span className="pointer-events-none absolute bottom-full right-0 mb-1 whitespace-nowrap rounded bg-zinc-900 px-1.5 py-0.5 text-[10px] text-white opacity-0 transition-opacity group-hover/sync:opacity-90 dark:bg-zinc-100 dark:text-zinc-900">
+          <span className="pointer-events-none absolute bottom-full right-0 mb-1 whitespace-nowrap rounded bg-zinc-900 px-1.5 py-0.5 text-[10px] text-white opacity-0 transition-opacity group-hover/sync:opacity-90 group-has-[:focus-visible]/sync:opacity-90 dark:bg-zinc-100 dark:text-zinc-900">
             {!displayNote.time
               ? t("setTimeToSyncShort")
               : isSyncing

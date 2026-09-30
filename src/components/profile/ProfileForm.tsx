@@ -3,7 +3,12 @@
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { type ChangeEvent, type FormEvent, useEffect, useId, useRef, useState, useTransition } from "react";
-import { setPassword, updateAvatar, updateProfileName } from "@/app/actions/profile";
+import {
+  confirmPasswordResetWithGoogle,
+  setPassword,
+  updateAvatar,
+  updateProfileName,
+} from "@/app/actions/profile";
 import { CameraIcon, EyeIcon, EyeOffIcon, UserIcon } from "@/components/profile/icons";
 import {
   HINT_CLASS,
@@ -16,6 +21,7 @@ import {
 } from "@/components/profile/ui";
 import WhatsAppLink from "@/components/profile/WhatsAppLink";
 import { resizeImageToDataUrl } from "@/lib/image";
+import { FOCUS_RING } from "@/components/focusRing";
 
 const AVATAR_TARGET_SIZE = 128;
 const MIN_PASSWORD_LENGTH = 8;
@@ -40,12 +46,21 @@ export default function ProfileForm({
   email,
   avatarSrc,
   hasPassword,
+  canResetWithGoogle,
+  recentGoogleSignIn,
+  openPasswordForm,
   whatsapp,
 }: {
   name: string;
   email: string;
   avatarSrc: string | null;
   hasPassword: boolean;
+  /** The user has Google linked, so a forgotten password can be reset by signing in again. */
+  canResetWithGoogle: boolean;
+  /** The session just signed in with Google, which stands in for the current password. */
+  recentGoogleSignIn: boolean;
+  /** Back from confirming with Google: start with the password form open. */
+  openPasswordForm: boolean;
   /** Null when the WhatsApp chat isn't configured, which hides the section. */
   whatsapp: { linkedNumber: string | null; botNumber: string } | null;
 }) {
@@ -69,8 +84,9 @@ export default function ProfileForm({
   const [passwordStatus, setPasswordStatus] = useState<Status>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [isEditingPassword, setIsEditingPassword] = useState(false);
+  const [isEditingPassword, setIsEditingPassword] = useState(openPasswordForm);
   const [isPasswordPending, startPasswordTransition] = useTransition();
+  const [isGooglePending, startGoogleTransition] = useTransition();
   const ids = { name: useId(), currentPassword: useId(), password: useId(), confirmPassword: useId() };
 
   useAutoClearStatus(nameStatus, () => setNameStatus(null));
@@ -80,12 +96,13 @@ export default function ProfileForm({
   const trimmedName = name.trim();
   const canSaveName = trimmedName.length > 0 && trimmedName !== initialName.trim();
 
+  const needsCurrentPassword = hasPassword && !recentGoogleSignIn;
   const tooShort = password.length > 0 && password.length < MIN_PASSWORD_LENGTH;
   const mismatched = confirmPassword.length > 0 && password !== confirmPassword;
   const canSavePassword =
     password.length >= MIN_PASSWORD_LENGTH &&
     password === confirmPassword &&
-    (!hasPassword || currentPassword.length > 0);
+    (!needsCurrentPassword || currentPassword.length > 0);
 
   function saveName(event: FormEvent) {
     event.preventDefault();
@@ -139,19 +156,29 @@ export default function ProfileForm({
     setPasswordStatus(null);
     startPasswordTransition(async () => {
       try {
-        await setPassword(password, hasPassword ? currentPassword : undefined);
+        await setPassword(password, needsCurrentPassword ? currentPassword : undefined);
         closePasswordForm();
         setPasswordStatus({ type: "success", text: t("saved") });
         // A first-time password flips hasPassword, which the server provides.
         router.refresh();
       } catch (error) {
         setPasswordStatus({ type: "error", text: errorMessage(tErrors, error) });
+        // The Google sign in stopped being recent while the form was open:
+        // refreshing brings the current password field back.
+        if (!needsCurrentPassword && error instanceof Error && error.message === "CURRENT_PASSWORD_REQUIRED") {
+          router.refresh();
+        }
       }
     });
   }
 
+  function confirmWithGoogle() {
+    // Redirects to Google and back to the profile with the form open.
+    startGoogleTransition(() => confirmPasswordResetWithGoogle());
+  }
+
   const eyeButtonClass =
-    "absolute inset-y-0 right-2 flex cursor-pointer items-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300";
+    `absolute inset-y-0 right-2 flex cursor-pointer items-center justify-center rounded-lg text-zinc-400 hover:text-zinc-600 pointer-coarse:right-0 pointer-coarse:w-10 dark:hover:text-zinc-300 ${FOCUS_RING}`;
 
   return (
     <div className="flex w-full max-w-sm flex-col divide-y divide-zinc-200 rounded-2xl border border-zinc-200 bg-white p-8 shadow-xl dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-950">
@@ -223,7 +250,10 @@ export default function ProfileForm({
         <p className={HINT_CLASS}>{t("passwordHint", { email })}</p>
         {isEditingPassword ? (
           <form onSubmit={savePassword} className="flex flex-col gap-2">
-            {hasPassword && (
+            {hasPassword && !needsCurrentPassword && (
+              <p className={HINT_CLASS}>{t("recentGoogleSignInHint")}</p>
+            )}
+            {needsCurrentPassword && (
               <div className="relative">
                 <label htmlFor={ids.currentPassword} className="sr-only">
                   {t("currentPasswordPlaceholder")}
@@ -236,7 +266,7 @@ export default function ProfileForm({
                   autoFocus
                   value={currentPassword}
                   onChange={(event) => setCurrentPassword(event.target.value)}
-                  className={`${INPUT_CLASS} pr-9`}
+                  className={`${INPUT_CLASS} pr-9 pointer-coarse:pr-11`}
                 />
                 <button
                   type="button"
@@ -252,6 +282,16 @@ export default function ProfileForm({
                 </button>
               </div>
             )}
+            {needsCurrentPassword && canResetWithGoogle && (
+              <button
+                type="button"
+                onClick={confirmWithGoogle}
+                disabled={isGooglePending || isPasswordPending}
+                className="self-start cursor-pointer text-xs text-zinc-500 underline underline-offset-2 hover:text-zinc-800 disabled:cursor-wait disabled:opacity-60 dark:text-zinc-400 dark:hover:text-zinc-200"
+              >
+                {t("forgotPasswordConfirmWithGoogle")}
+              </button>
+            )}
             <div className="relative">
               <label htmlFor={ids.password} className="sr-only">
                 {t("newPasswordPlaceholder")}
@@ -261,11 +301,11 @@ export default function ProfileForm({
                 type={showPassword ? "text" : "password"}
                 placeholder={t("newPasswordPlaceholder")}
                 autoComplete="new-password"
-                autoFocus={!hasPassword}
+                autoFocus={!needsCurrentPassword}
                 value={password}
                 onChange={(event) => setPasswordValue(event.target.value)}
                 aria-invalid={tooShort}
-                className={`${INPUT_CLASS} pr-9`}
+                className={`${INPUT_CLASS} pr-9 pointer-coarse:pr-11`}
               />
               <button
                 type="button"

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { getNoteStyle } from "@/lib/noteColor";
+import { DRAFT_COLOR, getNoteStyle } from "@/lib/noteColor";
 
 describe("getNoteStyle", () => {
   test("is deterministic for the same id", () => {
@@ -25,5 +25,11 @@ describe("getNoteStyle", () => {
     const ids = ["a", "b", "c", "d", "e", "f", "g", "h"];
     const styles = ids.map((id) => JSON.stringify(getNoteStyle(id)));
     expect(new Set(styles).size).toBeGreaterThan(1);
+  });
+});
+
+describe("DRAFT_COLOR", () => {
+  test("is the fixed orange trio", () => {
+    expect(DRAFT_COLOR).toBe("border-orange-300 bg-orange-200 text-orange-950");
   });
 });

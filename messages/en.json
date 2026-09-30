@@ -1,8 +1,10 @@
 {
   "common": {
     "yourAvatar": "Your avatar",
+    "yourProfile": "Your profile",
     "switchToDark": "Switch to dark theme",
-    "switchToLight": "Switch to light theme"
+    "switchToLight": "Switch to light theme",
+    "spanishLanguage": "Spanish"
   },
   "board": {
     "previousWeek": "Previous week",
@@ -10,7 +12,9 @@
     "today": "Today",
     "nextWeek": "Next week",
     "addNote": "Add note",
-    "noNotesYet": "No notes yet",
+    "emptyDraftsHint": "Notes without a date. Keep up to {count} here and drag them onto a day once you know when.",
+    "emptyWeekHint": "Nothing planned this week yet. Add a note with + on any day, or ask the assistant (bottom right).",
+    "loadingBoard": "Loading your board…",
     "draft": "Draft",
     "newDraftNote": "New draft note",
     "titlePlaceholder": "Title",
@@ -45,6 +49,9 @@
     "featureBoard": "Drop notes on a weekly, whiteboard-style board",
     "featureDrag": "Drag and reorder them across days in seconds",
     "featureCalendar": "Sync any note straight to Google Calendar",
+    "featureDrafts": "Keep up to 4 undated drafts and drop them on a day later",
+    "featureChat": "Ask the assistant to create notes or tell you what's left",
+    "featureWhatsApp": "Do the same from WhatsApp once you link your number",
     "signInWithGoogle": "Sign in with Google",
     "or": "or",
     "emailPlaceholder": "Email",
@@ -57,6 +64,7 @@
   },
   "profile": {
     "backToBoard": "Back to board",
+    "loadingProfile": "Loading your profile…",
     "name": "Name",
     "save": "Save",
     "saving": "Saving...",
@@ -77,6 +85,8 @@
     "currentPasswordPlaceholder": "Current password",
     "showCurrentPassword": "Show current password",
     "hideCurrentPassword": "Hide current password",
+    "forgotPasswordConfirmWithGoogle": "Forgot it? Confirm with Google",
+    "recentGoogleSignInHint": "You just signed in with Google, so your current password isn't needed.",
     "whatsapp": {
       "title": "WhatsApp",
       "hint": "Link your number to create notes by messaging Stickly on WhatsApp.",
@@ -135,6 +145,7 @@
     "send": "Send",
     "emptyHint": "I can add reminders to your board and tell you what's still pending.",
     "thinking": "Thinking…",
+    "charCount": "{count} / {max}",
     "noteCreated": "Done, the note is on your board.",
     "noReply": "I couldn't answer that. Try rephrasing it.",
     "viewWeek": "View {day} on the board",
@@ -142,5 +153,14 @@
     "exampleCreate": "Remind me tomorrow at 10 to call the plumber",
     "exampleWeek": "What's left to do this week?",
     "exampleToday": "What do I have today?"
+  },
+  "notFound": {
+    "title": "This page doesn't exist",
+    "message": "Maybe it fell off the board, or the link is wrong.",
+    "backToBoard": "Back to the board"
+  },
+  "metadata": {
+    "description": "Your week as a board of sticky notes: drag them between days, keep drafts, sync with Google Calendar and add reminders from a chat or WhatsApp.",
+    "profileTitle": "Profile"
   }
 }

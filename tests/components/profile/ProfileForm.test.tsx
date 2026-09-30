@@ -6,11 +6,13 @@ import messages from "../../../messages/es.json";
 const mockUpdateName = vi.hoisted(() => vi.fn());
 const mockSetPassword = vi.hoisted(() => vi.fn());
 const mockRefresh = vi.hoisted(() => vi.fn());
+const mockConfirmWithGoogle = vi.hoisted(() => vi.fn());
 
 vi.mock("@/app/actions/profile", () => ({
   updateProfileName: mockUpdateName,
   updateAvatar: vi.fn(),
   setPassword: mockSetPassword,
+  confirmPasswordResetWithGoogle: mockConfirmWithGoogle,
 }));
 vi.mock("@/app/actions/whatsapp", () => ({ createWhatsAppLinkCode: vi.fn(), unlinkWhatsApp: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: mockRefresh }) }));
@@ -19,7 +21,12 @@ import ProfileForm from "@/components/profile/ProfileForm";
 
 const t = messages.profile;
 
-function renderForm({ hasPassword = true } = {}) {
+function renderForm({
+  hasPassword = true,
+  canResetWithGoogle = false,
+  recentGoogleSignIn = false,
+  openPasswordForm = false,
+} = {}) {
   render(
     <NextIntlClientProvider locale="es" messages={messages} timeZone="UTC">
       <ProfileForm
@@ -27,6 +34,9 @@ function renderForm({ hasPassword = true } = {}) {
         email="ana@stickly.test"
         avatarSrc={null}
         hasPassword={hasPassword}
+        canResetWithGoogle={canResetWithGoogle}
+        recentGoogleSignIn={recentGoogleSignIn}
+        openPasswordForm={openPasswordForm}
         whatsapp={null}
       />
     </NextIntlClientProvider>
@@ -101,5 +111,55 @@ describe("ProfileForm", () => {
 
     expect(screen.queryByLabelText(t.currentPasswordPlaceholder)).toBeNull();
     expect(screen.getByLabelText(t.newPasswordPlaceholder)).toBeTruthy();
+  });
+
+  describe("forgotten password", () => {
+    test("offers to confirm with Google only when Google is linked", async () => {
+      renderForm({ canResetWithGoogle: true });
+      fireEvent.click(screen.getByRole("button", { name: t.changePassword }));
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: t.forgotPasswordConfirmWithGoogle }));
+      });
+
+      expect(mockConfirmWithGoogle).toHaveBeenCalled();
+    });
+
+    test("doesn't offer it without Google linked", () => {
+      renderForm();
+      fireEvent.click(screen.getByRole("button", { name: t.changePassword }));
+
+      expect(screen.queryByRole("button", { name: t.forgotPasswordConfirmWithGoogle })).toBeNull();
+    });
+
+    test("after a recent Google sign in, changes it without the current password", async () => {
+      renderForm({ canResetWithGoogle: true, recentGoogleSignIn: true, openPasswordForm: true });
+
+      expect(screen.queryByLabelText(t.currentPasswordPlaceholder)).toBeNull();
+      expect(screen.queryByRole("button", { name: t.forgotPasswordConfirmWithGoogle })).toBeNull();
+      expect(screen.getByText(t.recentGoogleSignInHint)).toBeTruthy();
+
+      fireEvent.change(screen.getByLabelText(t.newPasswordPlaceholder), { target: { value: "new-password" } });
+      fireEvent.change(screen.getByLabelText(t.confirmPasswordPlaceholder), { target: { value: "new-password" } });
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: t.savePassword }));
+      });
+
+      expect(mockSetPassword).toHaveBeenCalledWith("new-password", undefined);
+    });
+
+    test("brings the current password back when the sign in is no longer recent", async () => {
+      mockSetPassword.mockRejectedValue(new Error("CURRENT_PASSWORD_REQUIRED"));
+      renderForm({ recentGoogleSignIn: true, openPasswordForm: true });
+
+      fireEvent.change(screen.getByLabelText(t.newPasswordPlaceholder), { target: { value: "new-password" } });
+      fireEvent.change(screen.getByLabelText(t.confirmPasswordPlaceholder), { target: { value: "new-password" } });
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: t.savePassword }));
+      });
+
+      expect(mockRefresh).toHaveBeenCalled();
+      expect(screen.getByText(messages.errors.CURRENT_PASSWORD_REQUIRED)).toBeTruthy();
+    });
   });
 });

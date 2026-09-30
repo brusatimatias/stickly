@@ -2,9 +2,15 @@
 
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
-import { sanitizeName, validateAvatarDataUrl, validatePasswordLength } from "@/lib/profile";
+import { signIn } from "@/auth";
+import {
+  PASSWORD_RESET_PARAM,
+  sanitizeName,
+  validateAvatarDataUrl,
+  validatePasswordLength,
+} from "@/lib/profile";
 import { prisma } from "@/lib/prisma";
-import { requireUserId } from "@/lib/session";
+import { hasRecentGoogleSignIn, requireUserId } from "@/lib/session";
 import { isValidTimeZone } from "@/lib/timezone";
 
 export async function updateProfileName(name: string) {
@@ -36,6 +42,11 @@ export async function updateTimeZone(timeZone: string) {
   revalidatePath("/");
 }
 
+/**
+ * Sets the user's password. Changing an existing one needs the current one,
+ * unless the session just signed in with Google: that proves it's the user as
+ * well, and is how a Google user resets a forgotten password.
+ */
 export async function setPassword(password: string, currentPassword?: string) {
   const userId = await requireUserId();
   validatePasswordLength(password);
@@ -44,7 +55,7 @@ export async function setPassword(password: string, currentPassword?: string) {
     where: { id: userId },
     select: { password: true },
   });
-  if (user.password) {
+  if (user.password && !(await hasRecentGoogleSignIn())) {
     if (!currentPassword) {
       throw new Error("CURRENT_PASSWORD_REQUIRED");
     }
@@ -56,4 +67,13 @@ export async function setPassword(password: string, currentPassword?: string) {
   const hashed = await bcrypt.hash(password, 10);
   await prisma.user.update({ where: { id: userId }, data: { password: hashed } });
   revalidatePath("/profile");
+}
+
+/**
+ * Signs in with Google again and comes back to the profile with the password
+ * form open, where the recent sign in lets the user skip the current password.
+ */
+export async function confirmPasswordResetWithGoogle() {
+  await requireUserId();
+  await signIn("google", { redirectTo: `/profile?password=${PASSWORD_RESET_PARAM}` });
 }

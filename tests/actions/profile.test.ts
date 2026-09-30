@@ -10,12 +10,14 @@ const mockPrisma = vi.hoisted(() => ({
 
 const mockAuth = vi.hoisted(() => vi.fn());
 const mockRevalidatePath = vi.hoisted(() => vi.fn());
+const mockSignIn = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }));
-vi.mock("@/auth", () => ({ auth: mockAuth }));
+vi.mock("@/auth", () => ({ auth: mockAuth, signIn: mockSignIn }));
 vi.mock("next/cache", () => ({ revalidatePath: mockRevalidatePath }));
 
-import { setPassword, updateTimeZone } from "@/app/actions/profile";
+import { confirmPasswordResetWithGoogle, setPassword, updateTimeZone } from "@/app/actions/profile";
+import { RECENT_SIGN_IN_MS } from "@/lib/session";
 
 const SESSION = { user: { id: "user-1" } };
 let currentHash: string;
@@ -100,5 +102,44 @@ describe("setPassword", () => {
   test("validates the new password before touching the database", async () => {
     await expect(setPassword("short")).rejects.toThrow("PASSWORD_TOO_SHORT");
     expect(mockPrisma.user.findUniqueOrThrow).not.toHaveBeenCalled();
+  });
+
+  describe("right after signing in again", () => {
+    test("with Google, changes the password without the current one", async () => {
+      mockAuth.mockResolvedValue({ ...SESSION, authProvider: "google", authAt: Date.now() - 60_000 });
+      mockPrisma.user.findUniqueOrThrow.mockResolvedValue({ password: currentHash });
+
+      await setPassword("new-password");
+
+      const { data } = mockPrisma.user.update.mock.calls[0][0];
+      expect(await bcrypt.compare("new-password", data.password)).toBe(true);
+    });
+
+    test.each([
+      ["a Google sign in older than the window", { authProvider: "google", authAt: Date.now() - RECENT_SIGN_IN_MS - 60_000 }],
+      ["a password sign in", { authProvider: "credentials", authAt: Date.now() }],
+      ["a session from before the sign in was recorded", {}],
+    ])("still requires the current password after %s", async (_, signInInfo) => {
+      mockAuth.mockResolvedValue({ ...SESSION, ...signInInfo });
+      mockPrisma.user.findUniqueOrThrow.mockResolvedValue({ password: currentHash });
+
+      await expect(setPassword("new-password")).rejects.toThrow("CURRENT_PASSWORD_REQUIRED");
+      expect(mockPrisma.user.update).not.toHaveBeenCalled();
+    });
+  });
+});
+
+describe("confirmPasswordResetWithGoogle", () => {
+  test("signs in with Google and comes back to the open password form", async () => {
+    await confirmPasswordResetWithGoogle();
+
+    expect(mockSignIn).toHaveBeenCalledWith("google", { redirectTo: "/profile?password=reset" });
+  });
+
+  test("rejects when there's no session", async () => {
+    mockAuth.mockResolvedValue(null);
+
+    await expect(confirmPasswordResetWithGoogle()).rejects.toThrow("UNAUTHORIZED");
+    expect(mockSignIn).not.toHaveBeenCalled();
   });
 });

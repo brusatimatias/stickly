@@ -1,6 +1,10 @@
 import { after, type NextRequest } from "next/server";
 import { handleInboundMessage } from "@/lib/whatsappInbound";
-import { isValidWebhookSignature, parseWebhookMessages } from "@/lib/whatsappWebhook";
+import {
+  isValidVerifyToken,
+  isValidWebhookSignature,
+  parseWebhookMessages,
+} from "@/lib/whatsappWebhook";
 
 // Messages are handled after the response, within the function's duration;
 // a model turn can take ~20 s, plus a retry with the fallback model.
@@ -9,11 +13,9 @@ export const maxDuration = 60;
 /** Meta's one-time check when the webhook URL is configured. */
 export function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
-  const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN;
   if (
-    verifyToken &&
     params.get("hub.mode") === "subscribe" &&
-    params.get("hub.verify_token") === verifyToken
+    isValidVerifyToken(params.get("hub.verify_token"), process.env.WHATSAPP_VERIFY_TOKEN)
   ) {
     return new Response(params.get("hub.challenge") ?? "", { status: 200 });
   }
