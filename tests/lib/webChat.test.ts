@@ -6,6 +6,7 @@ import {
   getChatRateLimitError,
   getUserToday,
   sanitizeChatMessages,
+  truncateReply,
 } from "@/lib/webChat";
 
 describe("sanitizeChatMessages", () => {
@@ -170,6 +171,24 @@ describe("buildChatSystemPrompt", () => {
     expect(prompt).toContain('title "Buy stamps", no description');
   });
 
+  test("doesn't turn a part of the day into a time", () => {
+    const prompt = buildChatSystemPrompt({ today, locale: "es" });
+    expect(prompt).toContain('A part of the day ("a la noche", "por la tarde", "in the morning") is not a time');
+  });
+
+  test("shows a single day's notes in detail, and done ones for what was done", () => {
+    const prompt = buildChatSystemPrompt({ today, locale: "es" });
+    expect(prompt).toContain("For a single day, show each note's details");
+    expect(prompt).toContain('starting with "- " (no indentation)');
+    expect(prompt).toContain('"- En: <location>"');
+    expect(prompt).toContain('"- <description>"');
+    expect(prompt).toContain('lines that already start with a marker ("-", "•", "*", "1.") stay as they are, never with a second "- "');
+    expect(prompt).toContain('every unmarked line gets "- ", not just the first');
+    expect(prompt).toContain('add "(hecha)" after the title of a done one');
+    expect(prompt).toContain('"done" for completed ones ("what did I do", "qué hice"');
+    expect(prompt).toContain("In a multi-day answer, mention location or description only if the user asks");
+  });
+
   test("replies in the user's locale", () => {
     expect(buildChatSystemPrompt({ today, locale: "es" })).toContain("Reply in Spanish");
     expect(buildChatSystemPrompt({ today, locale: "en" })).toContain("Reply in English");
@@ -179,5 +198,26 @@ describe("buildChatSystemPrompt", () => {
     const prompt = buildChatSystemPrompt({ today, locale: null });
     expect(prompt).toContain("Reply in the language the user writes in");
     expect(prompt).not.toMatch(/Reply in (English|Spanish)/);
+  });
+});
+
+describe("truncateReply", () => {
+  test("leaves a reply within the limit as is", () => {
+    expect(truncateReply("Hoy tenés 1 pendiente", 100)).toBe("Hoy tenés 1 pendiente");
+  });
+
+  test("cuts at the last line break, marking the cut", () => {
+    const reply = ["Hoy tenés 3 pendientes:", "", "Llamar al plomero", "   Pierde la canilla", "", "Comprar víveres"].join("\n");
+
+    const cut = truncateReply(reply, 70);
+
+    expect(cut).toBe("Hoy tenés 3 pendientes:\n\nLlamar al plomero\n   Pierde la canilla\n…");
+    expect(cut.length).toBeLessThanOrEqual(70);
+  });
+
+  test("cuts hard when there's no line break in the second half", () => {
+    const cut = truncateReply("a".repeat(50), 20);
+
+    expect(cut).toBe(`${"a".repeat(19)}…`);
   });
 });

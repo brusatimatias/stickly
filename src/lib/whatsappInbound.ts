@@ -5,6 +5,7 @@ import {
   MAX_ASSISTANT_MESSAGE_LENGTH,
   MAX_HISTORY_MESSAGES as MAX_SENT_MESSAGES,
   sanitizeChatMessages,
+  truncateReply,
   type ChatMessage,
 } from "@/lib/webChat";
 import { sendWhatsAppText } from "@/lib/whatsappApi";
@@ -175,9 +176,10 @@ async function answerWithAssistant(
       timeZone: resolveTimeZone(user.timeZone),
       locale: null,
     });
-    const answer = (
-      reply || (createdNotes.length > 0 ? WHATSAPP_REPLIES.noteCreated : WHATSAPP_REPLIES.noReply)
-    ).slice(0, MAX_ASSISTANT_MESSAGE_LENGTH);
+    const answer = truncateReply(
+      reply || (createdNotes.length > 0 ? WHATSAPP_REPLIES.noteCreated : WHATSAPP_REPLIES.noReply),
+      MAX_ASSISTANT_MESSAGE_LENGTH
+    );
 
     // The reply a millisecond later, so the pair keeps its order when read back.
     const now = Date.now();

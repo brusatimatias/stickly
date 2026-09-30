@@ -18,6 +18,7 @@ vi.mock("@/lib/chatAssistant", () => ({
   runChatTurn: mockRunChatTurn,
 }));
 
+import { MAX_ASSISTANT_MESSAGE_LENGTH } from "@/lib/webChat";
 import {
   HISTORY_IDLE_MS,
   MAX_LINK_ATTEMPTS_PER_HOUR,
@@ -229,6 +230,20 @@ describe("handleInboundMessage", () => {
       await handleInboundMessage(message("anotá algo el viernes"));
 
       expect(mockSend).toHaveBeenCalledWith(FROM, WHATSAPP_REPLIES.noteCreated);
+    });
+
+    test("cuts a long reply at a line break instead of mid-sentence", async () => {
+      const block = `Nota\n   ${"detalle ".repeat(20).trim()}\n\n`;
+      const reply = `Hoy tenés 20 notas:\n\n${block.repeat(20)}`;
+      mockRunChatTurn.mockResolvedValue({ reply, createdNotes: [] });
+
+      await handleInboundMessage(message("¿qué tengo hoy?"));
+
+      const sent: string = mockSend.mock.calls[0][1];
+      expect(sent.length).toBeLessThanOrEqual(MAX_ASSISTANT_MESSAGE_LENGTH);
+      expect(sent.endsWith("\n…")).toBe(true);
+      // Everything before the mark is whole lines of the reply.
+      expect(reply.startsWith(`${sent.slice(0, -2)}\n`)).toBe(true);
     });
 
     test("rejects a message that's too long before spending quota", async () => {
