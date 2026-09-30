@@ -4,7 +4,7 @@ A notes/reminders app organized on a whiteboard-style weekly board, with Google 
 
 ## Features
 
-- Login with Google (the only authentication method).
+- Login with Google, or with email and password (the password is set from the profile).
 - Weekly board based on real calendar weeks, with navigation between weeks and jumping to a specific week.
 - Notes as sticky notes per day and time (title, optional location, exact date/time), movable via drag & drop.
 - Draft notes: up to 4 per user, with no date, used as a scratch space; they can be reordered and dragged onto a day, and the assistant creates one when asked for a draft.

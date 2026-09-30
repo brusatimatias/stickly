@@ -6,6 +6,9 @@ const PALETTE = [
   { bg: "bg-purple-200", border: "border-purple-300", text: "text-purple-950" },
 ] as const;
 
+// Drafts keep a fixed orange so they never look like a dated note.
+export const DRAFT_COLOR = "border-orange-300 bg-orange-200 text-orange-950";
+
 const ROTATIONS = ["-rotate-2", "-rotate-1", "rotate-1", "rotate-2", "rotate-3", "-rotate-3"] as const;
 
 const OVERLAPS = [

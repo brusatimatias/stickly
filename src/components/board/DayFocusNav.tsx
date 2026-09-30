@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { ChevronLeftIcon, ChevronRightIcon, GridIcon } from "@/components/board/icons";
 import type { BoardDay } from "@/components/board/types";
+import { FOCUS_RING } from "@/components/focusRing";
 
 export default function DayFocusNav({
   days,
@@ -31,7 +32,7 @@ export default function DayFocusNav({
         type="button"
         onClick={onExit}
         aria-label={t("backToWeek")}
-        className="flex shrink-0 items-center gap-1.5 rounded-full bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+        className={`flex shrink-0 items-center gap-1.5 rounded-full bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-zinc-700 pointer-coarse:py-2.5 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white ${FOCUS_RING}`}
       >
         <GridIcon className="h-3.5 w-3.5" />
         {t("backToWeek")}
@@ -42,7 +43,7 @@ export default function DayFocusNav({
         onClick={() => step(-1)}
         disabled={index <= 0}
         aria-label={t("previousDay")}
-        className="shrink-0 rounded-full bg-zinc-900 p-1.5 text-white shadow-sm hover:bg-zinc-700 disabled:opacity-30 disabled:hover:bg-zinc-900 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white dark:disabled:hover:bg-zinc-100"
+        className={`shrink-0 rounded-full bg-zinc-900 p-1.5 text-white shadow-sm hover:bg-zinc-700 disabled:opacity-30 disabled:hover:bg-zinc-900 pointer-coarse:p-3 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white dark:disabled:hover:bg-zinc-100 ${FOCUS_RING}`}
       >
         <ChevronLeftIcon className="h-4 w-4" />
       </button>
@@ -57,7 +58,7 @@ export default function DayFocusNav({
               type="button"
               onClick={() => onSelect(day.key)}
               aria-current={isActive ? "true" : undefined}
-              className={`rounded-full px-2 py-1.5 text-center text-xs font-medium transition-colors ${
+              className={`rounded-full px-2 py-1.5 text-center text-xs font-medium transition-colors pointer-coarse:py-2.5 ${FOCUS_RING} ${
                 isActive
                   ? "bg-amber-500 text-white shadow-sm"
                   : isToday
@@ -76,7 +77,7 @@ export default function DayFocusNav({
         onClick={() => step(1)}
         disabled={index >= days.length - 1}
         aria-label={t("nextDay")}
-        className="shrink-0 rounded-full bg-zinc-900 p-1.5 text-white shadow-sm hover:bg-zinc-700 disabled:opacity-30 disabled:hover:bg-zinc-900 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white dark:disabled:hover:bg-zinc-100"
+        className={`shrink-0 rounded-full bg-zinc-900 p-1.5 text-white shadow-sm hover:bg-zinc-700 disabled:opacity-30 disabled:hover:bg-zinc-900 pointer-coarse:p-3 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white dark:disabled:hover:bg-zinc-100 ${FOCUS_RING}`}
       >
         <ChevronRightIcon className="h-4 w-4" />
       </button>

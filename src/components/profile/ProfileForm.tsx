@@ -21,6 +21,7 @@ import {
 } from "@/components/profile/ui";
 import WhatsAppLink from "@/components/profile/WhatsAppLink";
 import { resizeImageToDataUrl } from "@/lib/image";
+import { FOCUS_RING } from "@/components/focusRing";
 
 const AVATAR_TARGET_SIZE = 128;
 const MIN_PASSWORD_LENGTH = 8;
@@ -177,7 +178,7 @@ export default function ProfileForm({
   }
 
   const eyeButtonClass =
-    "absolute inset-y-0 right-2 flex cursor-pointer items-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300";
+    `absolute inset-y-0 right-2 flex cursor-pointer items-center justify-center rounded-lg text-zinc-400 hover:text-zinc-600 pointer-coarse:right-0 pointer-coarse:w-10 dark:hover:text-zinc-300 ${FOCUS_RING}`;
 
   return (
     <div className="flex w-full max-w-sm flex-col divide-y divide-zinc-200 rounded-2xl border border-zinc-200 bg-white p-8 shadow-xl dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-950">
@@ -265,7 +266,7 @@ export default function ProfileForm({
                   autoFocus
                   value={currentPassword}
                   onChange={(event) => setCurrentPassword(event.target.value)}
-                  className={`${INPUT_CLASS} pr-9`}
+                  className={`${INPUT_CLASS} pr-9 pointer-coarse:pr-11`}
                 />
                 <button
                   type="button"
@@ -304,7 +305,7 @@ export default function ProfileForm({
                 value={password}
                 onChange={(event) => setPasswordValue(event.target.value)}
                 aria-invalid={tooShort}
-                className={`${INPUT_CLASS} pr-9`}
+                className={`${INPUT_CLASS} pr-9 pointer-coarse:pr-11`}
               />
               <button
                 type="button"

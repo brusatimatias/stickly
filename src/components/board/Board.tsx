@@ -4,7 +4,8 @@ import {
   DndContext,
   DragOverlay,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   getFirstCollision,
   pointerWithin,
   rectIntersection,
@@ -17,6 +18,7 @@ import {
 } from "@dnd-kit/core";
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useId, useRef, useState, useTransition } from "react";
 import { moveDraftNote, moveNote, scheduleDraftNote } from "@/app/actions/notes";
 import DayColumn from "@/components/board/DayColumn";
@@ -67,6 +69,10 @@ export default function Board({
   todayKey: string;
 }) {
   const router = useRouter();
+  const t = useTranslations("board");
+  // From the server data, not `notesByDay`, so the hint doesn't come and go
+  // (shifting the layout) while a draft is being dragged onto the week.
+  const isWeekEmpty = notes.length === 0;
   function buildNotesByDay(): NotesByDay {
     return {
       ...groupNotesByDay(
@@ -82,7 +88,18 @@ export default function Board({
   const [syncedNotes, setSyncedNotes] = useState(notes);
   const [syncedDraftNotes, setSyncedDraftNotes] = useState(draftNotes);
   const [syncedTimeZone, setSyncedTimeZone] = useState(timeZone);
+  // Notes that weren't in the previous server data (just created, here or
+  // from the chat) animate in. A note moved to another day or a scheduled
+  // draft keeps its id, so it doesn't. The set is cleared when the entrance
+  // animation ends (so a later remount, e.g. entering focus-day mode, doesn't
+  // replay it), not on every refresh, which could cut it short.
+  const [newNoteIds, setNewNoteIds] = useState<ReadonlySet<string>>(() => new Set());
   if (notes !== syncedNotes || draftNotes !== syncedDraftNotes || timeZone !== syncedTimeZone) {
+    const previousIds = new Set([...syncedNotes, ...syncedDraftNotes].map((note) => note.id));
+    const addedIds = [...notes, ...draftNotes]
+      .map((note) => note.id)
+      .filter((id) => !previousIds.has(id));
+    if (addedIds.length > 0) setNewNoteIds(new Set(addedIds));
     setSyncedNotes(notes);
     setSyncedDraftNotes(draftNotes);
     setSyncedTimeZone(timeZone);
@@ -105,7 +122,11 @@ export default function Board({
   // stable id from useId makes them deterministic.
   const dndContextId = useId();
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    // Mouse and touch instead of PointerSensor, which would also start a drag
+    // on touch right away. On touch, a drag needs a short press on the handle,
+    // so a swipe over it still scrolls the page.
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
@@ -144,6 +165,8 @@ export default function Board({
   );
 
   function handleDragStart(event: DragStartEvent) {
+    // A card dragged into another day remounts there; don't replay its entrance.
+    setNewNoteIds(new Set());
     const container = findContainer(event.active.id as string, notesByDay) ?? null;
     originContainerRef.current = container;
     setActiveNote(
@@ -267,7 +290,12 @@ export default function Board({
 
   return (
     <TimeZoneProvider value={timeZone}>
-      <div className="flex flex-1 flex-col">
+      <div
+        className="flex flex-1 flex-col"
+        onAnimationEnd={(event) => {
+          if (event.animationName === "note-in") setNewNoteIds(new Set());
+        }}
+      >
         <WeekNav
           weekLabel={weekLabel}
           prevWeekParam={prevWeekParam}
@@ -287,10 +315,11 @@ export default function Board({
             setActiveNote(null);
           }}
         >
-          <div className="flex flex-col gap-3 p-4 lg:flex-row">
-            <DraftPanel notes={notesByDay[DRAFT_CONTAINER]} />
+          {/* Bottom padding so the chat launcher never covers the last notes. */}
+          <div className="flex flex-col gap-3 p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:flex-row">
+            <DraftPanel notes={notesByDay[DRAFT_CONTAINER]} newNoteIds={newNoteIds} />
             {focusedDayInfo ? (
-              <div className="min-w-0 flex-1">
+              <div className="animate-week-in min-w-0 flex-1">
                 <DayFocusNav
                   days={days}
                   focusedDay={focusedDayInfo.key}
@@ -301,12 +330,18 @@ export default function Board({
                 <DayColumn
                   day={focusedDayInfo}
                   notes={notesByDay[focusedDayInfo.key] ?? []}
+                  newNoteIds={newNoteIds}
                   todayKey={todayKey}
                   isFocused
                 />
               </div>
             ) : (
-              <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-7">
+              <div className="animate-week-in grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-7">
+                {isWeekEmpty && (
+                  <p className="col-span-full rounded-lg border border-dashed border-zinc-200 px-4 py-2.5 text-center text-sm text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+                    {t("emptyWeekHint")}
+                  </p>
+                )}
                 {days.map((day, index) => (
                   <div
                     key={day.key}
@@ -319,6 +354,7 @@ export default function Board({
                     <DayColumn
                       day={day}
                       notes={notesByDay[day.key] ?? []}
+                      newNoteIds={newNoteIds}
                       todayKey={todayKey}
                       onToggleFocus={() => setFocusedDay(day.key)}
                     />

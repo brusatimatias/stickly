@@ -8,6 +8,7 @@ import { createDraftNote, updateDraftNote } from "@/app/actions/notes";
 import FoldedCorner from "@/components/board/FoldedCorner";
 import type { NoteDTO } from "@/components/board/types";
 import { useNoteEditorKeyboard } from "@/components/board/useNoteEditorKeyboard";
+import { DRAFT_COLOR } from "@/lib/noteColor";
 
 export default function DraftForm({
   note,
@@ -71,7 +72,7 @@ export default function DraftForm({
     <div
       ref={containerRef}
       onKeyDown={handleKeyDown}
-      className="relative flex h-44 w-44 -rotate-1 flex-col justify-between overflow-hidden rounded-sm border border-orange-300 bg-orange-200 p-2 text-sm text-orange-950 shadow-md sm:h-48 sm:w-48"
+      className={`relative flex h-44 w-44 -rotate-1 flex-col justify-between overflow-hidden rounded-sm border p-2 text-sm shadow-md sm:h-48 sm:w-48 ${DRAFT_COLOR}`}
     >
       <FoldedCorner />
       <div className="mt-4 flex min-w-0 flex-1 flex-col overflow-hidden">

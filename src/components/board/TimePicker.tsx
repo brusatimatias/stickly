@@ -8,6 +8,10 @@ import { ClockIcon } from "@/components/board/icons";
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
 const MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0"));
 
+// Matches the popover's `w-28`, to keep it inside the viewport on narrow screens.
+const POPOVER_WIDTH = 112;
+const VIEWPORT_MARGIN = 8;
+
 export default function TimePicker({
   value,
   onChange,
@@ -81,7 +85,8 @@ export default function TimePicker({
     }
     const rect = buttonRef.current?.getBoundingClientRect();
     if (rect) {
-      setPosition({ top: rect.bottom + 6, left: rect.left });
+      const maxLeft = window.innerWidth - POPOVER_WIDTH - VIEWPORT_MARGIN;
+      setPosition({ top: rect.bottom + 6, left: Math.max(VIEWPORT_MARGIN, Math.min(rect.left, maxLeft)) });
     }
     setOpen(true);
   }

@@ -10,8 +10,17 @@ import ConfirmDialog from "@/components/board/ConfirmDialog";
 import DraftForm from "@/components/board/DraftForm";
 import FoldedCorner from "@/components/board/FoldedCorner";
 import type { NoteDTO } from "@/components/board/types";
+import { DRAFT_COLOR } from "@/lib/noteColor";
+import { FOCUS_RING } from "@/components/focusRing";
 
-export default function DraftCard({ note }: { note: NoteDTO }) {
+export default function DraftCard({
+  note,
+  isNew = false,
+}: {
+  note: NoteDTO;
+  /** Just appeared in the panel, so it animates in. */
+  isNew?: boolean;
+}) {
   const t = useTranslations("board");
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
@@ -43,7 +52,7 @@ export default function DraftCard({ note }: { note: NoteDTO }) {
       ref={setNodeRef}
       style={style}
       onClick={() => setIsEditing(true)}
-      className="group relative flex h-44 w-44 -rotate-1 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border border-orange-300 bg-orange-200 p-2 text-sm text-orange-950 shadow-md transition-[top] hover:z-10 hover:-top-1 hover:shadow-lg sm:h-48 sm:w-48"
+      className={`${isNew ? "animate-note-in" : ""} group relative flex h-44 w-44 -rotate-1 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border p-2 text-sm shadow-md transition-[top] hover:z-10 hover:-top-1 hover:shadow-lg sm:h-48 sm:w-48 ${DRAFT_COLOR}`}
     >
       <FoldedCorner />
       <button
@@ -52,7 +61,7 @@ export default function DraftCard({ note }: { note: NoteDTO }) {
         onClick={(event) => event.stopPropagation()}
         {...attributes}
         {...listeners}
-        className="absolute left-1 top-1 cursor-grab select-none opacity-0 transition-opacity group-hover:opacity-70 active:cursor-grabbing"
+        className={`absolute left-1 top-1 cursor-grab touch-none select-none rounded-sm opacity-0 transition-opacity group-hover:opacity-70 active:cursor-grabbing pointer-coarse:-m-2 pointer-coarse:p-2 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING}`}
       >
         ⠿
       </button>
@@ -64,7 +73,7 @@ export default function DraftCard({ note }: { note: NoteDTO }) {
           setIsConfirmingDelete(true);
         }}
         disabled={isPending}
-        className="absolute right-1 top-1 opacity-0 transition-opacity group-hover:opacity-70 disabled:opacity-30"
+        className={`absolute right-1 top-1 rounded-sm opacity-0 transition-opacity group-hover:opacity-70 disabled:opacity-30 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING}`}
       >
         ✕
       </button>
