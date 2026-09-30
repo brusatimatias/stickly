@@ -15,6 +15,10 @@ A notes/reminders app organized on a whiteboard-style weekly board, with Google 
   - Usage is rate-limited per user and globally, sized for the Gemini API free tier.
 - The same assistant on WhatsApp: link your number from the profile (a one-time code you send from WhatsApp) and message Stickly to create notes or ask about them, in your own language. It keeps the last half hour of conversation, so it can ask for a missing date.
 
+## Architecture
+
+![stickly architecture: the board client, the Next.js server with its server actions, Auth.js, WhatsApp webhook and chat core, PostgreSQL, Google OAuth/Calendar, Gemini and Meta's WhatsApp Cloud API](docs/architecture.svg)
+
 ## Stack
 
 - Next.js (App Router) + TypeScript

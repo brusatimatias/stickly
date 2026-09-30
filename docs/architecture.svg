@@ -1,0 +1,124 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900" font-family="Arial, Helvetica, sans-serif">
+  <defs>
+    <marker id="arrow-black" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#111"/>
+    </marker>
+    <marker id="arrow-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/>
+    </marker>
+    <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#1e8e3e"/>
+    </marker>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#1a73e8"/>
+    </marker>
+    <marker id="arrow-db" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#336791"/>
+    </marker>
+  </defs>
+
+  <rect width="1440" height="900" fill="#ffffff"/>
+
+  <!-- Browser -->
+  <rect x="500" y="40" width="440" height="170" rx="16" fill="#fff" stroke="#dc2626" stroke-width="4"/>
+  <text x="720" y="80" text-anchor="middle" font-size="22" font-weight="bold" fill="#111">Browser — board client</text>
+  <text x="720" y="115" text-anchor="middle" font-size="20" fill="#0891b2">React 19 · Board + ChatWidget</text>
+  <text x="720" y="145" text-anchor="middle" font-size="15" fill="#444">dnd-kit drag &amp; drop · optimistic updates</text>
+  <text x="720" y="172" text-anchor="middle" font-size="15" fill="#444">next-intl (en/es) · sends its time zone</text>
+
+  <!-- Browser <-> server -->
+  <line x1="660" y1="212" x2="660" y2="316" stroke="#111" stroke-width="2.5" marker-end="url(#arrow-black)"/>
+  <text x="645" y="258" text-anchor="end" font-size="15" font-weight="bold" fill="#111">Server Actions</text>
+  <text x="645" y="280" text-anchor="end" font-size="13" fill="#444">JWT session cookie</text>
+  <line x1="780" y1="316" x2="780" y2="214" stroke="#7c3aed" stroke-width="2.5" stroke-dasharray="8 6" marker-end="url(#arrow-purple)"/>
+  <text x="795" y="258" font-size="15" font-weight="bold" fill="#7c3aed">RSC refresh</text>
+  <text x="795" y="280" font-size="13" fill="#7c3aed">revalidatePath("/")</text>
+
+  <!-- Next.js server -->
+  <rect x="420" y="320" width="600" height="340" rx="16" fill="#fff" stroke="#111" stroke-width="4"/>
+  <text x="720" y="355" text-anchor="middle" font-size="22" font-weight="bold" fill="#111">Next.js 16 on Vercel</text>
+  <text x="720" y="380" text-anchor="middle" font-size="14" fill="#444">App Router · proxy.ts sets a nonce-based CSP</text>
+
+  <rect x="445" y="400" width="265" height="112" rx="10" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="577" y="426" text-anchor="middle" font-size="17" font-weight="bold" fill="#111">Server Actions</text>
+  <text x="577" y="450" text-anchor="middle" font-size="14" fill="#444">notes · calendar · chat</text>
+  <text x="577" y="472" text-anchor="middle" font-size="14" fill="#444">profile · whatsapp · locale · theme</text>
+  <text x="577" y="494" text-anchor="middle" font-size="14" fill="#444">requireUserId() on every call</text>
+
+  <rect x="730" y="400" width="265" height="112" rx="10" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="862" y="426" text-anchor="middle" font-size="17" font-weight="bold" fill="#111">Auth.js</text>
+  <text x="862" y="450" text-anchor="middle" font-size="14" fill="#444">Google + email/password</text>
+  <text x="862" y="472" text-anchor="middle" font-size="14" fill="#444">JWT carries only the userId</text>
+  <text x="862" y="494" text-anchor="middle" font-size="14" fill="#444">bcrypt hashes</text>
+
+  <rect x="445" y="530" width="265" height="112" rx="10" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="577" y="556" text-anchor="middle" font-size="17" font-weight="bold" fill="#111">/api/whatsapp</text>
+  <text x="577" y="580" text-anchor="middle" font-size="14" fill="#444">verifies X-Hub-Signature-256</text>
+  <text x="577" y="602" text-anchor="middle" font-size="14" fill="#444">answers 200, works in after()</text>
+  <text x="577" y="624" text-anchor="middle" font-size="14" fill="#444">dedupes by message id</text>
+
+  <rect x="730" y="530" width="265" height="112" rx="10" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="862" y="556" text-anchor="middle" font-size="17" font-weight="bold" fill="#111">runChatTurn</text>
+  <text x="862" y="580" text-anchor="middle" font-size="14" fill="#444">tools: create_note,</text>
+  <text x="862" y="602" text-anchor="middle" font-size="14" fill="#444">create_draft_note, list_notes</text>
+  <text x="862" y="624" text-anchor="middle" font-size="14" fill="#444">shared quota (WebChatUsage)</text>
+
+  <!-- Chat entry points -> chat core -->
+  <line x1="711" y1="586" x2="728" y2="586" stroke="#111" stroke-width="2" marker-end="url(#arrow-black)"/>
+  <line x1="690" y1="513" x2="752" y2="528" stroke="#111" stroke-width="2" marker-end="url(#arrow-black)"/>
+
+  <!-- PostgreSQL -->
+  <line x1="720" y1="662" x2="720" y2="724" stroke="#336791" stroke-width="2.5" marker-end="url(#arrow-db)"/>
+  <text x="735" y="700" font-size="14" font-weight="bold" fill="#336791">Prisma 7 · adapter-pg</text>
+  <path d="M665,742 L665,812 A55,14 0 0 0 775,812 L775,742" fill="#336791"/>
+  <ellipse cx="720" cy="742" rx="55" ry="14" fill="#4a86b5"/>
+  <text x="720" y="852" text-anchor="middle" font-size="18" fill="#111">PostgreSQL</text>
+  <text x="800" y="760" font-size="14" fill="#444">User (Google tokens encrypted, AES-256-GCM)</text>
+  <text x="800" y="782" font-size="14" fill="#444">Note (startsAt UTC + kind, position, drafts)</text>
+  <text x="800" y="804" font-size="14" fill="#444">WebChatUsage · WhatsApp messages and link codes</text>
+
+  <!-- Google -->
+  <rect x="1150" y="320" width="260" height="200" rx="16" fill="#fff" stroke="#1a73e8" stroke-width="4"/>
+  <text x="1280" y="358" text-anchor="middle" font-size="22" font-weight="bold" fill="#111">Google</text>
+  <text x="1280" y="392" text-anchor="middle" font-size="19" fill="#1a73e8">OAuth sign in</text>
+  <text x="1280" y="422" text-anchor="middle" font-size="19" fill="#1a73e8">Calendar API</text>
+  <text x="1280" y="456" text-anchor="middle" font-size="14" fill="#444">withGoogleCalendar refreshes</text>
+  <text x="1280" y="478" text-anchor="middle" font-size="14" fill="#444">the token, retries once on 401</text>
+
+  <line x1="1022" y1="420" x2="1146" y2="420" stroke="#1a73e8" stroke-width="2.5" marker-start="url(#arrow-blue)" marker-end="url(#arrow-blue)"/>
+  <text x="1085" y="410" text-anchor="middle" font-size="13" fill="#1a73e8">sign in · tokens</text>
+  <line x1="1022" y1="480" x2="1146" y2="480" stroke="#1a73e8" stroke-width="2.5" marker-end="url(#arrow-blue)"/>
+  <text x="1085" y="470" text-anchor="middle" font-size="13" fill="#1a73e8">note → event</text>
+
+  <!-- Gemini -->
+  <rect x="1150" y="550" width="260" height="130" rx="16" fill="#fff" stroke="#7c3aed" stroke-width="4"/>
+  <text x="1280" y="588" text-anchor="middle" font-size="22" font-weight="bold" fill="#111">Gemini API</text>
+  <text x="1280" y="620" text-anchor="middle" font-size="19" fill="#7c3aed">Vercel AI SDK v7</text>
+  <text x="1280" y="652" text-anchor="middle" font-size="14" fill="#444">free tier · 429 is a hard cap</text>
+
+  <line x1="1022" y1="600" x2="1146" y2="600" stroke="#7c3aed" stroke-width="2.5" marker-start="url(#arrow-purple)" marker-end="url(#arrow-purple)"/>
+  <text x="1085" y="590" text-anchor="middle" font-size="13" fill="#7c3aed">tool calls</text>
+
+  <!-- WhatsApp user -->
+  <rect x="30" y="40" width="270" height="110" rx="16" fill="#fff" stroke="#1e8e3e" stroke-width="4"/>
+  <text x="165" y="84" text-anchor="middle" font-size="22" font-weight="bold" fill="#111">WhatsApp user</text>
+  <text x="165" y="116" text-anchor="middle" font-size="14" fill="#444">links the number with a 6-digit code</text>
+
+  <line x1="120" y1="152" x2="120" y2="356" stroke="#1e8e3e" stroke-width="2.5" marker-end="url(#arrow-green)"/>
+  <text x="108" y="258" text-anchor="end" font-size="14" fill="#1e8e3e">message</text>
+  <line x1="210" y1="356" x2="210" y2="154" stroke="#1e8e3e" stroke-width="2.5" stroke-dasharray="8 6" marker-end="url(#arrow-green)"/>
+  <text x="222" y="258" font-size="14" fill="#1e8e3e">reply</text>
+
+  <!-- Meta -->
+  <rect x="30" y="360" width="270" height="245" rx="16" fill="#fff" stroke="#1e8e3e" stroke-width="4"/>
+  <text x="165" y="400" text-anchor="middle" font-size="22" font-weight="bold" fill="#111">Meta</text>
+  <text x="165" y="432" text-anchor="middle" font-size="19" fill="#1e8e3e">WhatsApp Cloud API</text>
+  <text x="165" y="480" text-anchor="middle" font-size="14" fill="#444">delivers at least once</text>
+  <text x="165" y="502" text-anchor="middle" font-size="14" fill="#444">retries slow webhooks</text>
+  <text x="165" y="524" text-anchor="middle" font-size="14" fill="#444">replies only inside the 24 h window</text>
+
+  <line x1="302" y1="586" x2="416" y2="586" stroke="#1e8e3e" stroke-width="2.5" marker-end="url(#arrow-green)"/>
+  <text x="359" y="576" text-anchor="middle" font-size="13" fill="#1e8e3e">signed webhook</text>
+  <line x1="416" y1="456" x2="304" y2="456" stroke="#1e8e3e" stroke-width="2.5" stroke-dasharray="8 6" marker-end="url(#arrow-green)"/>
+  <text x="359" y="446" text-anchor="middle" font-size="13" fill="#1e8e3e">Graph API reply</text>
+</svg>
