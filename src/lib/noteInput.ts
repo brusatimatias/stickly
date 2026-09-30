@@ -1,6 +1,11 @@
 import { differenceInCalendarDays, format, isValid, parseISO } from "date-fns";
 
 const MAX_TITLE_LENGTH = 80;
+/**
+ * What the chat's model is asked to keep titles under. Not enforced: the hard
+ * cap is MAX_TITLE_LENGTH, for the board too; this keeps a card readable.
+ */
+export const TITLE_SOFT_LIMIT = 40;
 const MAX_LOCATION_LENGTH = 60;
 const MAX_DESCRIPTION_LENGTH = 300;
 const DAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -40,7 +45,7 @@ export const CREATE_NOTE_TOOL = {
     properties: {
       title: {
         type: "string",
-        description: `Short action-style title, at most ${MAX_TITLE_LENGTH} characters, e.g. "Call the plumber".`,
+        description: `2 to 6 words, at most ${TITLE_SOFT_LIMIT} characters, starting with a verb or the key noun, e.g. "Call the plumber". No day, time or place (they have their own fields) and no filler like "remind me to".`,
       },
       day: { type: "string", description: "Day of the note, yyyy-MM-dd." },
       time: { type: "string", description: "Time of day in 24h HH:mm. Omit when none was given." },
@@ -50,7 +55,7 @@ export const CREATE_NOTE_TOOL = {
       },
       description: {
         type: "string",
-        description: `Extra details that don't fit the title. At most ${MAX_DESCRIPTION_LENGTH} characters.`,
+        description: `Other useful details (who, what to bring, amounts, phone numbers), summarized rather than copied from the message. Omit when there are none. At most ${MAX_DESCRIPTION_LENGTH} characters.`,
       },
     },
     required: ["title", "day"],

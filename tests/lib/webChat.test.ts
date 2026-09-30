@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { TITLE_SOFT_LIMIT } from "@/lib/noteInput";
 import {
   CHAT_LIMITS,
   buildChatSystemPrompt,
@@ -143,10 +144,30 @@ describe("buildChatSystemPrompt", () => {
     expect(prompt).toContain("Monday 2026-09-21 to Sunday 2026-09-27");
   });
 
+  test("spells out that today's weekday on its own means today", () => {
+    const prompt = buildChatSystemPrompt({ today, locale: "en" });
+    expect(prompt).toContain('"Saturday" on its own means today, 2026-09-26, not next week');
+  });
+
   test("mentions both tools", () => {
     const prompt = buildChatSystemPrompt({ today, locale: "en" });
     expect(prompt).toContain("create_note");
     expect(prompt).toContain("list_notes");
+  });
+
+  test("asks for short titles and summarized descriptions, with examples", () => {
+    const prompt = buildChatSystemPrompt({ today, locale: "en" });
+    expect(prompt).toContain("2 to 6 words");
+    expect(prompt).toContain(`at most ${TITLE_SOFT_LIMIT} characters`);
+    expect(prompt).toContain("Never put the day, time or place in the title");
+    expect(prompt).toMatch(/filler .*"recordame"/);
+    expect(prompt).toContain("Keep what or who it is about");
+    expect(prompt).toContain("That includes Stickly itself");
+    expect(prompt).toContain("never drop or reinterpret a detail, never add one");
+    expect(prompt).toContain("keep the user's own words for names and terms");
+    expect(prompt).toContain("always write the fields in the user's own language");
+    expect(prompt).toContain('title "Llevar el auto al mecánico"');
+    expect(prompt).toContain('title "Buy stamps", no description');
   });
 
   test("replies in the user's locale", () => {

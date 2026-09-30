@@ -1,5 +1,8 @@
 import { describe, expect, test } from "vitest";
 import {
+  CREATE_DRAFT_NOTE_TOOL,
+  CREATE_NOTE_TOOL,
+  TITLE_SOFT_LIMIT,
   parseDraftNoteToolInput,
   parseListNotesInput,
   parseNoteToolInput,
@@ -144,5 +147,24 @@ describe("parseListNotesInput", () => {
       "INVALID_NOTE_INPUT"
     );
     expect(() => parseListNotesInput("2026-09-26")).toThrow("INVALID_NOTE_INPUT");
+  });
+});
+
+describe("create_note tool schema", () => {
+  const { title, description } = CREATE_NOTE_TOOL.inputSchema.properties;
+
+  test("asks the model for short titles, under the soft limit", () => {
+    expect(title.description).toContain(`at most ${TITLE_SOFT_LIMIT} characters`);
+    expect(title.description).toContain("No day, time or place");
+  });
+
+  test("asks for summarized descriptions, omitted when empty", () => {
+    expect(description.description).toContain("summarized rather than copied");
+    expect(description.description).toContain("Omit when there are none");
+  });
+
+  test("gives drafts the same title and description rules", () => {
+    expect(CREATE_DRAFT_NOTE_TOOL.inputSchema.properties.title).toBe(title);
+    expect(CREATE_DRAFT_NOTE_TOOL.inputSchema.properties.description).toBe(description);
   });
 });

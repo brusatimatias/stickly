@@ -163,7 +163,11 @@ export default function NoteCard({ day, note }: { day: string; note: NoteDTO }) 
           <ClockIcon className="h-3 w-3 shrink-0" />
           {displayNote.time ?? "--:--"}
         </p>
-        <p className={`break-words font-semibold ${displayNote.isDone ? "line-through" : ""}`}>
+        {/* Clamped so a long title can't push the description out; hover shows it whole. */}
+        <p
+          title={displayNote.title}
+          className={`line-clamp-3 shrink-0 break-words font-semibold ${displayNote.isDone ? "line-through" : ""}`}
+        >
           {displayNote.title}
         </p>
         {displayNote.description && (
