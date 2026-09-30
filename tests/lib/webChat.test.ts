@@ -153,4 +153,10 @@ describe("buildChatSystemPrompt", () => {
     expect(buildChatSystemPrompt({ today, locale: "es" })).toContain("Reply in Spanish");
     expect(buildChatSystemPrompt({ today, locale: "en" })).toContain("Reply in English");
   });
+
+  test("replies in the user's own language without a locale", () => {
+    const prompt = buildChatSystemPrompt({ today, locale: null });
+    expect(prompt).toContain("Reply in the language the user writes in");
+    expect(prompt).not.toMatch(/Reply in (English|Spanish)/);
+  });
 });

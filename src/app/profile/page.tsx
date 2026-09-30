@@ -17,10 +17,18 @@ export default async function ProfilePage() {
   const [user, t] = await Promise.all([
     prisma.user.findUniqueOrThrow({
       where: { id: session.user.id },
-      select: { name: true, email: true, avatarUrl: true, imageUrl: true, password: true },
+      select: {
+        name: true,
+        email: true,
+        avatarUrl: true,
+        imageUrl: true,
+        password: true,
+        whatsappNumber: true,
+      },
     }),
     getTranslations("profile"),
   ]);
+  const botNumber = process.env.WHATSAPP_DISPLAY_NUMBER;
 
   return (
     <div className="flex flex-1 flex-col">
@@ -43,6 +51,7 @@ export default async function ProfilePage() {
           email={user.email}
           avatarSrc={user.avatarUrl ?? user.imageUrl}
           hasPassword={Boolean(user.password)}
+          whatsapp={botNumber ? { linkedNumber: user.whatsappNumber, botNumber } : null}
         />
       </div>
     </div>
