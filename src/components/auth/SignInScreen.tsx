@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 import type { CSSProperties } from "react";
 import { signIn } from "@/auth";
 import CredentialsSignInForm from "@/components/auth/CredentialsSignInForm";
+import FeatureList from "@/components/auth/FeatureList";
 import FoldedCorner from "@/components/board/FoldedCorner";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -56,7 +57,6 @@ function buildStickers() {
 export default async function SignInScreen() {
   const t = await getTranslations("auth");
   const stickers = buildStickers();
-  const features = [t("featureBoard"), t("featureDrag"), t("featureCalendar")];
 
   return (
     <div className="relative flex flex-1 flex-col items-center justify-center gap-8 overflow-hidden bg-zinc-50 px-6 py-16 dark:bg-black">
@@ -100,14 +100,7 @@ export default async function SignInScreen() {
           {t("tagline")}
         </p>
 
-        <ul className="w-full space-y-2 text-left text-sm text-zinc-600 dark:text-zinc-300">
-          {features.map((feature) => (
-            <li key={feature} className="flex items-start gap-2">
-              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
-              {feature}
-            </li>
-          ))}
-        </ul>
+        <FeatureList />
 
         <form
           action={async () => {
