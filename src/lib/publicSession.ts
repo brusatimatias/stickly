@@ -2,9 +2,11 @@
  * Session fields that must never be sent to the browser. `accessToken` (a
  * live Google token with Calendar scope) used to be on the session; tokens
  * now live encrypted on `User`, but it stays listed so an old session cookie
- * or a regression can't expose one. Add any new secret session field here.
+ * or a regression can't expose one. `authProvider`/`authAt` aren't secret,
+ * but only the server needs them (a recent Google sign in skips the current
+ * password). Add any new server-only session field here.
  */
-const PRIVATE_SESSION_FIELDS = ["accessToken"] as const;
+const PRIVATE_SESSION_FIELDS = ["accessToken", "authProvider", "authAt"] as const;
 
 /**
  * Returns a copy of the session JSON without the server-only fields. Passes

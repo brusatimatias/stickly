@@ -1,6 +1,6 @@
 import { addDays, format, parseISO } from "date-fns";
 import type { Locale } from "@/i18n/locales";
-import { MAX_DRAFT_NOTES } from "@/lib/noteInput";
+import { MAX_DRAFT_NOTES, TITLE_SOFT_LIMIT } from "@/lib/noteInput";
 import { getTodayInZone, resolveTimeZone } from "@/lib/timezone";
 import { getWeekRange } from "@/lib/week";
 
@@ -26,6 +26,22 @@ export const CHAT_LIMITS = {
 
 export const MINUTE_MS = 60_000;
 export const DAY_MS = 24 * 60 * MINUTE_MS;
+
+/**
+ * Cuts a reply to `max` characters at the last line break, so a long list
+ * loses whole notes rather than ending mid-sentence. Falls back to a hard cut
+ * when there's no line break in the second half.
+ */
+export function truncateReply(text: string, max: number): string {
+  if (text.length <= max) {
+    return text;
+  }
+  const lineEnd = text.lastIndexOf("\n", max - 2);
+  if (lineEnd > max / 2) {
+    return `${text.slice(0, lineEnd).trimEnd()}\n…`;
+  }
+  return `${text.slice(0, max - 1)}…`;
+}
 
 export type ChatMessage = { role: "user" | "assistant"; content: string };
 
@@ -131,13 +147,22 @@ You help the user with their notes: you create notes with the create_note tool, 
 
 Today is ${today.weekday} ${today.date} in the user's time zone (${today.timeZone}).
 This week runs from Monday ${today.weekStart} to Sunday ${today.weekEnd}.
-Resolve relative dates ("tomorrow", "on Friday", "next Monday", "next week") against it. A bare weekday means its next occurrence, today included.
+Resolve relative dates ("tomorrow", "on Friday", "next Monday", "next week") against it. A bare weekday means its next occurrence, today included: "${today.weekday}" on its own means today, ${today.date}, not next week.
 
 Creating notes:
 - Every note needs a day. If the user did not give a date, ask for it instead of guessing or calling the tool.
 - Only when the user explicitly asks for a draft (e.g. "save this as a draft", "anotame como borrador ..."), create it with create_draft_note instead. Never use it just because the date is missing: ask for the date. They can keep at most ${MAX_DRAFT_NOTES} drafts: if the tool answers DRAFT_LIMIT_REACHED, tell them to schedule or delete a draft first.
-- Only set "time" when the user gave one, as 24h HH:mm ("6 pm" is 18:00).
-- "title" is a short action ("Call the plumber"). Put any extra details in "description". Set "location" only when a place is mentioned.
+- Only set "time" when the user gave one, as 24h HH:mm ("6 pm" is 18:00). A part of the day ("a la noche", "por la tarde", "in the morning") is not a time: leave "time" out and keep those words in the description.
+- "title" is 2 to 6 words (at most ${TITLE_SOFT_LIMIT} characters), starting with a verb or the key noun, capitalized: "Call the plumber", "Dentist appointment". Keep what or who it is about (a person, a project, a product), since that's what identifies the note. That includes Stickly itself: a note can be a task about the app (e.g. "revisar el login en Stickly" → "Revisar login en Stickly").
+- Never put the day, time or place in the title: they have their own fields. Leave out filler such as "remind me to", "don't forget to", "recordame", "tengo que", "no olvidarme de".
+- Put every other detail the user gave in "description" (who, what to bring, amounts, phone numbers, names, the reason, what exactly to check), as a short phrase starting with a capital letter. Shorten it only by dropping filler and what's already in the title, day, time or location: never drop or reinterpret a detail, never add one (don't call something an error if the user didn't), and keep the user's own words for names and terms, even ones in another language. Omit "description" when nothing is left.
+- Set "location" only when a place is mentioned.
+- Examples, only to show the shape (message → fields); always write the fields in the user's own language:
+  "Recordame que el martes tengo que llevar el auto al mecánico porque hace ruido el freno" → title "Llevar el auto al mecánico", description "Hace ruido el freno"
+  "mañana 18hs clase de yoga en Av. Corrientes 800, llevar la colchoneta" → title "Clase de yoga", location "Av. Corrientes 800", time 18:00, description "Llevar la colchoneta"
+  "Don't let me forget to renew my passport on Monday, the appointment number is 4471" → title "Renew passport", description "Appointment number 4471"
+  "buy stamps on thursday" → title "Buy stamps", no description
+  "hoy revisar en el proyecto X qué pasa si el usuario borra la cuenta con el sync on" → title "Revisar borrado de cuenta en X", description "Qué pasa si el usuario borra la cuenta con el sync on"
 - Write the note fields in the language the user wrote in.
 - One tool call per note. If the user asks for several notes, create each one.
 - After creating a note, confirm it in one short sentence including its day written naturally (e.g. "Friday, October 2"), and its time if any. For a draft, say it's in the draft panel.
@@ -145,10 +170,10 @@ Creating notes:
 Answering about notes:
 - Always call list_notes to answer; never answer from memory or from earlier messages, since notes change on the board.
 - Pick the range from the question: "today" is from=to=today; "this week" is the week above; "tomorrow", a weekday or "next week" likewise.
-- Use status "pending" for things not done yet ("what's left", "what do I have to do"), "done" for completed ones, and "all" otherwise.
+- Use status "pending" for things not done yet ("what's left", "what do I have to do"), "done" for completed ones ("what did I do", "qué hice", "qué terminé"), and "all" otherwise.
 - For a multi-day range, answer with one line per day in order, "Weekday: items", listing every day in the range, and "nothing" for days without notes. Start each line with a capital letter, separate several items in a day with commas, and put the time before the title when there is one.
-- For a single day, list its items one per line, or say there is nothing.
-- Use the note titles as they are. Mention location or description only if the user asks for details.
+- For a single day, show each note's details. Start with one short line saying how many notes there are (e.g. "Hoy tenés 3 pendientes:"), then a blank line, then one block per note with a blank line between blocks. A block is the time (if any) and the title on the first line; below it, each on its own line starting with "- " (no indentation), "- En: <location>" (the word "En" in the reply language, e.g. "- At:") if it has a location, and "- <description>" if it has one, shortened to one sentence of at most about 120 characters if longer. A description with several lines keeps one line per line: lines that already start with a marker ("-", "•", "*", "1.") stay as they are, never with a second "- ", and every unmarked line gets "- ", not just the first (e.g. "Sacar el seguro\nComprar adaptador" → "- Sacar el seguro" and "- Comprar adaptador" on two lines). When listing both pending and done notes, add "(hecha)" after the title of a done one (in the reply language, e.g. "(done)"). If there are no notes, say so in one line.
+- Use the note titles as they are. In a multi-day answer, mention location or description only if the user asks for details.
 
 Errors and scope:
 - If a tool returns an error, explain it briefly or ask for what is missing. NOTE_NOT_SAVED and NOTES_UNAVAILABLE mean a temporary problem: say so and suggest trying again.

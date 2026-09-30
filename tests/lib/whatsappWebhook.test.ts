@@ -1,6 +1,7 @@
 import { createHmac } from "node:crypto";
 import { describe, expect, test } from "vitest";
 import {
+  isValidVerifyToken,
   isValidWebhookSignature,
   parseWebhookMessages,
   toReplyNumber,
@@ -30,6 +31,24 @@ describe("isValidWebhookSignature", () => {
 
   test("rejects everything when the secret isn't set", () => {
     expect(isValidWebhookSignature(BODY, sign(BODY, ""), "")).toBe(false);
+  });
+});
+
+describe("isValidVerifyToken", () => {
+  test("accepts the configured token", () => {
+    expect(isValidVerifyToken("verify-me", "verify-me")).toBe(true);
+  });
+
+  test.each([
+    ["another token of the same length", "verify-it", "verify-me"],
+    ["a shorter token", "verify", "verify-me"],
+    ["a longer token", "verify-me-please", "verify-me"],
+    ["an empty token", "", "verify-me"],
+    ["a missing token", null, "verify-me"],
+    ["any token when none is configured", "verify-me", undefined],
+    ["an empty token when the configured one is empty", "", ""],
+  ])("rejects %s", (_, received, expected) => {
+    expect(isValidVerifyToken(received, expected)).toBe(false);
   });
 });
 

@@ -3,18 +3,24 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { PASSWORD_RESET_PARAM } from "@/lib/profile";
+import { isRecentGoogleSignIn } from "@/lib/session";
 import ProfileForm from "@/components/profile/ProfileForm";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
 import ThemeToggle from "@/components/ThemeToggle";
 import { ChevronLeftIcon } from "@/components/board/icons";
 
-export default async function ProfilePage() {
+export default async function ProfilePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ password?: string | string[] }>;
+}) {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/");
   }
 
-  const [user, t] = await Promise.all([
+  const [user, t, { password: passwordParam }] = await Promise.all([
     prisma.user.findUniqueOrThrow({
       where: { id: session.user.id },
       select: {
@@ -23,10 +29,12 @@ export default async function ProfilePage() {
         avatarUrl: true,
         imageUrl: true,
         password: true,
+        googleId: true,
         whatsappNumber: true,
       },
     }),
     getTranslations("profile"),
+    searchParams,
   ]);
   const botNumber = process.env.WHATSAPP_DISPLAY_NUMBER;
 
@@ -51,6 +59,11 @@ export default async function ProfilePage() {
           email={user.email}
           avatarSrc={user.avatarUrl ?? user.imageUrl}
           hasPassword={Boolean(user.password)}
+          // googleId, not the stored tokens: those are cleared when Google
+          // revokes them, which is when signing in again is most needed.
+          canResetWithGoogle={Boolean(user.googleId)}
+          recentGoogleSignIn={isRecentGoogleSignIn(session)}
+          openPasswordForm={passwordParam === PASSWORD_RESET_PARAM}
           whatsapp={botNumber ? { linkedNumber: user.whatsappNumber, botNumber } : null}
         />
       </div>

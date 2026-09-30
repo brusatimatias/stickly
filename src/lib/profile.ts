@@ -1,3 +1,6 @@
+/** `?password=reset` on the profile: back from confirming with Google, open the password form. */
+export const PASSWORD_RESET_PARAM = "reset";
+
 const MAX_NAME_LENGTH = 100;
 const MIN_PASSWORD_LENGTH = 8;
 // bcrypt only uses the first 72 bytes; anything past that would be silently ignored.

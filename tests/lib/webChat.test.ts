@@ -1,10 +1,12 @@
 import { describe, expect, test } from "vitest";
+import { TITLE_SOFT_LIMIT } from "@/lib/noteInput";
 import {
   CHAT_LIMITS,
   buildChatSystemPrompt,
   getChatRateLimitError,
   getUserToday,
   sanitizeChatMessages,
+  truncateReply,
 } from "@/lib/webChat";
 
 describe("sanitizeChatMessages", () => {
@@ -143,10 +145,48 @@ describe("buildChatSystemPrompt", () => {
     expect(prompt).toContain("Monday 2026-09-21 to Sunday 2026-09-27");
   });
 
+  test("spells out that today's weekday on its own means today", () => {
+    const prompt = buildChatSystemPrompt({ today, locale: "en" });
+    expect(prompt).toContain('"Saturday" on its own means today, 2026-09-26, not next week');
+  });
+
   test("mentions both tools", () => {
     const prompt = buildChatSystemPrompt({ today, locale: "en" });
     expect(prompt).toContain("create_note");
     expect(prompt).toContain("list_notes");
+  });
+
+  test("asks for short titles and summarized descriptions, with examples", () => {
+    const prompt = buildChatSystemPrompt({ today, locale: "en" });
+    expect(prompt).toContain("2 to 6 words");
+    expect(prompt).toContain(`at most ${TITLE_SOFT_LIMIT} characters`);
+    expect(prompt).toContain("Never put the day, time or place in the title");
+    expect(prompt).toMatch(/filler .*"recordame"/);
+    expect(prompt).toContain("Keep what or who it is about");
+    expect(prompt).toContain("That includes Stickly itself");
+    expect(prompt).toContain("never drop or reinterpret a detail, never add one");
+    expect(prompt).toContain("keep the user's own words for names and terms");
+    expect(prompt).toContain("always write the fields in the user's own language");
+    expect(prompt).toContain('title "Llevar el auto al mecánico"');
+    expect(prompt).toContain('title "Buy stamps", no description');
+  });
+
+  test("doesn't turn a part of the day into a time", () => {
+    const prompt = buildChatSystemPrompt({ today, locale: "es" });
+    expect(prompt).toContain('A part of the day ("a la noche", "por la tarde", "in the morning") is not a time');
+  });
+
+  test("shows a single day's notes in detail, and done ones for what was done", () => {
+    const prompt = buildChatSystemPrompt({ today, locale: "es" });
+    expect(prompt).toContain("For a single day, show each note's details");
+    expect(prompt).toContain('starting with "- " (no indentation)');
+    expect(prompt).toContain('"- En: <location>"');
+    expect(prompt).toContain('"- <description>"');
+    expect(prompt).toContain('lines that already start with a marker ("-", "•", "*", "1.") stay as they are, never with a second "- "');
+    expect(prompt).toContain('every unmarked line gets "- ", not just the first');
+    expect(prompt).toContain('add "(hecha)" after the title of a done one');
+    expect(prompt).toContain('"done" for completed ones ("what did I do", "qué hice"');
+    expect(prompt).toContain("In a multi-day answer, mention location or description only if the user asks");
   });
 
   test("replies in the user's locale", () => {
@@ -158,5 +198,26 @@ describe("buildChatSystemPrompt", () => {
     const prompt = buildChatSystemPrompt({ today, locale: null });
     expect(prompt).toContain("Reply in the language the user writes in");
     expect(prompt).not.toMatch(/Reply in (English|Spanish)/);
+  });
+});
+
+describe("truncateReply", () => {
+  test("leaves a reply within the limit as is", () => {
+    expect(truncateReply("Hoy tenés 1 pendiente", 100)).toBe("Hoy tenés 1 pendiente");
+  });
+
+  test("cuts at the last line break, marking the cut", () => {
+    const reply = ["Hoy tenés 3 pendientes:", "", "Llamar al plomero", "   Pierde la canilla", "", "Comprar víveres"].join("\n");
+
+    const cut = truncateReply(reply, 70);
+
+    expect(cut).toBe("Hoy tenés 3 pendientes:\n\nLlamar al plomero\n   Pierde la canilla\n…");
+    expect(cut.length).toBeLessThanOrEqual(70);
+  });
+
+  test("cuts hard when there's no line break in the second half", () => {
+    const cut = truncateReply("a".repeat(50), 20);
+
+    expect(cut).toBe(`${"a".repeat(19)}…`);
   });
 });
