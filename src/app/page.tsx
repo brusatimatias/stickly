@@ -91,12 +91,16 @@ export default async function Home({
                 className="rounded-full"
               />
             ) : (
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-200 text-zinc-500 sm:hidden dark:bg-zinc-800 dark:text-zinc-400">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-200 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
                 <UserIcon className="h-4 w-4" />
               </span>
             )}
             {/* The name only fits next to the header controls from `sm:` up; below that it stays as the link's accessible name. */}
-            {user?.name ? <span className="sr-only sm:not-sr-only">{user.name}</span> : null}
+            {user?.name ? (
+              <span className="sr-only sm:not-sr-only">{user.name}</span>
+            ) : (
+              <span className="sr-only">{t("yourProfile")}</span>
+            )}
           </Link>
           <ThemeToggle />
           <LocaleSwitcher />

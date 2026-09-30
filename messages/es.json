@@ -1,8 +1,10 @@
 {
   "common": {
     "yourAvatar": "Tu avatar",
+    "yourProfile": "Tu perfil",
     "switchToDark": "Cambiar a tema oscuro",
-    "switchToLight": "Cambiar a tema claro"
+    "switchToLight": "Cambiar a tema claro",
+    "spanishLanguage": "Español"
   },
   "board": {
     "previousWeek": "Semana anterior",

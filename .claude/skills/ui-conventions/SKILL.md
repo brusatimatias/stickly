@@ -22,7 +22,7 @@ The look is "sticky notes on a whiteboard". New UI should look like it belongs t
 - **Rotation**: a Tailwind class from `ROTATIONS`. **Overlap**: inline `marginTop`/`marginLeft` from `OVERLAPS`, not a class.
 - **Card shell**: `relative flex h-44 w-44 sm:h-48 sm:w-48 overflow-hidden rounded-sm border p-2 text-sm` + `<FoldedCorner />`. Every card-like thing renders `FoldedCorner`: cards, forms, the drag overlay, and the sign-in stickers.
 - **Shadows**: regular cards and `NoteForm` use `shadow-[2px_4px_6px_rgba(0,0,0,0.3)]` with a `dark:` variant at 0.6 and a heavier hover shadow. The draft uses `shadow-md`/`hover:shadow-lg`, and the drag overlay uses `shadow-lg`.
-- **Hover**: `group`, `transition-[top] hover:-top-1 hover:z-10` (the cards are already `relative`). Card controls (drag handle, done toggle, delete) sit at `opacity-30` and go to `group-hover:opacity-70`.
+- **Hover**: `group`, `transition-[top] hover:-top-1 hover:z-10` (the cards are already `relative`). Card controls (drag handle, done toggle, delete) sit at `opacity-30` and go to `group-hover:opacity-70`; on touch screens (no hover) they stay at `pointer-coarse:opacity-70`. Hover-only tooltips also show on keyboard focus (`group-has-[:focus-visible]/…`), and the state they describe must be visible without them (icons, line-through).
 - **Keep card text sharp**: cards are rotated, so anything that gives the text its own compositing layer makes it render blurry. Lift cards on hover with `top`, not a `transform` (`translate`), and dim editable fields with the text color (`text-current/80`), not `opacity` (a focused, dimmed textarea blurred while typing).
 - **Done**: an overlay `bg-zinc-500/40 mix-blend-multiply dark:bg-zinc-400/30` over the palette color, plus `line-through` on the title only. Done notes also sort last in their day (`sortDoneLast`).
 - **Draft**: fixed orange trio (`bg-orange-200 border-orange-300 text-orange-950`), fixed `-rotate-1`, and in the panel each draft overlaps the one before it by a fixed `-mt-3` instead of the hash-based offset. This is what distinguishes it from dated notes, so don't route it through `getNoteStyle`. The classes live in `DRAFT_COLOR` (`src/lib/noteColor.ts`), shared by `DraftCard.tsx` and `DraftForm.tsx`.
@@ -39,6 +39,7 @@ The look is "sticky notes on a whiteboard". New UI should look like it belongs t
 Both of these caused infinite render loops before (commits `5dd3e9f`, `d55e0d1`):
 - **Keep the custom `collisionDetectionStrategy` in `Board.tsx`** (`pointerWithin` → `rectIntersection` fallback, sticky `lastOverIdRef` right after a cross-container move). Don't switch back to `closestCenter`: when a note crosses into another day, the rects shift and closestCenter moves it back, over and over. If you add a new droppable container, reset the refs in `onDragEnd`/`onDragCancel` the way the existing code does.
 - **Day columns lay out sortable items with CSS grid** (`[grid-template-columns:repeat(auto-fill,minmax(11rem,1fr))]`), not `flex-wrap`. With flex-wrap, reordering reflowed the items and the sort flipped back and forth.
+- **Sensors**: `MouseSensor` (`distance: 8`) + `TouchSensor` (`delay: 200, tolerance: 5`) + `KeyboardSensor`. Not `PointerSensor`: it also handles touch and would start a drag immediately, so a swipe couldn't scroll. Drag handles are `touch-none`; only the handle has the listeners, so the rest of the card still scrolls the page.
 - Drag feedback: the source card goes to `opacity: 0.5` (inline style) and `z-20`. `DragOverlay` in `Board.tsx` renders a simplified copy (palette + rotation + FoldedCorner + title).
 - A drop calls `moveNote` / `moveDraftNote` / `scheduleDraftNote` inside `startTransition` and then `router.refresh()`.
 - **Keep `id={useId()}` on `DndContext`.** Without it dnd-kit numbers its `aria-describedby` ids from a module-level counter that differs between server and client, which causes a hydration mismatch warning and leaves the attribute pointing at a missing element.
@@ -47,6 +48,14 @@ Both of these caused infinite render loops before (commits `5dd3e9f`, `d55e0d1`)
 - **Syncing state from props**: this codebase adjusts state during render by comparing to a stored previous value (`lastServerNote` in `NoteCard`, `syncedWeekStart` in `Board`) instead of using a `useEffect` that sets state. Follow that pattern. An effect that sets state here adds an extra render and was part of the loops above.
 - **Optimistic updates**: `NoteCard` keeps an `optimisticNote` and shows `optimisticNote ?? note`. The optimistic copy is dropped when the server `note` differs from `lastServerNote`, so any new editable field must be added to that comparison.
 - Server actions are called from `useTransition` callbacks. Errors come back as string codes, which you translate with `useTranslations("errors")`.
+
+## Motion and focus
+- Keyframes live in `globals.css` as `.animate-*` classes, and **every one** is listed in the `prefers-reduced-motion` block there.
+- Cards and forms animate `translate`/`scale`/`opacity`, never `transform`: dnd-kit writes an inline `transform` on sortable cards (an animation on it would override the drag), and the tilt is the separate `rotate` property.
+- Exit animations keep the element mounted (and `inert`) until `animationend`; check `animatesExit()` (`src/components/motion.ts`) first, since with reduced motion (or in jsdom) `animationend` never fires. `useFormTransition` does this for the new-note/new-draft forms.
+- New notes animate in because `Board` marks ids that weren't in the previous server data (`newNoteIds`); a moved note keeps its id, so drag & drop never animates.
+- Keyboard focus: append `FOCUS_RING` (`src/components/focusRing.ts`) to any new button or link.
+- Touch targets: small icon buttons grow to 40px with `pointer-coarse:` (e.g. `pointer-coarse:size-10`), without changing the desktop look.
 
 ## Responsive
 - Board: `flex-col` below `lg:`, `lg:flex-row` (draft panel beside the week) above.

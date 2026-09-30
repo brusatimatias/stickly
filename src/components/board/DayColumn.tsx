@@ -81,31 +81,36 @@ export default function DayColumn({
         </div>
       </header>
 
-      {/* Sized like a card, but outside the grid (whose tracks are at least
-      a card wide) so it never gets wider than a narrow column. */}
-      {notes.length === 0 && !form.isMounted && (
-        <button
-          type="button"
-          onClick={form.open}
-          className={`mt-3 flex aspect-square w-full max-w-44 cursor-pointer flex-col items-center justify-center gap-2 self-center rounded-sm border-2 border-dashed border-zinc-200 text-zinc-400 transition-colors hover:border-zinc-300 hover:text-zinc-600 sm:max-w-48 dark:border-zinc-800 dark:text-zinc-600 dark:hover:border-zinc-700 dark:hover:text-zinc-400 ${FOCUS_RING}`}
-        >
-          <PlusIcon className="h-5 w-5" />
-          <span className="text-xs">{t("addNote")}</span>
-        </button>
-      )}
+      {/* One wrapper for the placeholder and the grid, so an empty day takes
+          the same height as a day with one card and the column doesn't jump
+          while a note is dragged in or out. */}
+      <div className="flex flex-1 flex-col pt-3">
+        {/* Sized like a card, but outside the grid (whose tracks are at least
+            a card wide) so it never gets wider than a narrow column. */}
+        {notes.length === 0 && !form.isMounted && (
+          <button
+            type="button"
+            onClick={form.open}
+            className={`flex aspect-square w-full max-w-44 cursor-pointer flex-col items-center justify-center gap-2 self-center rounded-sm border-2 border-dashed border-zinc-200 text-zinc-400 transition-colors hover:border-zinc-300 hover:text-zinc-600 sm:max-w-48 dark:border-zinc-800 dark:text-zinc-600 dark:hover:border-zinc-700 dark:hover:text-zinc-400 ${FOCUS_RING}`}
+          >
+            <PlusIcon className="h-5 w-5" />
+            <span className="text-xs">{t("addNote")}</span>
+          </button>
+        )}
 
-      <SortableContext id={day.key} items={notes.map((note) => note.id)} strategy={rectSortingStrategy}>
-        <div className="grid flex-1 auto-rows-min items-start justify-center gap-2 pt-3 [grid-template-columns:repeat(auto-fill,minmax(11rem,1fr))]">
-          {notes.map((note) => (
-            <NoteCard key={note.id} day={day.key} note={note} isNew={newNoteIds.has(note.id)} />
-          ))}
-          {form.isMounted && (
-            <div {...form.transitionProps}>
-              <NoteForm day={day.key} onDone={form.close} />
-            </div>
-          )}
-        </div>
-      </SortableContext>
+        <SortableContext id={day.key} items={notes.map((note) => note.id)} strategy={rectSortingStrategy}>
+          <div className="grid flex-1 auto-rows-min items-start justify-center gap-2 [grid-template-columns:repeat(auto-fill,minmax(11rem,1fr))]">
+            {notes.map((note) => (
+              <NoteCard key={note.id} day={day.key} note={note} isNew={newNoteIds.has(note.id)} />
+            ))}
+            {form.isMounted && (
+              <div {...form.transitionProps}>
+                <NoteForm day={day.key} onDone={form.close} />
+              </div>
+            )}
+          </div>
+        </SortableContext>
+      </div>
     </div>
   );
 }

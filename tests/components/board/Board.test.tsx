@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import messages from "../../../messages/es.json";
@@ -35,8 +35,8 @@ const NOTE: StoredNoteDTO = {
   startsAt: "2026-09-30T14:00:00.000Z",
 };
 
-function renderBoard(notes: StoredNoteDTO[]) {
-  render(
+function board(notes: StoredNoteDTO[]) {
+  return (
     <NextIntlClientProvider locale="es" messages={messages} timeZone="UTC">
       <Board
         days={DAYS}
@@ -54,6 +54,14 @@ function renderBoard(notes: StoredNoteDTO[]) {
   );
 }
 
+function renderBoard(notes: StoredNoteDTO[]) {
+  return render(board(notes));
+}
+
+function cardOf(title: string) {
+  return screen.getByText(title).closest("div.group") as HTMLElement;
+}
+
 afterEach(cleanup);
 
 describe("Board", () => {
@@ -68,5 +76,21 @@ describe("Board", () => {
 
     expect(screen.getByText("Renovar DNI")).toBeTruthy();
     expect(screen.queryByText(messages.board.emptyWeekHint)).toBeNull();
+  });
+
+  test("animates a note that arrives after the first render, once", () => {
+    const { rerender } = renderBoard([NOTE]);
+    expect(cardOf("Renovar DNI").className).not.toContain("animate-note-in");
+
+    const added: StoredNoteDTO = { ...NOTE, id: "note-2", title: "Llamar al plomero" };
+    rerender(board([NOTE, added]));
+    expect(cardOf("Llamar al plomero").className).toContain("animate-note-in");
+    expect(cardOf("Renovar DNI").className).not.toContain("animate-note-in");
+
+    // jsdom has no AnimationEvent, so React listens for the prefixed name.
+    const end = new Event("webkitAnimationEnd", { bubbles: true });
+    Object.assign(end, { animationName: "note-in" });
+    fireEvent(cardOf("Llamar al plomero"), end);
+    expect(cardOf("Llamar al plomero").className).not.toContain("animate-note-in");
   });
 });

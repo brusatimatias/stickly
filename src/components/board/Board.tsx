@@ -90,9 +90,9 @@ export default function Board({
   const [syncedTimeZone, setSyncedTimeZone] = useState(timeZone);
   // Notes that weren't in the previous server data (just created, here or
   // from the chat) animate in. A note moved to another day or a scheduled
-  // draft keeps its id, so it doesn't. The set only changes when something
-  // new arrives: any other refresh (e.g. marking a note done) right after a
-  // save would otherwise drop the class and cut the animation short.
+  // draft keeps its id, so it doesn't. The set is cleared when the entrance
+  // animation ends (so a later remount, e.g. entering focus-day mode, doesn't
+  // replay it), not on every refresh, which could cut it short.
   const [newNoteIds, setNewNoteIds] = useState<ReadonlySet<string>>(() => new Set());
   if (notes !== syncedNotes || draftNotes !== syncedDraftNotes || timeZone !== syncedTimeZone) {
     const previousIds = new Set([...syncedNotes, ...syncedDraftNotes].map((note) => note.id));
@@ -290,7 +290,12 @@ export default function Board({
 
   return (
     <TimeZoneProvider value={timeZone}>
-      <div className="flex flex-1 flex-col">
+      <div
+        className="flex flex-1 flex-col"
+        onAnimationEnd={(event) => {
+          if (event.animationName === "note-in") setNewNoteIds(new Set());
+        }}
+      >
         <WeekNav
           weekLabel={weekLabel}
           prevWeekParam={prevWeekParam}
