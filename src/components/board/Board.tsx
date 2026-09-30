@@ -18,6 +18,7 @@ import {
 } from "@dnd-kit/core";
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useId, useRef, useState, useTransition } from "react";
 import { moveDraftNote, moveNote, scheduleDraftNote } from "@/app/actions/notes";
 import DayColumn from "@/components/board/DayColumn";
@@ -68,6 +69,10 @@ export default function Board({
   todayKey: string;
 }) {
   const router = useRouter();
+  const t = useTranslations("board");
+  // From the server data, not `notesByDay`, so the hint doesn't come and go
+  // (shifting the layout) while a draft is being dragged onto the week.
+  const isWeekEmpty = notes.length === 0;
   function buildNotesByDay(): NotesByDay {
     return {
       ...groupNotesByDay(
@@ -327,6 +332,11 @@ export default function Board({
               </div>
             ) : (
               <div className="animate-week-in grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-7">
+                {isWeekEmpty && (
+                  <p className="col-span-full rounded-lg border border-dashed border-zinc-200 px-4 py-2.5 text-center text-sm text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+                    {t("emptyWeekHint")}
+                  </p>
+                )}
                 {days.map((day, index) => (
                   <div
                     key={day.key}

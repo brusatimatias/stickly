@@ -81,11 +81,21 @@ export default function DayColumn({
         </div>
       </header>
 
+      {/* Sized like a card, but outside the grid (whose tracks are at least
+      a card wide) so it never gets wider than a narrow column. */}
+      {notes.length === 0 && !form.isMounted && (
+        <button
+          type="button"
+          onClick={form.open}
+          className={`mt-3 flex aspect-square w-full max-w-44 cursor-pointer flex-col items-center justify-center gap-2 self-center rounded-sm border-2 border-dashed border-zinc-200 text-zinc-400 transition-colors hover:border-zinc-300 hover:text-zinc-600 sm:max-w-48 dark:border-zinc-800 dark:text-zinc-600 dark:hover:border-zinc-700 dark:hover:text-zinc-400 ${FOCUS_RING}`}
+        >
+          <PlusIcon className="h-5 w-5" />
+          <span className="text-xs">{t("addNote")}</span>
+        </button>
+      )}
+
       <SortableContext id={day.key} items={notes.map((note) => note.id)} strategy={rectSortingStrategy}>
         <div className="grid flex-1 auto-rows-min items-start justify-center gap-2 pt-3 [grid-template-columns:repeat(auto-fill,minmax(11rem,1fr))]">
-          {notes.length === 0 && !form.isMounted && (
-            <p className="text-xs text-zinc-400 dark:text-zinc-600">{t("noNotesYet")}</p>
-          )}
           {notes.map((note) => (
             <NoteCard key={note.id} day={day.key} note={note} isNew={newNoteIds.has(note.id)} />
           ))}

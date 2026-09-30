@@ -47,6 +47,12 @@ export default function DraftPanel({
         )}
       </header>
 
+      {notes.length === 0 && !form.isMounted && (
+        <p className="px-1 text-center text-xs leading-relaxed text-zinc-400 dark:text-zinc-500">
+          {t("emptyDraftsHint", { count: MAX_DRAFT_NOTES })}
+        </p>
+      )}
+
       <SortableContext id="draft" items={notes.map((note) => note.id)} strategy={rectSortingStrategy}>
         {/* Same grid as the day columns (one column in the narrow desktop
             panel, several on phones); each draft overlaps the one before it. */}

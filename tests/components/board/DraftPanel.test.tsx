@@ -91,4 +91,20 @@ describe("DraftPanel", () => {
     expect(screen.queryByLabelText(messages.board.titlePlaceholder)).toBeNull();
     expect(screen.getByRole("button", { name: NEW_DRAFT })).toBeTruthy();
   });
+
+  test("explains drafts and their limit while the panel is empty", () => {
+    renderPanel(drafts(0));
+
+    expect(screen.getByText(messages.board.emptyDraftsHint.replace("{count}", "4"))).toBeTruthy();
+  });
+
+  test("hides the hint once there is a draft or one is being written", () => {
+    renderPanel(drafts(1));
+    expect(screen.queryByText(/Notas sin fecha/)).toBeNull();
+
+    cleanup();
+    renderPanel(drafts(0));
+    fireEvent.click(screen.getByRole("button", { name: NEW_DRAFT }));
+    expect(screen.queryByText(/Notas sin fecha/)).toBeNull();
+  });
 });
