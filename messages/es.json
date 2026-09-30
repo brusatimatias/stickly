@@ -14,6 +14,7 @@
     "addNote": "Agregar nota",
     "emptyDraftsHint": "Notas sin fecha. Guardá hasta {count} acá y arrastralas a un día cuando sepas cuándo.",
     "emptyWeekHint": "Todavía no hay nada planeado esta semana. Agregá una nota con + en cualquier día, o pedíselo al asistente (abajo a la derecha).",
+    "loadingBoard": "Cargando tu tablero…",
     "draft": "Borrador",
     "newDraftNote": "Nueva nota borrador",
     "titlePlaceholder": "Título",
@@ -63,6 +64,7 @@
   },
   "profile": {
     "backToBoard": "Volver al tablero",
+    "loadingProfile": "Cargando tu perfil…",
     "name": "Nombre",
     "save": "Guardar",
     "saving": "Guardando...",

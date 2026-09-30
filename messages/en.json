@@ -14,6 +14,7 @@
     "addNote": "Add note",
     "emptyDraftsHint": "Notes without a date. Keep up to {count} here and drag them onto a day once you know when.",
     "emptyWeekHint": "Nothing planned this week yet. Add a note with + on any day, or ask the assistant (bottom right).",
+    "loadingBoard": "Loading your board…",
     "draft": "Draft",
     "newDraftNote": "New draft note",
     "titlePlaceholder": "Title",
@@ -63,6 +64,7 @@
   },
   "profile": {
     "backToBoard": "Back to board",
+    "loadingProfile": "Loading your profile…",
     "name": "Name",
     "save": "Save",
     "saving": "Saving...",
