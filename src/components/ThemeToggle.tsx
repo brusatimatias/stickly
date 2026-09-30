@@ -1,7 +1,6 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { setTheme } from "@/app/actions/theme";
 import { MoonIcon, SunIcon } from "@/components/board/icons";
@@ -15,7 +14,6 @@ function readCurrentTheme(): Theme | null {
 
 export default function ThemeToggle() {
   const t = useTranslations("common");
-  const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   function handleToggle() {
@@ -23,15 +21,15 @@ export default function ThemeToggle() {
     const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     const next = getNextTheme(readCurrentTheme(), systemPrefersDark);
 
-    // Apply immediately so the switch feels instant; the cookie makes the
-    // server render the same class on the next request.
+    // Apply immediately so the switch feels instant. Setting the cookie in a
+    // Server Action already returns the page re-rendered with the new class,
+    // so there's no `router.refresh()` (that was a second full round trip).
     const classList = document.documentElement.classList;
     classList.remove(...THEMES);
     classList.add(next);
 
     startTransition(async () => {
       await setTheme(next);
-      router.refresh();
     });
   }
 
@@ -41,8 +39,8 @@ export default function ThemeToggle() {
     <button
       type="button"
       onClick={handleToggle}
-      disabled={isPending}
-      className={`rounded-full border border-zinc-300 p-1.5 text-zinc-500 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-900 ${FOCUS_RING}`}
+      aria-disabled={isPending}
+      className={`rounded-full border border-zinc-300 p-1.5 text-zinc-500 transition-colors aria-disabled:cursor-wait hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-900 ${FOCUS_RING}`}
     >
       <MoonIcon className="h-3.5 w-3.5 dark:hidden" />
       <span className="sr-only dark:hidden">{t("switchToDark")}</span>

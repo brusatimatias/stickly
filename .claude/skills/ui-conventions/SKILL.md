@@ -47,6 +47,7 @@ Both of these caused infinite render loops before (commits `5dd3e9f`, `d55e0d1`)
 ## React state patterns
 - **Syncing state from props**: this codebase adjusts state during render by comparing to a stored previous value (`lastServerNote` in `NoteCard`, `syncedWeekStart` in `Board`) instead of using a `useEffect` that sets state. Follow that pattern. An effect that sets state here adds an extra render and was part of the loops above.
 - **Optimistic updates**: `NoteCard` keeps an `optimisticNote` and shows `optimisticNote ?? note`. The optimistic copy is dropped when the server `note` differs from `lastServerNote`, so any new editable field must be added to that comparison.
+- Don't follow a Server Action that sets a cookie (`setTheme`, `setLocale`) with `router.refresh()`: setting a cookie already makes the action return the re-rendered page in the same response, and the refresh is a second full round trip (measured: 2 requests → 1).
 - Server actions are called from `useTransition` callbacks. Errors come back as string codes, which you translate with `useTranslations("errors")`.
 
 ## Motion and focus
