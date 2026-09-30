@@ -5,6 +5,7 @@ A notes/reminders app organized on a whiteboard-style weekly board, with Google 
 ## Features
 
 - Login with Google, or with email and password (the password is set from the profile).
+- Forgotten password: users who also sign in with Google can reset it from the profile ("Forgot it?"), by signing in with Google again instead of typing the current password.
 - Weekly board based on real calendar weeks, with navigation between weeks and jumping to a specific week.
 - Notes as sticky notes per day and time (title, optional location, exact date/time), movable via drag & drop.
 - Draft notes: up to 4 per user, with no date, used as a scratch space; they can be reordered and dragged onto a day, and the assistant creates one when asked for a draft.
@@ -14,6 +15,10 @@ A notes/reminders app organized on a whiteboard-style weekly board, with Google 
   - Answers about your notes: "what's left to do this week?" lists every day with its pending notes; "what do I have today?" lists today's.
   - Usage is rate-limited per user and globally, sized for the Gemini API free tier.
 - The same assistant on WhatsApp: link your number from the profile (a one-time code you send from WhatsApp) and message Stickly to create notes or ask about them, in your own language. It keeps the last half hour of conversation, so it can ask for a missing date.
+
+## Architecture
+
+![stickly architecture: the board client, the Next.js server with its server actions, Auth.js, WhatsApp webhook and chat core, PostgreSQL, Google OAuth/Calendar, Gemini and Meta's WhatsApp Cloud API](docs/architecture.svg)
 
 ## Stack
 
@@ -63,6 +68,26 @@ A notes/reminders app organized on a whiteboard-style weekly board, with Google 
 
    Open [http://localhost:3000](http://localhost:3000).
 
+5. Optionally, load demo data:
+
+   ```bash
+   npm run db:seed
+   ```
+
+   It (re)creates two users with notes in the current week. They sign in with email and password only: `ana@stickly.test` and `bruno@stickly.test`, both with `stickly-demo-123`.
+
+### Other commands
+
+- `npm test`: unit and component tests (Vitest). Run a single file with `npm test -- tests/lib/notes.test.ts`.
+- `npm run lint`: ESLint.
+- `npm run type-check`: regenerates Next's route types, then runs `tsc --noEmit`.
+- `npm run build` / `npm run start`: production build and server.
+
+## Deployment and CI
+
+- The app is deployed on Vercel. Its build command, `npm run vercel-build`, applies pending migrations (`prisma migrate deploy`) before `next build`, so a deploy never runs against an outdated schema.
+- GitHub Actions (`.github/workflows/ci.yml`) runs lint, type-check, tests and a production build on every push and pull request.
+
 ## WhatsApp setup
 
 1. In [Meta for Developers](https://developers.facebook.com/), create an app with the WhatsApp product. It comes with a test number that can message up to 5 verified recipients; add yours.
@@ -88,3 +113,19 @@ See `prisma/schema.prisma`. Notable decisions:
 - Composite index `[userId, startsAt]` for the weekly-notes query.
 - `WebChatUsage` stores one row per chat message, from the board or WhatsApp (user and timestamp only, never the message text), to enforce the chat's rate limits. Board conversations are not persisted: the history lives in the browser and is lost on reload.
 - WhatsApp conversations are kept for half an hour (`WhatsAppMessage`) and deleted after that or when the number is unlinked. `WhatsAppLinkCode` stores a keyed hash of the pending link code, never the code, and `WhatsAppInboundMessage` keeps received message ids for a day so a message delivered twice is handled once.
+
+## Security
+
+- Google tokens are stored encrypted (AES-256-GCM) on `User`, never in the session. The JWT only carries the user id, and `/api/auth/session` strips server-only fields before they reach the browser.
+- Every page gets a nonce-based Content Security Policy (`src/proxy.ts`), plus HSTS, `X-Frame-Options` and related headers (`next.config.ts`).
+- Passwords are hashed with bcrypt. Login normalizes emails and compares against a dummy hash when the account doesn't exist, so response times don't reveal which emails are registered. Changing a password requires the current one (or a Google sign in from the last 10 minutes).
+- The WhatsApp webhook rejects any request whose `X-Hub-Signature-256` doesn't match the raw body. Link codes are stored as a keyed hash, work once, and attempts are limited per number.
+- Every server action checks the session first, and every query is scoped to that user.
+- The assistant's tool arguments are treated as untrusted input and validated on the server, and chat usage is rate-limited per user and globally.
+
+## Testing
+
+- Vitest with jsdom. `tests/lib` covers the pure logic (scheduling, ordering, weeks, input parsing), `tests/actions` the server actions, `tests/components` the UI, rendered with the Spanish message catalog.
+- There's no test database: action tests mock Prisma, Auth.js and `next/cache`, and assert on the queries each action makes.
+- The chat tests run the real AI SDK tool loop against a mock language model, so tool calls, validation errors and the 503 fallback are exercised end to end without calling Gemini.
+- Tests run in the `Pacific/Kiritimati` time zone (UTC+14), far from both UTC (Vercel) and Argentina (local dev), so any code that silently depends on the server's time zone fails in CI instead of in production.
