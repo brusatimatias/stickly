@@ -6,6 +6,8 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { PASSWORD_RESET_PARAM } from "@/lib/profile";
 import { isRecentGoogleSignIn } from "@/lib/session";
+import { isQStashConfigured } from "@/lib/qstash";
+import { getVapidPublicKey } from "@/lib/webPush";
 import ProfileForm from "@/components/profile/ProfileForm";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -38,12 +40,16 @@ export default async function ProfilePage({
         password: true,
         googleId: true,
         whatsappNumber: true,
+        reminderMinutesBefore: true,
+        digestEnabled: true,
+        digestTime: true,
       },
     }),
     getTranslations("profile"),
     searchParams,
   ]);
   const botNumber = process.env.WHATSAPP_DISPLAY_NUMBER;
+  const vapidPublicKey = getVapidPublicKey();
 
   return (
     <div className="flex flex-1 flex-col">
@@ -72,6 +78,20 @@ export default async function ProfilePage({
           recentGoogleSignIn={isRecentGoogleSignIn(session)}
           openPasswordForm={passwordParam === PASSWORD_RESET_PARAM}
           whatsapp={botNumber ? { linkedNumber: user.whatsappNumber, botNumber } : null}
+          notifications={
+            vapidPublicKey
+              ? {
+                  vapidPublicKey,
+                  reminders: isQStashConfigured()
+                    ? {
+                        reminderMinutesBefore: user.reminderMinutesBefore,
+                        digestEnabled: user.digestEnabled,
+                        digestTime: user.digestTime,
+                      }
+                    : null,
+                }
+              : null
+          }
         />
       </div>
     </div>

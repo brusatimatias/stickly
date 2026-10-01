@@ -12,6 +12,9 @@
  *   avatars can be data URLs.
  * - Forms: the Google sign-in form's server action redirects to Google, and
  *   browsers apply `form-action` to that redirect.
+ * - Workers: the notifications service worker (`/sw.js`). Without its own
+ *   directive it would fall back to `script-src`, where `strict-dynamic`
+ *   ignores `'self'`.
  */
 export function buildContentSecurityPolicy({
   nonce,
@@ -28,6 +31,8 @@ export function buildContentSecurityPolicy({
     "img-src 'self' blob: data: https://lh3.googleusercontent.com",
     "font-src 'self'",
     "connect-src 'self'",
+    "worker-src 'self'",
+    "manifest-src 'self'",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self' https://accounts.google.com",

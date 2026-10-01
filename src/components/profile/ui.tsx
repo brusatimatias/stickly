@@ -18,6 +18,13 @@ export const LABEL_CLASS = "text-sm font-medium text-zinc-700 dark:text-zinc-300
 
 export const HINT_CLASS = "text-xs text-zinc-500 dark:text-zinc-400";
 
+/** A white panel holding one or more sections, separated by lines. */
+export const CARD_CLASS =
+  "flex w-full flex-col divide-y divide-zinc-200 rounded-2xl border border-zinc-200 bg-white p-8 shadow-xl dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-950";
+
+/** A titled section inside a card: spaced from the ones around it, flush with the card's edges. */
+export const SECTION_CLASS = "flex flex-col gap-2 pt-6 first:pt-0 not-last:pb-6";
+
 export type Status = { type: "success" | "error"; text: string } | null;
 
 /** A section's result: green with a check when it worked, red when it didn't. Announced to screen readers. */

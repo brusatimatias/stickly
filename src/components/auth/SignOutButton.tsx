@@ -1,12 +1,13 @@
 import { getTranslations } from "next-intl/server";
 import { signOut } from "@/auth";
+import SignOutForm from "@/components/auth/SignOutForm";
 import { FOCUS_RING } from "@/components/focusRing";
 
 export default async function SignOutButton() {
   const t = await getTranslations("auth");
   return (
-    <form
-      action={async () => {
+    <SignOutForm
+      signOut={async () => {
         "use server";
         await signOut();
       }}
@@ -17,6 +18,6 @@ export default async function SignOutButton() {
       >
         {t("signOut")}
       </button>
-    </form>
+    </SignOutForm>
   );
 }

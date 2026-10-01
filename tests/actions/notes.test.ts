@@ -21,6 +21,7 @@ const mockUpdateCalendarEvent = vi.hoisted(() => vi.fn());
 // Work scheduled with `after()`, run by the tests when the response is "sent".
 const afterCallbacks = vi.hoisted(() => [] as (() => Promise<void>)[]);
 const mockGetTimeZoneForUser = vi.hoisted(() => vi.fn());
+const mockQueueNoteReminder = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }));
 vi.mock("@/auth", () => ({ auth: mockAuth }));
@@ -33,6 +34,7 @@ vi.mock("@/lib/googleCalendar", () => ({
   updateCalendarEvent: mockUpdateCalendarEvent,
 }));
 vi.mock("@/lib/userTimeZone", () => ({ getTimeZoneForUser: mockGetTimeZoneForUser }));
+vi.mock("@/lib/reminders", () => ({ queueNoteReminderAfterResponse: mockQueueNoteReminder }));
 
 import {
   createDraftNote,
@@ -257,6 +259,22 @@ describe("updateNote", () => {
     });
   });
 
+  test("queues a reminder when the note gets a new time, not when only its text changes", async () => {
+    mockPrisma.note.findFirst.mockResolvedValue({ ...EXISTING_TIMED, id: "id-1" });
+
+    await updateNote({ ...BASE, title: "New title", schedule: TIMED });
+    expect(mockQueueNoteReminder).not.toHaveBeenCalled();
+
+    await updateNote({ ...BASE, schedule: { kind: "TIMED", startsAt: "2026-09-16T14:00:00.000Z" } });
+    expect(mockQueueNoteReminder).toHaveBeenCalledWith("id-1");
+  });
+
+  test("doesn't queue a reminder for a note without a time", async () => {
+    mockPrisma.note.findFirst.mockResolvedValue({ ...EXISTING_TIMED, id: "id-1" });
+    await updateNote({ ...BASE, schedule: ALL_DAY });
+    expect(mockQueueNoteReminder).not.toHaveBeenCalled();
+  });
+
   test("does not unsync when the note keeps a time", async () => {
     mockPrisma.note.findFirst.mockResolvedValue(EXISTING_TIMED);
 
@@ -271,7 +289,24 @@ describe("updateNote", () => {
 });
 
 describe("toggleNoteDone", () => {
+  test("queues the reminder of a note marked pending again, not of one marked done", async () => {
+    mockPrisma.note.updateMany.mockResolvedValue({ count: 1 });
+
+    await toggleNoteDone("id-1", true);
+    expect(mockQueueNoteReminder).not.toHaveBeenCalled();
+
+    await toggleNoteDone("id-1", false);
+    expect(mockQueueNoteReminder).toHaveBeenCalledWith("id-1");
+  });
+
+  test("doesn't queue anything for another user's note", async () => {
+    mockPrisma.note.updateMany.mockResolvedValue({ count: 0 });
+    await toggleNoteDone("id-1", false);
+    expect(mockQueueNoteReminder).not.toHaveBeenCalled();
+  });
+
   test("scopes the update to the current user", async () => {
+    mockPrisma.note.updateMany.mockResolvedValue({ count: 1 });
     await toggleNoteDone("id-1", true);
     expect(mockPrisma.note.updateMany).toHaveBeenCalledWith({
       where: { id: "id-1", userId: "user-1" },
@@ -495,6 +530,25 @@ describe("moveNote", () => {
       data: { googleEventId: null },
     });
     expect(afterCallbacks).toHaveLength(0);
+  });
+
+  test("doesn't queue anything for a reorder that keeps the note's time", async () => {
+    mockPrisma.note.findFirst.mockResolvedValue({ id: "moving", startsAt: new Date(TIMED.startsAt) });
+    mockPrisma.note.findMany.mockResolvedValue([]);
+
+    await moveNote({ noteId: "moving", day: "2026-09-16", index: 0, schedule: TIMED });
+    expect(mockQueueNoteReminder).not.toHaveBeenCalled();
+  });
+
+  test("queues the reminder of a moved note with a time, and not of one without", async () => {
+    mockPrisma.note.findFirst.mockResolvedValue({ id: "moving" });
+    mockPrisma.note.findMany.mockResolvedValue([]);
+
+    await moveNote({ noteId: "moving", day: "2026-09-16", index: 0, schedule: ALL_DAY });
+    expect(mockQueueNoteReminder).not.toHaveBeenCalled();
+
+    await moveNote({ noteId: "moving", day: "2026-09-16", index: 0, schedule: TIMED });
+    expect(mockQueueNoteReminder).toHaveBeenCalledWith("moving");
   });
 
   test("rejects an invalid schedule before touching the database", async () => {

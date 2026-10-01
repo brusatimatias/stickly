@@ -102,7 +102,42 @@
       "confirmUnlinkTitle": "¿Desvincular WhatsApp?",
       "confirmUnlinkMessage": "Vas a dejar de poder crear notas desde WhatsApp y se borra la conversación con el asistente. Podés volver a vincularlo cuando quieras."
     },
-    "cancel": "Cancelar"
+    "cancel": "Cancelar",
+    "install": {
+      "title": "App",
+      "hint": "Instalá Stickly en tu pantalla de inicio: se abre como una app, a pantalla completa.",
+      "install": "Instalar app",
+      "installed": "Stickly quedó instalada: abrila desde su ícono en la pantalla de inicio.",
+      "iosStep1": "Tocá Compartir: en Safari, el cuadrado con la flecha hacia arriba (abajo o junto a la dirección); en Chrome, el mismo ícono en la barra de direcciones.",
+      "iosStep2": "Elegí \"Agregar a inicio\".",
+      "iosStep3": "Abrí Stickly desde el ícono nuevo.",
+      "androidStep1": "Abrí el menú del navegador (⋮).",
+      "androidStep2": "Elegí \"Instalar app\" o \"Agregar a pantalla principal\"."
+    },
+    "notifications": {
+      "title": "Notificaciones",
+      "checking": "Revisando este dispositivo…",
+      "offHint": "Activalas para recibir avisos de Stickly en este dispositivo. Cada dispositivo se activa por separado.",
+      "enable": "Activar en este dispositivo",
+      "enabled": "Notificaciones activadas",
+      "onHint": "Este dispositivo recibe las notificaciones de Stickly.",
+      "sendTest": "Enviar una prueba",
+      "testSent": "Enviada, debería llegarte en unos segundos",
+      "disable": "Desactivar",
+      "disabled": "Notificaciones desactivadas en este dispositivo",
+      "deniedHint": "Las notificaciones están bloqueadas para Stickly en este navegador. Permitilas desde la configuración del sitio y volvé a esta página.",
+      "needsInstallHint": "En iPhone y iPad, las notificaciones solo llegan con Stickly instalada: instalala con los pasos de arriba y activalas desde la app.",
+      "unsupportedHint": "Este navegador no permite notificaciones.",
+      "remindersLabel": "Recordar notas con hora",
+      "remindersOff": "No",
+      "remindersAtTime": "A la hora",
+      "remindersMinutesBefore": "{minutes} min antes",
+      "remindersHoursBefore": "{hours, plural, one {# hora antes} other {# horas antes}}",
+      "digestLabel": "Resumen diario de las notas del día",
+      "digestTimeLabel": "Hora del resumen",
+      "settingsHint": "Valen para todos tus dispositivos con las notificaciones activadas. Las notas sin hora aparecen en el resumen.",
+      "settingsSaved": "Guardado"
+    }
   },
   "errors": {
     "NAME_REQUIRED": "El nombre es obligatorio",
@@ -135,7 +170,11 @@
     "CHAT_DAILY_LIMIT_REACHED": "Llegaste al límite diario del chat. Probá de nuevo mañana.",
     "CHAT_QUOTA_EXCEEDED": "El asistente está al límite de su capacidad. Probá más tarde.",
     "CHAT_UNAVAILABLE": "El asistente no está disponible en este momento. Probá más tarde.",
-    "INVALID_DATE_RANGE": "Rango de fechas inválido"
+    "INVALID_DATE_RANGE": "Rango de fechas inválido",
+    "INVALID_PUSH_SUBSCRIPTION": "Este navegador entregó una suscripción inválida. Probá de nuevo o con otro navegador.",
+    "PUSH_SUBSCRIPTION_NOT_FOUND": "Este dispositivo ya no está suscripto. Activá las notificaciones de nuevo.",
+    "PUSH_SEND_FAILED": "No se pudo enviar la notificación. Probá de nuevo en un rato.",
+    "INVALID_REMINDER_SETTINGS": "Esa configuración no es válida."
   },
   "chat": {
     "title": "Asistente",
@@ -162,5 +201,14 @@
   "metadata": {
     "description": "Tu semana como un tablero de notas adhesivas: arrastralas entre días, guardá borradores, sincronizá con Google Calendar y agregá recordatorios desde un chat o WhatsApp.",
     "profileTitle": "Perfil"
+  },
+  "notifications": {
+    "testTitle": "Stickly",
+    "testBody": "¡Las notificaciones funcionan en este dispositivo!",
+    "startsNow": "Ahora · {time}",
+    "startsInMinutes": "En {minutes} min · {time}",
+    "startsInHours": "{hours, plural, one {En # hora} other {En # horas}} · {time}",
+    "digestTitle": "{count, plural, one {Hoy tenés # nota} other {Hoy tenés # notas}}",
+    "digestMore": "y {count} más"
   }
 }

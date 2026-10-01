@@ -11,7 +11,18 @@ const nextConfig: NextConfig = {
   },
   // The per-request Content-Security-Policy is set in src/proxy.ts.
   async headers() {
-    return [{ source: "/:path*", headers: STATIC_SECURITY_HEADERS }];
+    return [
+      { source: "/:path*", headers: STATIC_SECURITY_HEADERS },
+      // Browsers check for a new service worker on their own; never let a
+      // cache hand them an old one.
+      {
+        source: "/sw.js",
+        headers: [
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          { key: "Content-Security-Policy", value: "default-src 'self'" },
+        ],
+      },
+    ];
   },
 };
 
