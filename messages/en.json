@@ -127,7 +127,16 @@
       "disabled": "Notifications turned off for this device",
       "deniedHint": "Notifications are blocked for Stickly in this browser. Allow them in the site settings and come back to this page.",
       "needsInstallHint": "On iPhone and iPad, notifications only arrive with Stickly installed: install it with the steps above and turn them on from the app.",
-      "unsupportedHint": "This browser doesn't support notifications."
+      "unsupportedHint": "This browser doesn't support notifications.",
+      "remindersLabel": "Remind me of notes with a time",
+      "remindersOff": "Off",
+      "remindersAtTime": "At their time",
+      "remindersMinutesBefore": "{minutes} min before",
+      "remindersHoursBefore": "{hours, plural, one {# hour before} other {# hours before}}",
+      "digestLabel": "Daily summary of the day's notes",
+      "digestTimeLabel": "Summary time",
+      "settingsHint": "They apply to all your devices with notifications on. Notes without a time show up in the summary.",
+      "settingsSaved": "Saved"
     }
   },
   "errors": {
@@ -164,7 +173,8 @@
     "INVALID_DATE_RANGE": "Invalid date range",
     "INVALID_PUSH_SUBSCRIPTION": "This browser handed over an invalid subscription. Try again, or with another browser.",
     "PUSH_SUBSCRIPTION_NOT_FOUND": "This device is no longer subscribed. Turn notifications on again.",
-    "PUSH_SEND_FAILED": "The notification couldn't be sent. Try again in a while."
+    "PUSH_SEND_FAILED": "The notification couldn't be sent. Try again in a while.",
+    "INVALID_REMINDER_SETTINGS": "Those settings aren't valid."
   },
   "chat": {
     "title": "Assistant",
@@ -194,6 +204,11 @@
   },
   "notifications": {
     "testTitle": "Stickly",
-    "testBody": "Notifications work on this device!"
+    "testBody": "Notifications work on this device!",
+    "startsNow": "Now · {time}",
+    "startsInMinutes": "In {minutes} min · {time}",
+    "startsInHours": "{hours, plural, one {In # hour} other {In # hours}} · {time}",
+    "digestTitle": "{count, plural, one {# note today} other {# notes today}}",
+    "digestMore": "and {count} more"
   }
 }

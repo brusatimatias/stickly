@@ -11,9 +11,9 @@ datasource db {
 }
 
 model User {
-  id                         String            @id @default(cuid())
-  googleId                   String            @unique
-  email                      String            @unique
+  id                         String             @id @default(cuid())
+  googleId                   String             @unique
+  email                      String             @unique
   name                       String?
   imageUrl                   String?
   avatarUrl                  String?
@@ -24,13 +24,22 @@ model User {
   googleAccessTokenExpiresAt DateTime?
   /// Linked WhatsApp number, as Meta sends it in `from`: E.164 digits without
   /// the leading "+".
-  whatsappNumber             String?           @unique
+  whatsappNumber             String?            @unique
+  /// Push a reminder this many minutes before each TIMED note starts (0: at
+  /// its time); null turns note reminders off.
+  reminderMinutesBefore      Int?
+  /// A morning summary of the day's pending notes, at `digestTime` (HH:mm in
+  /// `timeZone`).
+  digestEnabled              Boolean            @default(false)
+  digestTime                 String             @default("07:00")
+  /// The last local day (yyyy-MM-dd) a digest was sent for, so it's sent once.
+  digestSentOn               String?
   notes                      Note[]
   webChatUsages              WebChatUsage[]
   whatsappLinkCode           WhatsAppLinkCode?
   whatsappMessages           WhatsAppMessage[]
   pushSubscriptions          PushSubscription[]
-  createdAt                  DateTime          @default(now())
+  createdAt                  DateTime           @default(now())
 }
 
 /// How a note's `startsAt` is read: TIMED notes are an instant, shown in the
@@ -42,22 +51,26 @@ enum NoteKind {
 }
 
 model Note {
-  id            String    @id @default(cuid())
-  title         String
-  location      String?
-  description   String?
+  id              String    @id @default(cuid())
+  title           String
+  location        String?
+  description     String?
   /// Null only for the draft note. See `NoteKind` for how to read it, and
   /// `src/lib/schedule.ts` for the only place that converts it.
-  startsAt      DateTime? @db.Timestamptz(3)
-  kind          NoteKind  @default(ALL_DAY)
-  isDraft       Boolean   @default(false)
-  isDone        Boolean   @default(false)
-  position      Int       @default(0)
-  googleEventId String?
-  userId        String
-  user          User      @relation(fields: [userId], references: [id])
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  startsAt        DateTime? @db.Timestamptz(3)
+  kind            NoteKind  @default(ALL_DAY)
+  isDraft         Boolean   @default(false)
+  isDone          Boolean   @default(false)
+  position        Int       @default(0)
+  googleEventId   String?
+  /// The reminder instant (`startsAt` minus the user's lead time) already
+  /// pushed for this note. A new time or lead time gives a new instant, so the
+  /// note can be reminded again; the same one is never sent twice.
+  reminderSentFor DateTime?
+  userId          String
+  user            User      @relation(fields: [userId], references: [id])
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   @@index([userId, startsAt])
 }

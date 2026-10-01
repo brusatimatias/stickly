@@ -127,7 +127,16 @@
       "disabled": "Notificaciones desactivadas en este dispositivo",
       "deniedHint": "Las notificaciones están bloqueadas para Stickly en este navegador. Permitilas desde la configuración del sitio y volvé a esta página.",
       "needsInstallHint": "En iPhone y iPad, las notificaciones solo llegan con Stickly instalada: instalala con los pasos de arriba y activalas desde la app.",
-      "unsupportedHint": "Este navegador no permite notificaciones."
+      "unsupportedHint": "Este navegador no permite notificaciones.",
+      "remindersLabel": "Recordar notas con hora",
+      "remindersOff": "No",
+      "remindersAtTime": "A la hora",
+      "remindersMinutesBefore": "{minutes} min antes",
+      "remindersHoursBefore": "{hours, plural, one {# hora antes} other {# horas antes}}",
+      "digestLabel": "Resumen diario de las notas del día",
+      "digestTimeLabel": "Hora del resumen",
+      "settingsHint": "Valen para todos tus dispositivos con las notificaciones activadas. Las notas sin hora aparecen en el resumen.",
+      "settingsSaved": "Guardado"
     }
   },
   "errors": {
@@ -164,7 +173,8 @@
     "INVALID_DATE_RANGE": "Rango de fechas inválido",
     "INVALID_PUSH_SUBSCRIPTION": "Este navegador entregó una suscripción inválida. Probá de nuevo o con otro navegador.",
     "PUSH_SUBSCRIPTION_NOT_FOUND": "Este dispositivo ya no está suscripto. Activá las notificaciones de nuevo.",
-    "PUSH_SEND_FAILED": "No se pudo enviar la notificación. Probá de nuevo en un rato."
+    "PUSH_SEND_FAILED": "No se pudo enviar la notificación. Probá de nuevo en un rato.",
+    "INVALID_REMINDER_SETTINGS": "Esa configuración no es válida."
   },
   "chat": {
     "title": "Asistente",
@@ -194,6 +204,11 @@
   },
   "notifications": {
     "testTitle": "Stickly",
-    "testBody": "¡Las notificaciones funcionan en este dispositivo!"
+    "testBody": "¡Las notificaciones funcionan en este dispositivo!",
+    "startsNow": "Ahora · {time}",
+    "startsInMinutes": "En {minutes} min · {time}",
+    "startsInHours": "{hours, plural, one {En # hora} other {En # horas}} · {time}",
+    "digestTitle": "{count, plural, one {Hoy tenés # nota} other {Hoy tenés # notas}}",
+    "digestMore": "y {count} más"
   }
 }
