@@ -1,11 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { toCalendarEvent } from "@/lib/calendarEvent";
 import { withGoogleCalendar } from "@/lib/googleCalendar";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/session";
-
-const EVENT_DURATION_MINUTES = 60;
 
 /**
  * Creates (or updates, if already synced) a Google Calendar event for a
@@ -24,16 +23,7 @@ export async function addNoteToGoogleCalendar(noteId: string) {
     throw new Error("TIME_REQUIRED_FOR_SYNC");
   }
 
-  const requestBody = {
-    summary: note.title,
-    location: note.location ?? undefined,
-    description: note.description ?? undefined,
-    // A TIMED note is an instant (UTC), shown by Google in the calendar's zone.
-    start: { dateTime: note.startsAt.toISOString() },
-    end: {
-      dateTime: new Date(note.startsAt.getTime() + EVENT_DURATION_MINUTES * 60_000).toISOString(),
-    },
-  };
+  const requestBody = toCalendarEvent({ ...note, startsAt: note.startsAt });
 
   const response = await withGoogleCalendar(userId, (calendar) =>
     note.googleEventId

@@ -1,4 +1,5 @@
 import { google, type calendar_v3 } from "googleapis";
+import { toCalendarEvent, type CalendarEventNote } from "@/lib/calendarEvent";
 import { clearGoogleTokens, getGoogleTokens, saveGoogleTokens } from "@/lib/googleTokens";
 
 /**
@@ -124,5 +125,47 @@ export async function deleteCalendarEvent(userId: string, googleEventId: string)
       return;
     }
     console.error(`[google] couldn't delete Calendar event ${googleEventId} of user ${userId}`, error);
+  }
+}
+
+/**
+ * Best-effort update of a synced note's Calendar event, for when the note
+ * changes after it was synced. Never throws: returns "missing" when the event
+ * no longer exists in Google (deleted from Calendar), so the caller can unlink
+ * the note, and "failed" (logged) for anything else.
+ *
+ * The event is read first: a deleted event can linger as "cancelled", and
+ * writing it back could restore what the user deleted. The update starts from
+ * that event so what the user added in Calendar (guests, reminders, color) is
+ * kept; the fields the note owns are overwritten, and cleared when empty.
+ */
+export async function updateCalendarEvent(
+  userId: string,
+  googleEventId: string,
+  note: CalendarEventNote
+): Promise<"updated" | "missing" | "failed"> {
+  try {
+    return await withGoogleCalendar(userId, async (calendar) => {
+      const { data: event } = await calendar.events.get({
+        calendarId: "primary",
+        eventId: googleEventId,
+      });
+      if (event.status === "cancelled") {
+        return "missing";
+      }
+      await calendar.events.update({
+        calendarId: "primary",
+        eventId: googleEventId,
+        requestBody: { ...event, ...toCalendarEvent(note) },
+      });
+      return "updated";
+    });
+  } catch (error) {
+    const status = getStatus(error);
+    if (status === 404 || status === 410) {
+      return "missing";
+    }
+    console.error(`[google] couldn't update Calendar event ${googleEventId} of user ${userId}`, error);
+    return "failed";
   }
 }
