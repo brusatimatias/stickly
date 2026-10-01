@@ -27,6 +27,13 @@ describe("buildContentSecurityPolicy", () => {
     expect(csp).not.toHaveProperty("upgrade-insecure-requests");
   });
 
+  test("lets the notifications service worker and the manifest load from the app itself", () => {
+    const csp = directives(buildContentSecurityPolicy({ nonce: "abc123", isDev: false }));
+
+    expect(csp["worker-src"]).toBe("'self'");
+    expect(csp["manifest-src"]).toBe("'self'");
+  });
+
   test("blocks framing and plugins", () => {
     const csp = directives(buildContentSecurityPolicy({ nonce: "n", isDev: false }));
 
