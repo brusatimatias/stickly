@@ -217,22 +217,24 @@ function formatTime(instant: Date, locale: string, timeZone: string): string {
   return new Intl.DateTimeFormat(locale, { timeStyle: "short", timeZone }).format(instant);
 }
 
+/** Pushes to every device; "sent" if at least one push service took it. */
 async function pushToAll(
   subscriptions: Subscription[],
   buildPayload: (locale: string) => PushPayload,
   options: { ttlSeconds: number; urgency: "normal" | "high" }
-) {
-  await Promise.all(
+): Promise<"sent" | "failed"> {
+  const results = await Promise.all(
     subscriptions.map((subscription) =>
       sendPushNotification(subscription, buildPayload(subscription.locale), options)
     )
   );
+  return results.includes("sent") ? "sent" : "failed";
 }
 
 async function deliverNoteReminder(
   message: Extract<ReminderMessage, { type: "note" }>,
   now: Date
-): Promise<"sent" | "skipped"> {
+): Promise<DeliveryResult> {
   const remindAt = new Date(message.remindAt);
   const note = await prisma.note.findUnique({
     where: { id: message.noteId },
@@ -280,7 +282,7 @@ async function deliverNoteReminder(
   const timeZone = resolveTimeZone(note.user.timeZone);
   const startsAt = note.startsAt;
   const { day } = toLocalSchedule(startsAt, "TIMED", timeZone);
-  await pushToAll(
+  return pushToAll(
     note.user.pushSubscriptions,
     (locale) => {
       const t = getNotificationTranslator(locale);
@@ -303,13 +305,12 @@ async function deliverNoteReminder(
       urgency: "high",
     }
   );
-  return "sent";
 }
 
 async function deliverDigest(
   message: Extract<ReminderMessage, { type: "digest" }>,
   now: Date
-): Promise<"sent" | "skipped"> {
+): Promise<DeliveryResult> {
   const at = new Date(message.at);
   const user = await prisma.user.findUnique({
     where: { id: message.userId },
@@ -345,7 +346,7 @@ async function deliverDigest(
     (a, b) =>
       Number(a.kind === "TIMED") - Number(b.kind === "TIMED") || a.startsAt!.getTime() - b.startsAt!.getTime()
   );
-  await pushToAll(
+  return pushToAll(
     user.pushSubscriptions,
     (locale) => {
       const t = getNotificationTranslator(locale);
@@ -366,10 +367,16 @@ async function deliverDigest(
     },
     { ttlSeconds: DIGEST_TTL_SECONDS, urgency: "normal" }
   );
-  return "sent";
 }
 
+/**
+ * What a delivery did: "skipped" when it no longer applied (or was already
+ * sent), "failed" when no device's push service took it. Either way it's not
+ * retried: it was claimed, and a failure loses it rather than risking it twice.
+ */
+type DeliveryResult = "sent" | "skipped" | "failed";
+
 /** Delivers a queued reminder, or skips it if it no longer applies. */
-export async function deliverReminder(message: ReminderMessage, now: Date = new Date()): Promise<"sent" | "skipped"> {
+export async function deliverReminder(message: ReminderMessage, now: Date = new Date()): Promise<DeliveryResult> {
   return message.type === "note" ? deliverNoteReminder(message, now) : deliverDigest(message, now);
 }

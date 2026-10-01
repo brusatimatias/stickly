@@ -221,6 +221,14 @@ describe("delivering a note reminder", () => {
     expect(mockSendPush).not.toHaveBeenCalled();
   });
 
+  test("reports it failed when no device's push service took it", async () => {
+    mockPrisma.note.findUnique.mockResolvedValue(NOTE);
+    mockPrisma.note.updateMany.mockResolvedValue({ count: 1 });
+    mockSendPush.mockResolvedValue("gone");
+
+    await expect(deliverReminder(MESSAGE, AT_REMIND_TIME)).resolves.toBe("failed");
+  });
+
   test("doesn't push twice when the same reminder is delivered again", async () => {
     mockPrisma.note.findUnique.mockResolvedValue(NOTE);
     mockPrisma.note.updateMany.mockResolvedValue({ count: 0 });
