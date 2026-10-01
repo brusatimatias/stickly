@@ -21,6 +21,7 @@ vi.mock("@/app/actions/push", () => ({
   sendTestNotification: vi.fn(),
 }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: mockRefresh }) }));
+vi.mock("@/app/actions/reminders", () => ({ updateReminderSettings: vi.fn() }));
 
 import ProfileForm from "@/components/profile/ProfileForm";
 

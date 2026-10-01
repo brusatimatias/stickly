@@ -12,6 +12,8 @@ import {
   getPushDeviceState,
   type PushDeviceState,
 } from "@/components/profile/pushDevice";
+import ReminderPreferences from "@/components/profile/ReminderPreferences";
+import type { ReminderSettings } from "@/lib/reminderSettings";
 import {
   HINT_CLASS,
   LABEL_CLASS,
@@ -26,10 +28,18 @@ function errorCode(error: unknown): string | undefined {
 }
 
 /**
- * Turns notifications on or off for this device. Permission and subscription
- * are per browser, so this only ever talks about the device it runs on.
+ * Turns notifications on or off for this device (permission and subscription
+ * are per browser, so this only talks about the device it runs on), and below
+ * it what the user is notified about, which applies to all their devices.
  */
-export default function NotificationSettings({ vapidPublicKey }: { vapidPublicKey: string }) {
+export default function NotificationSettings({
+  vapidPublicKey,
+  reminders,
+}: {
+  vapidPublicKey: string;
+  /** Null when reminders can't be sent (QStash isn't configured). */
+  reminders: ReminderSettings | null;
+}) {
   const t = useTranslations("profile.notifications");
   const tErrors = useTranslations("errors");
   // null until the browser has been checked (it can't be known on the server).
@@ -150,6 +160,7 @@ export default function NotificationSettings({ vapidPublicKey }: { vapidPublicKe
         <p className={HINT_CLASS}>{t(`${device.kind}Hint`)}</p>
       )}
       <StatusMessage status={status} />
+      {reminders && <ReminderPreferences initial={reminders} />}
     </section>
   );
 }

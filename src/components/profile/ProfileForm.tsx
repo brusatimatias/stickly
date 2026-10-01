@@ -22,6 +22,7 @@ import {
 import InstallApp from "@/components/profile/InstallApp";
 import NotificationSettings from "@/components/profile/NotificationSettings";
 import WhatsAppLink from "@/components/profile/WhatsAppLink";
+import type { ReminderSettings } from "@/lib/reminderSettings";
 import { resizeImageToDataUrl } from "@/lib/image";
 import { FOCUS_RING } from "@/components/focusRing";
 
@@ -67,7 +68,7 @@ export default function ProfileForm({
   /** Null when the WhatsApp chat isn't configured, which hides the section. */
   whatsapp: { linkedNumber: string | null; botNumber: string } | null;
   /** Null when push isn't configured (no VAPID keys). */
-  notifications: { vapidPublicKey: string } | null;
+  notifications: { vapidPublicKey: string; reminders: ReminderSettings | null } | null;
 }) {
   const t = useTranslations("profile");
   const tCommon = useTranslations("common");

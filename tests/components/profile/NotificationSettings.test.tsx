@@ -18,6 +18,7 @@ vi.mock("@/components/profile/pushDevice", () => ({
   getPushDeviceState: mockGetState,
   enablePush: mockEnable,
 }));
+vi.mock("@/app/actions/reminders", () => ({ updateReminderSettings: vi.fn() }));
 
 import NotificationSettings from "@/components/profile/NotificationSettings";
 
@@ -36,7 +37,7 @@ async function renderSettings() {
   await act(async () => {
     render(
       <NextIntlClientProvider locale="es" messages={messages} timeZone="UTC">
-        <NotificationSettings vapidPublicKey="vapid-public" />
+        <NotificationSettings vapidPublicKey="vapid-public" reminders={null} />
       </NextIntlClientProvider>
     );
   });
