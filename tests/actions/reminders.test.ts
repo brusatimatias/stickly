@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
-const mockPrisma = vi.hoisted(() => ({ user: { update: vi.fn() } }));
+const mockPrisma = vi.hoisted(() => ({ user: { update: vi.fn(), findUniqueOrThrow: vi.fn() } }));
 const mockAuth = vi.hoisted(() => vi.fn());
 const mockQueueUserReminders = vi.hoisted(() => vi.fn());
 const afterCallbacks = vi.hoisted(() => [] as (() => unknown)[]);
@@ -19,6 +19,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   afterCallbacks.length = 0;
   mockAuth.mockResolvedValue({ user: { id: "user-1" } });
+  mockPrisma.user.findUniqueOrThrow.mockResolvedValue({ digestEnabled: true, digestTime: "07:00" });
 });
 
 describe("updateReminderSettings", () => {
@@ -40,5 +41,29 @@ describe("updateReminderSettings", () => {
     expect(mockPrisma.user.update).toHaveBeenCalledWith({ where: { id: "user-1" }, data: SETTINGS });
     await Promise.all(afterCallbacks.map((callback) => callback()));
     expect(mockQueueUserReminders).toHaveBeenCalledWith("user-1");
+  });
+
+  test("lets today's digest go out again when it's turned on or moved to another time", async () => {
+    mockPrisma.user.findUniqueOrThrow.mockResolvedValue({ digestEnabled: true, digestTime: "06:00" });
+    await updateReminderSettings(SETTINGS);
+    expect(mockPrisma.user.update).toHaveBeenLastCalledWith({
+      where: { id: "user-1" },
+      data: { ...SETTINGS, digestSentOn: null },
+    });
+
+    mockPrisma.user.findUniqueOrThrow.mockResolvedValue({ digestEnabled: false, digestTime: "07:00" });
+    await updateReminderSettings(SETTINGS);
+    expect(mockPrisma.user.update).toHaveBeenLastCalledWith({
+      where: { id: "user-1" },
+      data: { ...SETTINGS, digestSentOn: null },
+    });
+  });
+
+  test("keeps today's digest sent when only the note reminders change", async () => {
+    await updateReminderSettings({ ...SETTINGS, reminderMinutesBefore: 30 });
+    expect(mockPrisma.user.update).toHaveBeenLastCalledWith({
+      where: { id: "user-1" },
+      data: { ...SETTINGS, reminderMinutesBefore: 30 },
+    });
   });
 });
