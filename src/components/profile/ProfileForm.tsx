@@ -19,6 +19,7 @@ import {
   StatusMessage,
   type Status,
 } from "@/components/profile/ui";
+import NotificationSettings from "@/components/profile/NotificationSettings";
 import WhatsAppLink from "@/components/profile/WhatsAppLink";
 import { resizeImageToDataUrl } from "@/lib/image";
 import { FOCUS_RING } from "@/components/focusRing";
@@ -50,6 +51,7 @@ export default function ProfileForm({
   recentGoogleSignIn,
   openPasswordForm,
   whatsapp,
+  notifications,
 }: {
   name: string;
   email: string;
@@ -63,6 +65,8 @@ export default function ProfileForm({
   openPasswordForm: boolean;
   /** Null when the WhatsApp chat isn't configured, which hides the section. */
   whatsapp: { linkedNumber: string | null; botNumber: string } | null;
+  /** Null when push isn't configured (no VAPID keys). */
+  notifications: { vapidPublicKey: string } | null;
 }) {
   const t = useTranslations("profile");
   const tCommon = useTranslations("common");
@@ -245,7 +249,7 @@ export default function ProfileForm({
         <StatusMessage status={nameStatus} />
       </form>
 
-      <section className={`flex flex-col gap-2 pt-6 ${whatsapp ? "pb-6" : ""}`}>
+      <section className="flex flex-col gap-2 pt-6 not-last:pb-6">
         <h2 className={LABEL_CLASS}>{hasPassword ? t("changePassword") : t("setPassword")}</h2>
         <p className={HINT_CLASS}>{t("passwordHint", { email })}</p>
         {isEditingPassword ? (
@@ -366,6 +370,7 @@ export default function ProfileForm({
         <StatusMessage status={passwordStatus} />
       </section>
 
+      {notifications && <NotificationSettings {...notifications} />}
       {whatsapp && <WhatsAppLink {...whatsapp} />}
     </div>
   );

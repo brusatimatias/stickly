@@ -63,7 +63,7 @@ export default function WhatsAppLink({
   }
 
   return (
-    <section className="flex flex-col gap-2 pt-6">
+    <section className="flex flex-col gap-2 pt-6 not-last:pb-6">
       <h2 className={LABEL_CLASS}>{t("title")}</h2>
       {linkedNumber ? (
         <>
