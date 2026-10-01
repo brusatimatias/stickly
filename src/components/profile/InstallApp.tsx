@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 import { useSyncExternalStore } from "react";
 import { isAndroid, isIOS, isStandalone } from "@/components/device";
 import { promptInstall, useInstallState } from "@/components/installPrompt";
-import { HINT_CLASS, LABEL_CLASS, PRIMARY_BUTTON } from "@/components/profile/ui";
+import { HINT_CLASS, LABEL_CLASS, PRIMARY_BUTTON, SECTION_CLASS } from "@/components/profile/ui";
 
 type Platform = "ios" | "android" | null;
 
@@ -33,7 +33,7 @@ export default function InstallApp() {
   if (!platform) return null;
 
   return (
-    <section className="flex flex-col gap-2 pt-6 not-last:pb-6">
+    <section className={SECTION_CLASS}>
       <h2 className={LABEL_CLASS}>{t("title")}</h2>
       {installed ? (
         <p className={HINT_CLASS}>{t("installed")}</p>

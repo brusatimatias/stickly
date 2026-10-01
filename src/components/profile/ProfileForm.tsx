@@ -18,6 +18,8 @@ import {
   SECONDARY_BUTTON,
   StatusMessage,
   type Status,
+  CARD_CLASS,
+  SECTION_CLASS,
 } from "@/components/profile/ui";
 import InstallApp from "@/components/profile/InstallApp";
 import NotificationSettings from "@/components/profile/NotificationSettings";
@@ -183,198 +185,215 @@ export default function ProfileForm({
     startGoogleTransition(() => confirmPasswordResetWithGoogle());
   }
 
+  const hasSideCards = Boolean(notifications || whatsapp);
+
   const eyeButtonClass =
     `absolute inset-y-0 right-2 flex cursor-pointer items-center justify-center rounded-lg text-zinc-400 hover:text-zinc-600 pointer-coarse:right-0 pointer-coarse:w-10 dark:hover:text-zinc-300 ${FOCUS_RING}`;
 
   return (
-    <div className="flex w-full max-w-sm flex-col divide-y divide-zinc-200 rounded-2xl border border-zinc-200 bg-white p-8 shadow-xl dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-950">
-      <section className="flex flex-col items-center gap-3 pb-6">
-        {/* A shortcut for the mouse; keyboard and screen readers use the text button below. */}
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={isAvatarPending}
-          tabIndex={-1}
-          aria-hidden
-          className="group relative h-24 w-24 cursor-pointer overflow-hidden rounded-full disabled:cursor-wait"
-        >
-          {avatarPreview ? (
-            // eslint-disable-next-line @next/next/no-img-element -- may be a data URL, no need for next/image optimization here
-            <img
-              src={avatarPreview}
-              alt={name || tCommon("yourAvatar")}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <span className="flex h-full w-full items-center justify-center bg-zinc-200 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-500">
-              <UserIcon className="h-12 w-12" />
-            </span>
-          )}
-          <span className="absolute inset-0 flex items-center justify-center bg-black/45 text-white opacity-0 transition-opacity group-hover:opacity-100">
-            <CameraIcon className="h-7 w-7" />
-          </span>
-        </button>
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={isAvatarPending}
-          className={SECONDARY_BUTTON}
-        >
-          {isAvatarPending ? t("uploading") : t("changeAvatar")}
-        </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleAvatarChange}
-          className="hidden"
-        />
-        <StatusMessage status={avatarStatus} />
-      </section>
-
-      <form onSubmit={saveName} className="flex flex-col gap-2 py-6">
-        <label htmlFor={ids.name} className={LABEL_CLASS}>
-          {t("name")}
-        </label>
-        <div className="flex gap-2">
-          <input
-            id={ids.name}
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            autoComplete="name"
-            className={`flex-1 ${INPUT_CLASS}`}
-          />
-          <button type="submit" disabled={!canSaveName || isNamePending} className={PRIMARY_BUTTON}>
-            {isNamePending ? t("saving") : t("save")}
-          </button>
-        </div>
-        <StatusMessage status={nameStatus} />
-      </form>
-
-      <section className="flex flex-col gap-2 pt-6 not-last:pb-6">
-        <h2 className={LABEL_CLASS}>{hasPassword ? t("changePassword") : t("setPassword")}</h2>
-        <p className={HINT_CLASS}>{t("passwordHint", { email })}</p>
-        {isEditingPassword ? (
-          <form onSubmit={savePassword} className="flex flex-col gap-2">
-            {hasPassword && !needsCurrentPassword && (
-              <p className={HINT_CLASS}>{t("recentGoogleSignInHint")}</p>
+    // Account on the left; notifications and WhatsApp in their own cards on
+    // the right on wide screens, below it on phones.
+    <div
+      className={`grid w-full max-w-sm items-start gap-6 ${hasSideCards ? "lg:max-w-4xl lg:grid-cols-2" : ""}`}
+    >
+      <div className={CARD_CLASS}>
+        <section className="flex flex-col items-center gap-3 pb-6">
+          {/* A shortcut for the mouse; keyboard and screen readers use the text button below. */}
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isAvatarPending}
+            tabIndex={-1}
+            aria-hidden
+            className="group relative h-24 w-24 cursor-pointer overflow-hidden rounded-full disabled:cursor-wait"
+          >
+            {avatarPreview ? (
+              // eslint-disable-next-line @next/next/no-img-element -- may be a data URL, no need for next/image optimization here
+              <img
+                src={avatarPreview}
+                alt={name || tCommon("yourAvatar")}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <span className="flex h-full w-full items-center justify-center bg-zinc-200 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-500">
+                <UserIcon className="h-12 w-12" />
+              </span>
             )}
-            {needsCurrentPassword && (
+            <span className="absolute inset-0 flex items-center justify-center bg-black/45 text-white opacity-0 transition-opacity group-hover:opacity-100">
+              <CameraIcon className="h-7 w-7" />
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isAvatarPending}
+            className={SECONDARY_BUTTON}
+          >
+            {isAvatarPending ? t("uploading") : t("changeAvatar")}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleAvatarChange}
+            className="hidden"
+          />
+          <StatusMessage status={avatarStatus} />
+        </section>
+
+        <form onSubmit={saveName} className="flex flex-col gap-2 py-6">
+          <label htmlFor={ids.name} className={LABEL_CLASS}>
+            {t("name")}
+          </label>
+          <div className="flex gap-2">
+            <input
+              id={ids.name}
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              autoComplete="name"
+              className={`flex-1 ${INPUT_CLASS}`}
+            />
+            <button type="submit" disabled={!canSaveName || isNamePending} className={PRIMARY_BUTTON}>
+              {isNamePending ? t("saving") : t("save")}
+            </button>
+          </div>
+          <StatusMessage status={nameStatus} />
+        </form>
+
+        <section className={SECTION_CLASS}>
+          <h2 className={LABEL_CLASS}>{hasPassword ? t("changePassword") : t("setPassword")}</h2>
+          <p className={HINT_CLASS}>{t("passwordHint", { email })}</p>
+          {isEditingPassword ? (
+            <form onSubmit={savePassword} className="flex flex-col gap-2">
+              {hasPassword && !needsCurrentPassword && (
+                <p className={HINT_CLASS}>{t("recentGoogleSignInHint")}</p>
+              )}
+              {needsCurrentPassword && (
+                <div className="relative">
+                  <label htmlFor={ids.currentPassword} className="sr-only">
+                    {t("currentPasswordPlaceholder")}
+                  </label>
+                  <input
+                    id={ids.currentPassword}
+                    type={showCurrentPassword ? "text" : "password"}
+                    placeholder={t("currentPasswordPlaceholder")}
+                    autoComplete="current-password"
+                    autoFocus
+                    value={currentPassword}
+                    onChange={(event) => setCurrentPassword(event.target.value)}
+                    className={`${INPUT_CLASS} pr-9 pointer-coarse:pr-11`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPassword((value) => !value)}
+                    aria-label={showCurrentPassword ? t("hideCurrentPassword") : t("showCurrentPassword")}
+                    className={eyeButtonClass}
+                  >
+                    {showCurrentPassword ? (
+                      <EyeOffIcon className="h-4 w-4" />
+                    ) : (
+                      <EyeIcon className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              )}
+              {needsCurrentPassword && canResetWithGoogle && (
+                <button
+                  type="button"
+                  onClick={confirmWithGoogle}
+                  disabled={isGooglePending || isPasswordPending}
+                  className="self-start cursor-pointer text-xs text-zinc-500 underline underline-offset-2 hover:text-zinc-800 disabled:cursor-wait disabled:opacity-60 dark:text-zinc-400 dark:hover:text-zinc-200"
+                >
+                  {t("forgotPasswordConfirmWithGoogle")}
+                </button>
+              )}
               <div className="relative">
-                <label htmlFor={ids.currentPassword} className="sr-only">
-                  {t("currentPasswordPlaceholder")}
+                <label htmlFor={ids.password} className="sr-only">
+                  {t("newPasswordPlaceholder")}
                 </label>
                 <input
-                  id={ids.currentPassword}
-                  type={showCurrentPassword ? "text" : "password"}
-                  placeholder={t("currentPasswordPlaceholder")}
-                  autoComplete="current-password"
-                  autoFocus
-                  value={currentPassword}
-                  onChange={(event) => setCurrentPassword(event.target.value)}
+                  id={ids.password}
+                  type={showPassword ? "text" : "password"}
+                  placeholder={t("newPasswordPlaceholder")}
+                  autoComplete="new-password"
+                  autoFocus={!needsCurrentPassword}
+                  value={password}
+                  onChange={(event) => setPasswordValue(event.target.value)}
+                  aria-invalid={tooShort}
                   className={`${INPUT_CLASS} pr-9 pointer-coarse:pr-11`}
                 />
                 <button
                   type="button"
-                  onClick={() => setShowCurrentPassword((value) => !value)}
-                  aria-label={showCurrentPassword ? t("hideCurrentPassword") : t("showCurrentPassword")}
+                  onClick={() => setShowPassword((value) => !value)}
+                  aria-label={showPassword ? t("hidePasswords") : t("showPasswords")}
                   className={eyeButtonClass}
                 >
-                  {showCurrentPassword ? (
-                    <EyeOffIcon className="h-4 w-4" />
-                  ) : (
-                    <EyeIcon className="h-4 w-4" />
-                  )}
+                  {showPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
                 </button>
               </div>
-            )}
-            {needsCurrentPassword && canResetWithGoogle && (
-              <button
-                type="button"
-                onClick={confirmWithGoogle}
-                disabled={isGooglePending || isPasswordPending}
-                className="self-start cursor-pointer text-xs text-zinc-500 underline underline-offset-2 hover:text-zinc-800 disabled:cursor-wait disabled:opacity-60 dark:text-zinc-400 dark:hover:text-zinc-200"
-              >
-                {t("forgotPasswordConfirmWithGoogle")}
-              </button>
-            )}
-            <div className="relative">
-              <label htmlFor={ids.password} className="sr-only">
-                {t("newPasswordPlaceholder")}
+              <p className={`text-xs ${tooShort ? "text-red-500 dark:text-red-400" : "text-zinc-500 dark:text-zinc-400"}`}>
+                {t("mustBeAtLeast", { count: MIN_PASSWORD_LENGTH })}
+              </p>
+              <label htmlFor={ids.confirmPassword} className="sr-only">
+                {t("confirmPasswordPlaceholder")}
               </label>
               <input
-                id={ids.password}
+                id={ids.confirmPassword}
                 type={showPassword ? "text" : "password"}
-                placeholder={t("newPasswordPlaceholder")}
+                placeholder={t("confirmPasswordPlaceholder")}
                 autoComplete="new-password"
-                autoFocus={!needsCurrentPassword}
-                value={password}
-                onChange={(event) => setPasswordValue(event.target.value)}
-                aria-invalid={tooShort}
-                className={`${INPUT_CLASS} pr-9 pointer-coarse:pr-11`}
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                aria-invalid={mismatched}
+                className={INPUT_CLASS}
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword((value) => !value)}
-                aria-label={showPassword ? t("hidePasswords") : t("showPasswords")}
-                className={eyeButtonClass}
-              >
-                {showPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
-              </button>
-            </div>
-            <p className={`text-xs ${tooShort ? "text-red-500 dark:text-red-400" : "text-zinc-500 dark:text-zinc-400"}`}>
-              {t("mustBeAtLeast", { count: MIN_PASSWORD_LENGTH })}
-            </p>
-            <label htmlFor={ids.confirmPassword} className="sr-only">
-              {t("confirmPasswordPlaceholder")}
-            </label>
-            <input
-              id={ids.confirmPassword}
-              type={showPassword ? "text" : "password"}
-              placeholder={t("confirmPasswordPlaceholder")}
-              autoComplete="new-password"
-              value={confirmPassword}
-              onChange={(event) => setConfirmPassword(event.target.value)}
-              aria-invalid={mismatched}
-              className={INPUT_CLASS}
-            />
-            {mismatched && <p className="text-xs text-red-500 dark:text-red-400">{t("passwordsDontMatch")}</p>}
-            <div className="flex gap-2">
-              <button
-                type="submit"
-                disabled={!canSavePassword || isPasswordPending}
-                className={PRIMARY_BUTTON}
-              >
-                {isPasswordPending ? t("saving") : t("savePassword")}
-              </button>
-              <button
-                type="button"
-                onClick={closePasswordForm}
-                disabled={isPasswordPending}
-                className={SECONDARY_BUTTON}
-              >
-                {t("cancel")}
-              </button>
-            </div>
-          </form>
-        ) : (
-          <button
-            type="button"
-            onClick={() => {
-              setPasswordStatus(null);
-              setIsEditingPassword(true);
-            }}
-            className={`self-start ${SECONDARY_BUTTON}`}
-          >
-            {hasPassword ? t("changePassword") : t("setPassword")}
-          </button>
-        )}
-        <StatusMessage status={passwordStatus} />
-      </section>
+              {mismatched && <p className="text-xs text-red-500 dark:text-red-400">{t("passwordsDontMatch")}</p>}
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  disabled={!canSavePassword || isPasswordPending}
+                  className={PRIMARY_BUTTON}
+                >
+                  {isPasswordPending ? t("saving") : t("savePassword")}
+                </button>
+                <button
+                  type="button"
+                  onClick={closePasswordForm}
+                  disabled={isPasswordPending}
+                  className={SECONDARY_BUTTON}
+                >
+                  {t("cancel")}
+                </button>
+              </div>
+            </form>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setPasswordStatus(null);
+                setIsEditingPassword(true);
+              }}
+              className={`self-start ${SECONDARY_BUTTON}`}
+            >
+              {hasPassword ? t("changePassword") : t("setPassword")}
+            </button>
+          )}
+          <StatusMessage status={passwordStatus} />
+        </section>
+      </div>
 
-      {whatsapp && <WhatsAppLink {...whatsapp} />}
-      <InstallApp />
-      {notifications && <NotificationSettings {...notifications} />}
+      <div className="flex flex-col gap-6">
+        {/* Hidden while empty: the install section only shows on phones. */}
+        <div className={`${CARD_CLASS} empty:hidden`}>
+          <InstallApp />
+          {notifications && <NotificationSettings {...notifications} />}
+        </div>
+        {whatsapp && (
+          <div className={CARD_CLASS}>
+            <WhatsAppLink {...whatsapp} />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

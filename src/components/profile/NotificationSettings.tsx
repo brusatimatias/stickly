@@ -21,6 +21,7 @@ import {
   SECONDARY_BUTTON,
   StatusMessage,
   type Status,
+  SECTION_CLASS,
 } from "@/components/profile/ui";
 
 function errorCode(error: unknown): string | undefined {
@@ -128,7 +129,7 @@ export default function NotificationSettings({
   }
 
   return (
-    <section className="flex flex-col gap-2 pt-6 not-last:pb-6">
+    <section className={SECTION_CLASS}>
       <h2 className={LABEL_CLASS}>{t("title")}</h2>
       {device === null ? (
         <p className={HINT_CLASS}>{t("checking")}</p>
