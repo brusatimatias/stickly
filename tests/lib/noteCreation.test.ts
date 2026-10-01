@@ -10,6 +10,8 @@ const mockPrisma = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }));
+const mockQueueNoteReminder = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/reminders", () => ({ queueNoteReminderAfterResponse: mockQueueNoteReminder }));
 
 import { createDraftNoteForUser, createNoteForUser } from "@/lib/noteCreation";
 
@@ -50,6 +52,19 @@ describe("createNoteForUser", () => {
         userId: "user-1",
       }),
     });
+  });
+
+  test("queues the reminder of a note with a time (board, chat or WhatsApp), not of an all-day one", async () => {
+    await createNoteForUser("user-1", { ...INPUT, id: "timed" });
+    expect(mockQueueNoteReminder).toHaveBeenCalledWith("timed");
+
+    mockQueueNoteReminder.mockClear();
+    await createNoteForUser("user-1", {
+      ...INPUT,
+      id: "all-day",
+      schedule: { kind: "ALL_DAY", startsAt: new Date("2026-09-27T00:00:00.000Z") },
+    });
+    expect(mockQueueNoteReminder).not.toHaveBeenCalled();
   });
 
   test("generates an id when none is given", async () => {

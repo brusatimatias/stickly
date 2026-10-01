@@ -1,8 +1,10 @@
 "use server";
 
 import { getLocale } from "next-intl/server";
+import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { parsePushEndpoint, parsePushSubscription } from "@/lib/pushSubscription";
+import { queueUserReminders } from "@/lib/reminders";
 import { requireUserId } from "@/lib/session";
 import { getNotificationTranslator, sendPushNotification } from "@/lib/webPush";
 
@@ -25,11 +27,17 @@ export async function savePushSubscription(input: unknown) {
   const locale = await getLocale();
 
   const data = { userId, p256dh: keys.p256dh, auth: keys.auth, locale };
+  const existing = await prisma.pushSubscription.findUnique({ where: { endpoint }, select: { userId: true } });
   await prisma.pushSubscription.upsert({
     where: { endpoint },
     create: { endpoint, ...data },
     update: data,
   });
+  // A new device for this user: if it's their first, nothing was queued for
+  // them (there was nowhere to send it). Re-queueing is harmless otherwise.
+  if (existing?.userId !== userId) {
+    after(() => queueUserReminders(userId));
+  }
 }
 
 /** Turns notifications off for a device of the current user. */

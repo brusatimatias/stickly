@@ -1,15 +1,19 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
 const mockPrisma = vi.hoisted(() => ({
-  pushSubscription: { upsert: vi.fn(), deleteMany: vi.fn(), findFirst: vi.fn() },
+  pushSubscription: { upsert: vi.fn(), deleteMany: vi.fn(), findFirst: vi.fn(), findUnique: vi.fn() },
 }));
 const mockAuth = vi.hoisted(() => vi.fn());
 const mockGetLocale = vi.hoisted(() => vi.fn());
 const mockSendPush = vi.hoisted(() => vi.fn());
+const mockQueueUserReminders = vi.hoisted(() => vi.fn());
+const afterCallbacks = vi.hoisted(() => [] as (() => unknown)[]);
 
 vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }));
 vi.mock("@/auth", () => ({ auth: mockAuth }));
 vi.mock("next-intl/server", () => ({ getLocale: mockGetLocale }));
+vi.mock("next/server", () => ({ after: (callback: () => unknown) => afterCallbacks.push(callback) }));
+vi.mock("@/lib/reminders", () => ({ queueUserReminders: mockQueueUserReminders }));
 vi.mock("@/lib/webPush", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/webPush")>()),
   sendPushNotification: mockSendPush,
@@ -24,6 +28,7 @@ const STORED = { id: "sub-1", userId: "user-1", endpoint: ENDPOINT, ...KEYS, loc
 
 beforeEach(() => {
   vi.clearAllMocks();
+  afterCallbacks.length = 0;
   mockAuth.mockResolvedValue(SESSION);
   mockGetLocale.mockResolvedValue("es");
 });
@@ -43,6 +48,7 @@ describe("savePushSubscription", () => {
   });
 
   test("stores the device for the current user and locale, taking it over if another user had it", async () => {
+    mockPrisma.pushSubscription.findUnique.mockResolvedValue({ userId: "user-2" });
     await savePushSubscription({ endpoint: ENDPOINT, keys: KEYS });
 
     const data = { userId: "user-1", ...KEYS, locale: "es" };
@@ -51,6 +57,21 @@ describe("savePushSubscription", () => {
       create: { endpoint: ENDPOINT, ...data },
       update: data,
     });
+  });
+});
+
+describe("savePushSubscription queueing", () => {
+  test("queues the user's reminders for a device new to them", async () => {
+    mockPrisma.pushSubscription.findUnique.mockResolvedValue(null);
+    await savePushSubscription({ endpoint: ENDPOINT, keys: KEYS });
+    await Promise.all(afterCallbacks.map((callback) => callback()));
+    expect(mockQueueUserReminders).toHaveBeenCalledWith("user-1");
+  });
+
+  test("doesn't queue again when the profile just refreshes a known device", async () => {
+    mockPrisma.pushSubscription.findUnique.mockResolvedValue({ userId: "user-1" });
+    await savePushSubscription({ endpoint: ENDPOINT, keys: KEYS });
+    expect(afterCallbacks).toHaveLength(0);
   });
 });
 
