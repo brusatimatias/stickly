@@ -19,6 +19,7 @@ import {
   StatusMessage,
   type Status,
 } from "@/components/profile/ui";
+import InstallApp from "@/components/profile/InstallApp";
 import NotificationSettings from "@/components/profile/NotificationSettings";
 import WhatsAppLink from "@/components/profile/WhatsAppLink";
 import { resizeImageToDataUrl } from "@/lib/image";
@@ -370,8 +371,9 @@ export default function ProfileForm({
         <StatusMessage status={passwordStatus} />
       </section>
 
-      {notifications && <NotificationSettings {...notifications} />}
       {whatsapp && <WhatsAppLink {...whatsapp} />}
+      <InstallApp />
+      {notifications && <NotificationSettings {...notifications} />}
     </div>
   );
 }

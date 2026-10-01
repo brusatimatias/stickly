@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import { cookies } from "next/headers";
 import { Analytics } from "@vercel/analytics/next";
+import { InstallPromptListener } from "@/components/installPrompt";
 import { getSiteUrl, getThemeColor } from "@/lib/siteMetadata";
 import { THEME_COOKIE_NAME, isTheme } from "@/lib/theme";
 import "./globals.css";
@@ -52,6 +53,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         <NextIntlClientProvider locale={locale} messages={messages}>
           {children}
+          <InstallPromptListener />
           <Analytics />
         </NextIntlClientProvider>
       </body>

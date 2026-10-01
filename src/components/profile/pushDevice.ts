@@ -1,3 +1,5 @@
+import { isIOS, isStandalone } from "@/components/device";
+
 /**
  * This browser's side of push notifications: the service worker, the
  * permission and the subscription. Kept apart from the component so tests can
@@ -14,21 +16,6 @@ export type PushDeviceState =
   | { kind: "on"; subscription: PushSubscription };
 
 const SERVICE_WORKER_URL = "/sw.js";
-
-function isIOS(): boolean {
-  // iPadOS reports itself as a Mac, but Macs have no touch screen.
-  return (
-    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-    (navigator.userAgent.includes("Mac") && navigator.maxTouchPoints > 1)
-  );
-}
-
-function isStandalone(): boolean {
-  return (
-    window.matchMedia("(display-mode: standalone)").matches ||
-    (navigator as { standalone?: boolean }).standalone === true
-  );
-}
 
 function isSupported(): boolean {
   return "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;

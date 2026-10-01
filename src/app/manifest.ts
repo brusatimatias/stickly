@@ -16,9 +16,16 @@ export default function manifest(): MetadataRoute.Manifest {
     display: "standalone",
     background_color: THEME_BACKGROUNDS.light,
     theme_color: THEME_BACKGROUNDS.light,
-    icons: [
-      { src: "/apple-icon/192", sizes: "192x192", type: "image/png" },
-      { src: "/apple-icon/512", sizes: "512x512", type: "image/png" },
-    ],
+    // Opaque and full bleed, so they work as is and cropped to the launcher's
+    // shape (maskable); without a maskable one Android puts the icon on a
+    // white circle.
+    icons: [192, 512].flatMap((size) =>
+      (["any", "maskable"] as const).map((purpose) => ({
+        src: `/apple-icon/${size}`,
+        sizes: `${size}x${size}`,
+        type: "image/png",
+        purpose,
+      }))
+    ),
   };
 }

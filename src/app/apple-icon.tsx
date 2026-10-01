@@ -1,8 +1,11 @@
 import { ImageResponse } from "next/og";
 
-// Same sticky note as `icon.tsx`, on an opaque background: iOS fills a
-// transparent home-screen icon with black. Also the install icons the
-// manifest lists (192 and 512), served at `/apple-icon/<size>`.
+// Same sticky note as `icon.tsx`, on the note's yellow filling the whole
+// icon: home screens need it opaque (iOS fills transparency with black,
+// Android puts the icon on a white circle) and crop it to their own shape.
+// Also the install icons the manifest lists (192 and 512), served at
+// `/apple-icon/<size>`; the note stays inside the central circle Android
+// keeps when it crops a maskable icon.
 const SIZES = [180, 192, 512];
 
 export function generateImageMetadata() {
@@ -27,18 +30,18 @@ export default async function AppleIcon({ id }: { id: Promise<string> }) {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "#fafafa",
+          background: "#fde68a",
         }}
       >
         <div
           style={{
             display: "flex",
             position: "relative",
-            width: 120 * scale,
-            height: 120 * scale,
+            width: 100 * scale,
+            height: 100 * scale,
             background: "#fde68a",
-            border: `${6 * scale}px solid #f59e0b`,
-            borderRadius: 10 * scale,
+            border: `${5 * scale}px solid #f59e0b`,
+            borderRadius: 8 * scale,
             transform: "rotate(-6deg)",
           }}
         >
@@ -47,8 +50,8 @@ export default async function AppleIcon({ id }: { id: Promise<string> }) {
               position: "absolute",
               bottom: 0,
               right: 0,
-              width: 40 * scale,
-              height: 40 * scale,
+              width: 33 * scale,
+              height: 33 * scale,
               background: "rgba(255,255,255,0.7)",
               clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
             }}

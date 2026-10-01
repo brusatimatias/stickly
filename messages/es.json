@@ -103,6 +103,17 @@
       "confirmUnlinkMessage": "Vas a dejar de poder crear notas desde WhatsApp y se borra la conversación con el asistente. Podés volver a vincularlo cuando quieras."
     },
     "cancel": "Cancelar",
+    "install": {
+      "title": "App",
+      "hint": "Instalá Stickly en tu pantalla de inicio: se abre como una app, a pantalla completa.",
+      "install": "Instalar app",
+      "installed": "Stickly quedó instalada: abrila desde su ícono en la pantalla de inicio.",
+      "iosStep1": "Tocá Compartir: en Safari, el cuadrado con la flecha hacia arriba (abajo o junto a la dirección); en Chrome, el mismo ícono en la barra de direcciones.",
+      "iosStep2": "Elegí \"Agregar a inicio\".",
+      "iosStep3": "Abrí Stickly desde el ícono nuevo.",
+      "androidStep1": "Abrí el menú del navegador (⋮).",
+      "androidStep2": "Elegí \"Instalar app\" o \"Agregar a pantalla principal\"."
+    },
     "notifications": {
       "title": "Notificaciones",
       "checking": "Revisando este dispositivo…",
@@ -115,7 +126,7 @@
       "disable": "Desactivar",
       "disabled": "Notificaciones desactivadas en este dispositivo",
       "deniedHint": "Las notificaciones están bloqueadas para Stickly en este navegador. Permitilas desde la configuración del sitio y volvé a esta página.",
-      "needsInstallHint": "En iPhone y iPad, las notificaciones solo llegan con Stickly en la pantalla de inicio: tocá Compartir y después \"Agregar a inicio\", y abrí Stickly desde ese ícono.",
+      "needsInstallHint": "En iPhone y iPad, las notificaciones solo llegan con Stickly instalada: instalala con los pasos de arriba y activalas desde la app.",
       "unsupportedHint": "Este navegador no permite notificaciones."
     }
   },

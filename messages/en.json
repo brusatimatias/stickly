@@ -103,6 +103,17 @@
       "confirmUnlinkMessage": "You won't be able to create notes from WhatsApp anymore, and the conversation with the assistant is deleted. You can link it again any time."
     },
     "cancel": "Cancel",
+    "install": {
+      "title": "App",
+      "hint": "Install Stickly on your home screen: it opens like an app, full screen.",
+      "install": "Install app",
+      "installed": "Stickly is installed: open it from its icon on your home screen.",
+      "iosStep1": "Tap Share: in Safari, the square with the arrow pointing up (at the bottom or next to the address); in Chrome, the same icon in the address bar.",
+      "iosStep2": "Choose \"Add to Home Screen\".",
+      "iosStep3": "Open Stickly from the new icon.",
+      "androidStep1": "Open the browser's menu (⋮).",
+      "androidStep2": "Choose \"Install app\" or \"Add to Home screen\"."
+    },
     "notifications": {
       "title": "Notifications",
       "checking": "Checking this device…",
@@ -115,7 +126,7 @@
       "disable": "Turn off",
       "disabled": "Notifications turned off for this device",
       "deniedHint": "Notifications are blocked for Stickly in this browser. Allow them in the site settings and come back to this page.",
-      "needsInstallHint": "On iPhone and iPad, notifications only arrive with Stickly on the home screen: tap Share, then \"Add to Home Screen\", and open Stickly from that icon.",
+      "needsInstallHint": "On iPhone and iPad, notifications only arrive with Stickly installed: install it with the steps above and turn them on from the app.",
       "unsupportedHint": "This browser doesn't support notifications."
     }
   },
