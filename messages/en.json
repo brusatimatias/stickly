@@ -102,7 +102,22 @@
       "confirmUnlinkTitle": "Unlink WhatsApp?",
       "confirmUnlinkMessage": "You won't be able to create notes from WhatsApp anymore, and the conversation with the assistant is deleted. You can link it again any time."
     },
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "notifications": {
+      "title": "Notifications",
+      "checking": "Checking this device…",
+      "offHint": "Turn them on to get Stickly's alerts on this device. Each device is turned on separately.",
+      "enable": "Turn on for this device",
+      "enabled": "Notifications turned on",
+      "onHint": "This device gets Stickly's notifications.",
+      "sendTest": "Send a test",
+      "testSent": "Sent, it should arrive in a few seconds",
+      "disable": "Turn off",
+      "disabled": "Notifications turned off for this device",
+      "deniedHint": "Notifications are blocked for Stickly in this browser. Allow them in the site settings and come back to this page.",
+      "needsInstallHint": "On iPhone and iPad, notifications only arrive with Stickly on the home screen: tap Share, then \"Add to Home Screen\", and open Stickly from that icon.",
+      "unsupportedHint": "This browser doesn't support notifications."
+    }
   },
   "errors": {
     "NAME_REQUIRED": "Name is required",
@@ -135,7 +150,10 @@
     "CHAT_DAILY_LIMIT_REACHED": "You've reached today's chat limit. Try again tomorrow.",
     "CHAT_QUOTA_EXCEEDED": "The assistant is at capacity right now. Try again later.",
     "CHAT_UNAVAILABLE": "The assistant isn't available right now. Try again later.",
-    "INVALID_DATE_RANGE": "Invalid date range"
+    "INVALID_DATE_RANGE": "Invalid date range",
+    "INVALID_PUSH_SUBSCRIPTION": "This browser handed over an invalid subscription. Try again, or with another browser.",
+    "PUSH_SUBSCRIPTION_NOT_FOUND": "This device is no longer subscribed. Turn notifications on again.",
+    "PUSH_SEND_FAILED": "The notification couldn't be sent. Try again in a while."
   },
   "chat": {
     "title": "Assistant",
@@ -162,5 +180,9 @@
   "metadata": {
     "description": "Your week as a board of sticky notes: drag them between days, keep drafts, sync with Google Calendar and add reminders from a chat or WhatsApp.",
     "profileTitle": "Profile"
+  },
+  "notifications": {
+    "testTitle": "Stickly",
+    "testBody": "Notifications work on this device!"
   }
 }

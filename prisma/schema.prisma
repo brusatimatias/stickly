@@ -29,6 +29,7 @@ model User {
   webChatUsages              WebChatUsage[]
   whatsappLinkCode           WhatsAppLinkCode?
   whatsappMessages           WhatsAppMessage[]
+  pushSubscriptions          PushSubscription[]
   createdAt                  DateTime          @default(now())
 }
 
@@ -117,4 +118,26 @@ model WhatsAppMessage {
   createdAt DateTime @default(now())
 
   @@index([userId, createdAt])
+}
+
+/// A browser (one per device) where the user turned notifications on, as the
+/// Push API hands it over. The endpoint is the push service's URL for that
+/// browser, so it identifies the device; the keys encrypt what's sent to it.
+/// Deleted when the user turns notifications off there, or when the push
+/// service says the subscription is gone.
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  /// The app's language on that device when it subscribed (or last opened
+  /// the profile), for the notifications' text: the locale is a cookie, so a
+  /// background send has no other way to know it.
+  locale    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }

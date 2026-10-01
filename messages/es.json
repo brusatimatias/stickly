@@ -102,7 +102,22 @@
       "confirmUnlinkTitle": "¿Desvincular WhatsApp?",
       "confirmUnlinkMessage": "Vas a dejar de poder crear notas desde WhatsApp y se borra la conversación con el asistente. Podés volver a vincularlo cuando quieras."
     },
-    "cancel": "Cancelar"
+    "cancel": "Cancelar",
+    "notifications": {
+      "title": "Notificaciones",
+      "checking": "Revisando este dispositivo…",
+      "offHint": "Activalas para recibir avisos de Stickly en este dispositivo. Cada dispositivo se activa por separado.",
+      "enable": "Activar en este dispositivo",
+      "enabled": "Notificaciones activadas",
+      "onHint": "Este dispositivo recibe las notificaciones de Stickly.",
+      "sendTest": "Enviar una prueba",
+      "testSent": "Enviada, debería llegarte en unos segundos",
+      "disable": "Desactivar",
+      "disabled": "Notificaciones desactivadas en este dispositivo",
+      "deniedHint": "Las notificaciones están bloqueadas para Stickly en este navegador. Permitilas desde la configuración del sitio y volvé a esta página.",
+      "needsInstallHint": "En iPhone y iPad, las notificaciones solo llegan con Stickly en la pantalla de inicio: tocá Compartir y después \"Agregar a inicio\", y abrí Stickly desde ese ícono.",
+      "unsupportedHint": "Este navegador no permite notificaciones."
+    }
   },
   "errors": {
     "NAME_REQUIRED": "El nombre es obligatorio",
@@ -135,7 +150,10 @@
     "CHAT_DAILY_LIMIT_REACHED": "Llegaste al límite diario del chat. Probá de nuevo mañana.",
     "CHAT_QUOTA_EXCEEDED": "El asistente está al límite de su capacidad. Probá más tarde.",
     "CHAT_UNAVAILABLE": "El asistente no está disponible en este momento. Probá más tarde.",
-    "INVALID_DATE_RANGE": "Rango de fechas inválido"
+    "INVALID_DATE_RANGE": "Rango de fechas inválido",
+    "INVALID_PUSH_SUBSCRIPTION": "Este navegador entregó una suscripción inválida. Probá de nuevo o con otro navegador.",
+    "PUSH_SUBSCRIPTION_NOT_FOUND": "Este dispositivo ya no está suscripto. Activá las notificaciones de nuevo.",
+    "PUSH_SEND_FAILED": "No se pudo enviar la notificación. Probá de nuevo en un rato."
   },
   "chat": {
     "title": "Asistente",
@@ -162,5 +180,9 @@
   "metadata": {
     "description": "Tu semana como un tablero de notas adhesivas: arrastralas entre días, guardá borradores, sincronizá con Google Calendar y agregá recordatorios desde un chat o WhatsApp.",
     "profileTitle": "Perfil"
+  },
+  "notifications": {
+    "testTitle": "Stickly",
+    "testBody": "¡Las notificaciones funcionan en este dispositivo!"
   }
 }
