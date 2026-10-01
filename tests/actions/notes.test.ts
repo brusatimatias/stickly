@@ -17,12 +17,21 @@ const mockPrisma = vi.hoisted(() => ({
 const mockAuth = vi.hoisted(() => vi.fn());
 const mockRevalidatePath = vi.hoisted(() => vi.fn());
 const mockDeleteCalendarEvent = vi.hoisted(() => vi.fn());
+const mockUpdateCalendarEvent = vi.hoisted(() => vi.fn());
+// Work scheduled with `after()`, run by the tests when the response is "sent".
+const afterCallbacks = vi.hoisted(() => [] as (() => Promise<void>)[]);
 const mockGetTimeZoneForUser = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }));
 vi.mock("@/auth", () => ({ auth: mockAuth }));
 vi.mock("next/cache", () => ({ revalidatePath: mockRevalidatePath }));
-vi.mock("@/lib/googleCalendar", () => ({ deleteCalendarEvent: mockDeleteCalendarEvent }));
+vi.mock("next/server", () => ({
+  after: (callback: () => Promise<void>) => afterCallbacks.push(callback),
+}));
+vi.mock("@/lib/googleCalendar", () => ({
+  deleteCalendarEvent: mockDeleteCalendarEvent,
+  updateCalendarEvent: mockUpdateCalendarEvent,
+}));
 vi.mock("@/lib/userTimeZone", () => ({ getTimeZoneForUser: mockGetTimeZoneForUser }));
 
 import {
@@ -53,8 +62,11 @@ const SEPT_16_FILTER = [
   },
 ];
 
+const runAfterCallbacks = () => Promise.all(afterCallbacks.map((callback) => callback()));
+
 beforeEach(() => {
   vi.clearAllMocks();
+  afterCallbacks.length = 0;
   mockAuth.mockResolvedValue(SESSION);
   mockGetTimeZoneForUser.mockResolvedValue("America/Argentina/Buenos_Aires");
   // $transaction runs the callback against the same mock client, since our
@@ -164,6 +176,85 @@ describe("updateNote", () => {
       updateNote({ ...BASE, schedule: { kind: "TIMED", startsAt: "9am" } })
     ).rejects.toThrow("INVALID_SCHEDULE");
     expect(mockPrisma.note.updateMany).not.toHaveBeenCalled();
+  });
+
+  describe("keeping a synced note's Calendar event up to date", () => {
+    const SYNCED = { id: "id-1", title: "Title", location: null, description: null, ...EXISTING_TIMED };
+
+    test("updates the event after the response with the note as saved", async () => {
+      const saved = { ...SYNCED, title: "New title" };
+      mockPrisma.note.findFirst.mockResolvedValueOnce(SYNCED).mockResolvedValueOnce(saved);
+      mockUpdateCalendarEvent.mockResolvedValue("updated");
+
+      await updateNote({ ...BASE, title: "New title", schedule: TIMED });
+      expect(mockUpdateCalendarEvent).not.toHaveBeenCalled();
+
+      await runAfterCallbacks();
+      expect(mockUpdateCalendarEvent).toHaveBeenCalledWith("user-1", "gcal-1", saved);
+      expect(mockPrisma.note.updateMany).toHaveBeenCalledTimes(1);
+    });
+
+    test("doesn't call Google when nothing the event shows changed", async () => {
+      mockPrisma.note.findFirst.mockResolvedValue(SYNCED);
+
+      await updateNote({ ...BASE, schedule: TIMED });
+
+      expect(afterCallbacks).toHaveLength(0);
+    });
+
+    test("only deletes the event (no update) when the note loses its time", async () => {
+      mockPrisma.note.findFirst.mockResolvedValue(SYNCED);
+
+      await updateNote({ ...BASE, title: "New title", schedule: ALL_DAY });
+
+      expect(mockDeleteCalendarEvent).toHaveBeenCalledWith("user-1", "gcal-1");
+      expect(afterCallbacks).toHaveLength(0);
+    });
+
+    test("doesn't call Google for a note that isn't synced", async () => {
+      mockPrisma.note.findFirst.mockResolvedValue({ ...SYNCED, googleEventId: null });
+
+      await updateNote({ ...BASE, title: "New title", schedule: TIMED });
+
+      expect(afterCallbacks).toHaveLength(0);
+    });
+
+    test("unlinks the note when the event was deleted from Calendar", async () => {
+      mockPrisma.note.findFirst.mockResolvedValue(SYNCED);
+      mockUpdateCalendarEvent.mockResolvedValue("missing");
+
+      await updateNote({ ...BASE, title: "New title", schedule: TIMED });
+      await runAfterCallbacks();
+
+      expect(mockPrisma.note.updateMany).toHaveBeenLastCalledWith({
+        where: { id: "id-1", userId: "user-1", googleEventId: "gcal-1" },
+        data: { googleEventId: null },
+      });
+    });
+
+    test("skips the update when the note was unsynced or deleted meanwhile", async () => {
+      mockPrisma.note.findFirst.mockResolvedValueOnce(SYNCED).mockResolvedValueOnce(null);
+
+      await updateNote({ ...BASE, title: "New title", schedule: TIMED });
+      await runAfterCallbacks();
+
+      expect(mockUpdateCalendarEvent).not.toHaveBeenCalled();
+    });
+
+    test("logs instead of throwing when re-reading the note fails", async () => {
+      const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+      mockPrisma.note.findFirst
+        .mockResolvedValueOnce(SYNCED)
+        .mockRejectedValueOnce(new Error("connection lost"));
+
+      await updateNote({ ...BASE, title: "New title", schedule: TIMED });
+      await expect(runAfterCallbacks()).resolves.toBeDefined();
+
+      expect(consoleError).toHaveBeenCalledWith(
+        expect.stringContaining("note id-1"),
+        expect.any(Error)
+      );
+    });
   });
 
   test("does not unsync when the note keeps a time", async () => {
@@ -348,6 +439,62 @@ describe("moveNote", () => {
       where: { id: "moving" },
       data: { position: 0, kind: "TIMED", startsAt: new Date("2026-09-16T13:00:00.000Z") },
     });
+  });
+
+  test("updates a synced note's Calendar event when it moves to another time", async () => {
+    const moving = {
+      id: "moving",
+      kind: "TIMED",
+      startsAt: new Date("2026-09-15T13:00:00.000Z"),
+      googleEventId: "gcal-1",
+    };
+    mockPrisma.note.findFirst
+      .mockResolvedValueOnce(moving)
+      .mockResolvedValueOnce({ ...moving, startsAt: new Date(TIMED.startsAt) });
+    mockPrisma.note.findMany.mockResolvedValue([]);
+    mockUpdateCalendarEvent.mockResolvedValue("updated");
+
+    await moveNote({ noteId: "moving", day: "2026-09-16", index: 0, schedule: TIMED });
+    await runAfterCallbacks();
+
+    expect(mockUpdateCalendarEvent).toHaveBeenCalledWith(
+      "user-1",
+      "gcal-1",
+      expect.objectContaining({ startsAt: new Date(TIMED.startsAt) })
+    );
+  });
+
+  test("doesn't call Google when a synced note is only reordered within its day", async () => {
+    mockPrisma.note.findFirst.mockResolvedValue({
+      id: "moving",
+      kind: "TIMED",
+      startsAt: new Date(TIMED.startsAt),
+      googleEventId: "gcal-1",
+    });
+    mockPrisma.note.findMany.mockResolvedValue([]);
+
+    await moveNote({ noteId: "moving", day: "2026-09-16", index: 0, schedule: TIMED });
+
+    expect(afterCallbacks).toHaveLength(0);
+  });
+
+  test("unsyncs a synced note moved without a time, as updateNote does", async () => {
+    mockPrisma.note.findFirst.mockResolvedValue({
+      id: "moving",
+      kind: "TIMED",
+      startsAt: new Date(TIMED.startsAt),
+      googleEventId: "gcal-1",
+    });
+    mockPrisma.note.findMany.mockResolvedValue([]);
+
+    await moveNote({ noteId: "moving", day: "2026-09-16", index: 0, schedule: ALL_DAY });
+
+    expect(mockDeleteCalendarEvent).toHaveBeenCalledWith("user-1", "gcal-1");
+    expect(mockPrisma.note.updateMany).toHaveBeenCalledWith({
+      where: { id: "moving", userId: "user-1" },
+      data: { googleEventId: null },
+    });
+    expect(afterCallbacks).toHaveLength(0);
   });
 
   test("rejects an invalid schedule before touching the database", async () => {

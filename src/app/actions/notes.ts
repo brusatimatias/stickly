@@ -1,8 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+import { calendarEventChanged } from "@/lib/calendarEvent";
 import { dayToDate, nextDay } from "@/lib/datetime";
-import { deleteCalendarEvent } from "@/lib/googleCalendar";
+import { deleteCalendarEvent, updateCalendarEvent } from "@/lib/googleCalendar";
 import { createDraftNoteForUser, createNoteForUser } from "@/lib/noteCreation";
 import {
   sanitizeDay,
@@ -23,6 +25,37 @@ function sanitizeClientId(id: string): string {
     throw new Error("INVALID_NOTE_ID");
   }
   return id;
+}
+
+/**
+ * Mirrors a synced note's changes on its Calendar event once the response is
+ * sent, so saving or dragging a note never waits on Google. Best-effort: it
+ * reads the note again (sending its latest state if it changed meanwhile),
+ * and unlinks it if the event was deleted from Calendar. Two quick edits run
+ * their updates concurrently, so in a rare race Google can end up with the
+ * older one; syncing the note again by hand fixes it.
+ */
+function updateCalendarEventAfterResponse(userId: string, noteId: string) {
+  after(async () => {
+    try {
+      const note = await prisma.note.findFirst({ where: { id: noteId, userId } });
+      if (!note?.googleEventId || note.kind !== "TIMED" || !note.startsAt) {
+        return;
+      }
+      const result = await updateCalendarEvent(userId, note.googleEventId, {
+        ...note,
+        startsAt: note.startsAt,
+      });
+      if (result === "missing") {
+        await prisma.note.updateMany({
+          where: { id: noteId, userId, googleEventId: note.googleEventId },
+          data: { googleEventId: null },
+        });
+      }
+    } catch (error) {
+      console.error(`Couldn't update the Calendar event of note ${noteId}`, error);
+    }
+  });
 }
 
 /*
@@ -86,6 +119,17 @@ export async function updateNote(input: {
     },
   });
 
+  if (
+    existing.googleEventId &&
+    kind === "TIMED" &&
+    calendarEventChanged(
+      { ...existing, startsAt: existing.startsAt },
+      { title, location, description, startsAt }
+    )
+  ) {
+    updateCalendarEventAfterResponse(userId, existing.id);
+  }
+
   revalidatePath("/");
 }
 
@@ -121,7 +165,7 @@ export async function moveNote(input: {
   const { kind, startsAt } = parseScheduleInput(input.schedule);
   const dayFilter = localDaysFilter(day, nextDay(day), await getTimeZoneForUser(userId));
 
-  await prisma.$transaction(async (tx) => {
+  const movingNote = await prisma.$transaction(async (tx) => {
     const movingNote = await tx.note.findFirst({
       where: { id: input.noteId, userId },
     });
@@ -152,7 +196,20 @@ export async function moveNote(input: {
         })
       )
     );
+    return movingNote;
   });
+
+  if (movingNote.googleEventId && kind === "ALL_DAY") {
+    // Only TIMED notes can be synced, as in updateNote.
+    await deleteCalendarEvent(userId, movingNote.googleEventId);
+    await prisma.note.updateMany({
+      where: { id: movingNote.id, userId },
+      data: { googleEventId: null },
+    });
+  } else if (movingNote.googleEventId && movingNote.startsAt?.getTime() !== startsAt.getTime()) {
+    // Reordering within the same day doesn't change the event.
+    updateCalendarEventAfterResponse(userId, movingNote.id);
+  }
 
   revalidatePath("/");
 }

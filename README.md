@@ -9,7 +9,7 @@ A notes/reminders app organized on a whiteboard-style weekly board, with Google 
 - Weekly board based on real calendar weeks, with navigation between weeks and jumping to a specific week.
 - Notes as sticky notes per day and time (title, optional location, exact date/time), movable via drag & drop.
 - Draft notes: up to 4 per user, with no date, used as a scratch space; they can be reordered and dragged onto a day, and the assistant creates one when asked for a draft.
-- A per-note button to create a Google Calendar event, linked to the note via `googleEventId`.
+- A per-note button to create a Google Calendar event, linked to the note via `googleEventId`. Editing or moving a synced note updates its event.
 - Assistant chat (floating button on the board) that works in natural language, in English or Spanish:
   - Creates notes: "remind me on Friday at 6 pm to buy my sister's gift" becomes a note with the right day, time, title and details. If no date is given, it asks for one.
   - Answers about your notes: "what's left to do this week?" lists every day with its pending notes; "what do I have today?" lists today's.

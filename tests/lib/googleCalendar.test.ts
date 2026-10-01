@@ -21,7 +21,7 @@ vi.mock("googleapis", () => ({
   },
 }));
 
-import { deleteCalendarEvent, withGoogleCalendar } from "@/lib/googleCalendar";
+import { deleteCalendarEvent, updateCalendarEvent, withGoogleCalendar } from "@/lib/googleCalendar";
 
 const NOW = new Date("2026-09-28T12:00:00.000Z");
 const minutesFromNow = (minutes: number) => new Date(NOW.getTime() + minutes * 60_000);
@@ -170,6 +170,74 @@ describe("deleteCalendarEvent", () => {
     await expect(deleteCalendarEvent("user-1", "gcal-1")).resolves.toBeUndefined();
     expect(consoleError).toHaveBeenCalledWith(
       expect.stringContaining("couldn't delete Calendar event gcal-1"),
+      expect.any(Error)
+    );
+  });
+});
+
+describe("updateCalendarEvent", () => {
+  const NOTE = {
+    title: "Meeting",
+    location: "Office",
+    description: null,
+    startsAt: new Date("2026-09-17T01:30:00.000Z"),
+  };
+
+  async function mockEvents(events: Record<string, unknown>) {
+    const { google } = await import("googleapis");
+    vi.mocked(google.calendar).mockReturnValueOnce({ events } as never);
+  }
+
+  test("updates the event with the note's fields, keeping what was added in Calendar", async () => {
+    const mockUpdate = vi.fn();
+    await mockEvents({
+      get: vi.fn().mockResolvedValue({
+        data: { id: "gcal-1", status: "confirmed", description: "old", attendees: [{ email: "a@b.c" }] },
+      }),
+      update: mockUpdate,
+    });
+
+    await expect(updateCalendarEvent("user-1", "gcal-1", NOTE)).resolves.toBe("updated");
+    expect(mockUpdate).toHaveBeenCalledWith({
+      calendarId: "primary",
+      eventId: "gcal-1",
+      requestBody: expect.objectContaining({
+        summary: "Meeting",
+        location: "Office",
+        // Emptied in the note, so cleared in the event.
+        description: undefined,
+        start: { dateTime: "2026-09-17T01:30:00.000Z" },
+        attendees: [{ email: "a@b.c" }],
+      }),
+    });
+  });
+
+  test("reports an event deleted from Calendar (still listed as cancelled) as missing, without restoring it", async () => {
+    const mockUpdate = vi.fn();
+    await mockEvents({
+      get: vi.fn().mockResolvedValue({ data: { id: "gcal-1", status: "cancelled" } }),
+      update: mockUpdate,
+    });
+
+    await expect(updateCalendarEvent("user-1", "gcal-1", NOTE)).resolves.toBe("missing");
+    expect(mockUpdate).not.toHaveBeenCalled();
+  });
+
+  test.each([404, 410])("reports a %s (event gone) as missing, silently", async (status) => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    await mockEvents({ get: vi.fn().mockRejectedValue({ response: { status } }) });
+
+    await expect(updateCalendarEvent("user-1", "gcal-1", NOTE)).resolves.toBe("missing");
+    expect(consoleError).not.toHaveBeenCalled();
+  });
+
+  test("logs any other failure instead of throwing", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    mockTokens.getGoogleTokens.mockResolvedValue(storedTokens({ refreshToken: null, accessToken: null }));
+
+    await expect(updateCalendarEvent("user-1", "gcal-1", NOTE)).resolves.toBe("failed");
+    expect(consoleError).toHaveBeenCalledWith(
+      expect.stringContaining("couldn't update Calendar event gcal-1"),
       expect.any(Error)
     );
   });
