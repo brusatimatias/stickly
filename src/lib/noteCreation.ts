@@ -5,6 +5,7 @@ import {
   sanitizeTitle,
 } from "@/lib/noteInput";
 import { prisma } from "@/lib/prisma";
+import { queueNoteReminderAfterResponse } from "@/lib/reminders";
 import type { StoredSchedule } from "@/lib/schedule";
 
 /**
@@ -52,6 +53,11 @@ export async function createNoteForUser(
       userId,
     },
   });
+
+  // Board, web chat and WhatsApp notes alike.
+  if (input.schedule.kind === "TIMED") {
+    queueNoteReminderAfterResponse(id);
+  }
 
   return { id };
 }

@@ -26,6 +26,7 @@ vi.mock("@/auth", () => ({ auth: mockAuth }));
 vi.mock("next/cache", () => ({ revalidatePath: mockRevalidatePath }));
 vi.mock("next-intl/server", () => ({ getLocale: async () => "es" }));
 vi.mock("@ai-sdk/google", () => ({ google: mockGoogle }));
+vi.mock("@/lib/reminders", () => ({ queueNoteReminderAfterResponse: vi.fn(), queueUserReminders: vi.fn() }));
 
 import { sendChatMessage } from "@/app/actions/chat";
 

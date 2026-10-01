@@ -13,6 +13,7 @@ import {
   sanitizeTitle,
 } from "@/lib/noteInput";
 import { insertAtIndex, sortDoneLast } from "@/lib/ordering";
+import { queueNoteReminderAfterResponse } from "@/lib/reminders";
 import { prisma } from "@/lib/prisma";
 import { localDaysFilter, parseScheduleInput, type ScheduleInput } from "@/lib/schedule";
 import { requireUserId } from "@/lib/session";
@@ -130,12 +131,21 @@ export async function updateNote(input: {
     updateCalendarEventAfterResponse(userId, existing.id);
   }
 
+  // A new time needs a new reminder (the old one is dropped when delivered).
+  if (kind === "TIMED" && (existing.kind !== "TIMED" || existing.startsAt.getTime() !== startsAt.getTime())) {
+    queueNoteReminderAfterResponse(existing.id);
+  }
+
   revalidatePath("/");
 }
 
 export async function toggleNoteDone(id: string, isDone: boolean) {
   const userId = await requireUserId();
-  await prisma.note.updateMany({ where: { id, userId }, data: { isDone } });
+  const { count } = await prisma.note.updateMany({ where: { id, userId }, data: { isDone } });
+  // Done notes aren't queued, so one marked pending again may need its reminder.
+  if (count > 0 && !isDone) {
+    queueNoteReminderAfterResponse(id);
+  }
   revalidatePath("/");
 }
 
@@ -209,6 +219,11 @@ export async function moveNote(input: {
   } else if (movingNote.googleEventId && movingNote.startsAt?.getTime() !== startsAt.getTime()) {
     // Reordering within the same day doesn't change the event.
     updateCalendarEventAfterResponse(userId, movingNote.id);
+  }
+
+  // A plain reorder keeps the time, and so the queued reminder.
+  if (kind === "TIMED" && movingNote.startsAt?.getTime() !== startsAt.getTime()) {
+    queueNoteReminderAfterResponse(input.noteId);
   }
 
   revalidatePath("/");

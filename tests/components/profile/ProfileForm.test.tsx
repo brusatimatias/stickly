@@ -15,7 +15,13 @@ vi.mock("@/app/actions/profile", () => ({
   confirmPasswordResetWithGoogle: mockConfirmWithGoogle,
 }));
 vi.mock("@/app/actions/whatsapp", () => ({ createWhatsAppLinkCode: vi.fn(), unlinkWhatsApp: vi.fn() }));
+vi.mock("@/app/actions/push", () => ({
+  savePushSubscription: vi.fn(),
+  deletePushSubscription: vi.fn(),
+  sendTestNotification: vi.fn(),
+}));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: mockRefresh }) }));
+vi.mock("@/app/actions/reminders", () => ({ updateReminderSettings: vi.fn() }));
 
 import ProfileForm from "@/components/profile/ProfileForm";
 
@@ -38,6 +44,7 @@ function renderForm({
         recentGoogleSignIn={recentGoogleSignIn}
         openPasswordForm={openPasswordForm}
         whatsapp={null}
+        notifications={null}
       />
     </NextIntlClientProvider>
   );

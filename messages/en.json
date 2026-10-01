@@ -102,7 +102,42 @@
       "confirmUnlinkTitle": "Unlink WhatsApp?",
       "confirmUnlinkMessage": "You won't be able to create notes from WhatsApp anymore, and the conversation with the assistant is deleted. You can link it again any time."
     },
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "install": {
+      "title": "App",
+      "hint": "Install Stickly on your home screen: it opens like an app, full screen.",
+      "install": "Install app",
+      "installed": "Stickly is installed: open it from its icon on your home screen.",
+      "iosStep1": "Tap Share: in Safari, the square with the arrow pointing up (at the bottom or next to the address); in Chrome, the same icon in the address bar.",
+      "iosStep2": "Choose \"Add to Home Screen\".",
+      "iosStep3": "Open Stickly from the new icon.",
+      "androidStep1": "Open the browser's menu (⋮).",
+      "androidStep2": "Choose \"Install app\" or \"Add to Home screen\"."
+    },
+    "notifications": {
+      "title": "Notifications",
+      "checking": "Checking this device…",
+      "offHint": "Turn them on to get Stickly's alerts on this device. Each device is turned on separately.",
+      "enable": "Turn on for this device",
+      "enabled": "Notifications turned on",
+      "onHint": "This device gets Stickly's notifications.",
+      "sendTest": "Send a test",
+      "testSent": "Sent, it should arrive in a few seconds",
+      "disable": "Turn off",
+      "disabled": "Notifications turned off for this device",
+      "deniedHint": "Notifications are blocked for Stickly in this browser. Allow them in the site settings and come back to this page.",
+      "needsInstallHint": "On iPhone and iPad, notifications only arrive with Stickly installed: install it with the steps above and turn them on from the app.",
+      "unsupportedHint": "This browser doesn't support notifications.",
+      "remindersLabel": "Remind me of notes with a time",
+      "remindersOff": "Off",
+      "remindersAtTime": "At their time",
+      "remindersMinutesBefore": "{minutes} min before",
+      "remindersHoursBefore": "{hours, plural, one {# hour before} other {# hours before}}",
+      "digestLabel": "Daily summary of the day's notes",
+      "digestTimeLabel": "Summary time",
+      "settingsHint": "They apply to all your devices with notifications on. Notes without a time show up in the summary.",
+      "settingsSaved": "Saved"
+    }
   },
   "errors": {
     "NAME_REQUIRED": "Name is required",
@@ -135,7 +170,11 @@
     "CHAT_DAILY_LIMIT_REACHED": "You've reached today's chat limit. Try again tomorrow.",
     "CHAT_QUOTA_EXCEEDED": "The assistant is at capacity right now. Try again later.",
     "CHAT_UNAVAILABLE": "The assistant isn't available right now. Try again later.",
-    "INVALID_DATE_RANGE": "Invalid date range"
+    "INVALID_DATE_RANGE": "Invalid date range",
+    "INVALID_PUSH_SUBSCRIPTION": "This browser handed over an invalid subscription. Try again, or with another browser.",
+    "PUSH_SUBSCRIPTION_NOT_FOUND": "This device is no longer subscribed. Turn notifications on again.",
+    "PUSH_SEND_FAILED": "The notification couldn't be sent. Try again in a while.",
+    "INVALID_REMINDER_SETTINGS": "Those settings aren't valid."
   },
   "chat": {
     "title": "Assistant",
@@ -162,5 +201,14 @@
   "metadata": {
     "description": "Your week as a board of sticky notes: drag them between days, keep drafts, sync with Google Calendar and add reminders from a chat or WhatsApp.",
     "profileTitle": "Profile"
+  },
+  "notifications": {
+    "testTitle": "Stickly",
+    "testBody": "Notifications work on this device!",
+    "startsNow": "Now · {time}",
+    "startsInMinutes": "In {minutes} min · {time}",
+    "startsInHours": "{hours, plural, one {In # hour} other {In # hours}} · {time}",
+    "digestTitle": "{count, plural, one {# note today} other {# notes today}}",
+    "digestMore": "and {count} more"
   }
 }

@@ -2,6 +2,7 @@
 
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { signIn } from "@/auth";
 import {
   PASSWORD_RESET_PARAM,
@@ -10,6 +11,7 @@ import {
   validatePasswordLength,
 } from "@/lib/profile";
 import { prisma } from "@/lib/prisma";
+import { queueUserReminders } from "@/lib/reminders";
 import { hasRecentGoogleSignIn, requireUserId } from "@/lib/session";
 import { isValidTimeZone } from "@/lib/timezone";
 
@@ -39,6 +41,8 @@ export async function updateTimeZone(timeZone: string) {
   }
 
   await prisma.user.update({ where: { id: userId }, data: { timeZone } });
+  // The digest is at a local time: the queued ones are now at the wrong instant.
+  after(() => queueUserReminders(userId));
   revalidatePath("/");
 }
 

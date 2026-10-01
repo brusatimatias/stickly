@@ -15,6 +15,8 @@ const mockSignIn = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }));
 vi.mock("@/auth", () => ({ auth: mockAuth, signIn: mockSignIn }));
 vi.mock("next/cache", () => ({ revalidatePath: mockRevalidatePath }));
+vi.mock("@/lib/reminders", () => ({ queueNoteReminderAfterResponse: vi.fn(), queueUserReminders: vi.fn() }));
+vi.mock("next/server", () => ({ after: vi.fn() }));
 
 import { confirmPasswordResetWithGoogle, setPassword, updateTimeZone } from "@/app/actions/profile";
 import { RECENT_SIGN_IN_MS } from "@/lib/session";
