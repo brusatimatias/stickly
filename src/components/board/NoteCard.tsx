@@ -14,6 +14,7 @@ import NoteForm from "@/components/board/NoteForm";
 import type { NoteDTO } from "@/components/board/types";
 import { useErrorMessage } from "@/components/errorMessage";
 import { FOCUS_RING } from "@/components/focusRing";
+import { TOUCH_DRAG_CARD, splitDragListeners } from "@/components/board/touchDrag";
 import {
   CalendarCheckIcon,
   CalendarIcon,
@@ -47,6 +48,7 @@ export default function NoteCard({
   const [isDeleted, setIsDeleted] = useOptimistic(false);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: note.id });
+  const dragListeners = splitDragListeners(listeners);
   const noteStyle = getNoteStyle(note.id);
 
   const style = {
@@ -96,7 +98,8 @@ export default function NoteCard({
       ref={setNodeRef}
       style={style}
       onClick={() => setIsEditing(true)}
-      className={`${isNew ? "animate-note-in" : ""} group relative ${isDeleted ? "hidden" : "flex"} @container aspect-square w-full max-w-44 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border p-2 text-sm shadow-[2px_4px_6px_rgba(0,0,0,0.3)] transition-[top] hover:z-10 hover:-top-1 hover:shadow-[3px_6px_10px_rgba(0,0,0,0.35)] dark:shadow-[2px_4px_6px_rgba(0,0,0,0.6)] dark:hover:shadow-[3px_6px_10px_rgba(0,0,0,0.7)] sm:max-w-48 ${isDragging ? "z-20" : ""} ${noteStyle.rotation} ${noteStyle.bg} ${noteStyle.border} ${noteStyle.text}`}
+      {...dragListeners.card}
+      className={`${isNew ? "animate-note-in" : ""} group relative ${isDeleted ? "hidden" : "flex"} @container aspect-square w-full max-w-44 cursor-pointer flex-col justify-between ${TOUCH_DRAG_CARD} overflow-hidden rounded-sm border p-2 text-sm shadow-[2px_4px_6px_rgba(0,0,0,0.3)] transition-[top] hover:z-10 hover:-top-1 hover:shadow-[3px_6px_10px_rgba(0,0,0,0.35)] dark:shadow-[2px_4px_6px_rgba(0,0,0,0.6)] dark:hover:shadow-[3px_6px_10px_rgba(0,0,0,0.7)] sm:max-w-48 ${isDragging ? "z-20" : ""} ${noteStyle.rotation} ${noteStyle.bg} ${noteStyle.border} ${noteStyle.text}`}
     >
       {displayNote.isDone && (
         <div className="pointer-events-none absolute inset-0 bg-zinc-500/40 mix-blend-multiply dark:bg-zinc-400/30" />
@@ -108,7 +111,7 @@ export default function NoteCard({
           aria-label={t("dragToReorder")}
           onClick={(event) => event.stopPropagation()}
           {...attributes}
-          {...listeners}
+          {...dragListeners.handle}
           className={`cursor-grab touch-none select-none rounded-sm opacity-30 transition-opacity group-hover:opacity-70 active:cursor-grabbing pointer-coarse:-m-2 pointer-coarse:p-2 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING}`}
         >
           ⠿
