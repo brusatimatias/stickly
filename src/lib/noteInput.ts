@@ -1,4 +1,5 @@
-import { differenceInCalendarDays, format, isValid, parseISO } from "date-fns";
+import { differenceInCalendarDays, parseISO } from "date-fns";
+import { isValidDay } from "@/lib/datetime";
 
 const MAX_TITLE_LENGTH = 80;
 /**
@@ -8,10 +9,16 @@ const MAX_TITLE_LENGTH = 80;
 export const TITLE_SOFT_LIMIT = 40;
 const MAX_LOCATION_LENGTH = 60;
 const MAX_DESCRIPTION_LENGTH = 300;
-const DAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 // Caps how many notes a single list_notes call can pull into the model.
 const MAX_LIST_RANGE_DAYS = 31;
+
+const MAX_ID_LENGTH = 64;
+
+/** Whether `value` looks like one of our ids (cuid or uuid): a short, non-empty string. */
+export function isValidId(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0 && value.length <= MAX_ID_LENGTH;
+}
 
 /** How many draft notes (no date yet) a user can keep at once. */
 export const MAX_DRAFT_NOTES = 4;
@@ -130,9 +137,7 @@ function validateDay(day: string): void {
   if (!day) {
     throw new Error("DAY_REQUIRED");
   }
-  // The round trip rejects well-formed but nonexistent dates like 2026-02-30.
-  const parsedDay = parseISO(day);
-  if (!DAY_PATTERN.test(day) || !isValid(parsedDay) || format(parsedDay, "yyyy-MM-dd") !== day) {
+  if (!isValidDay(day)) {
     throw new Error("INVALID_DAY");
   }
 }

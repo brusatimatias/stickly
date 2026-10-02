@@ -1,5 +1,6 @@
 import { after } from "next/server";
-import { nextDay } from "@/lib/datetime";
+import { isValidDay, nextDay } from "@/lib/datetime";
+import { isValidId } from "@/lib/noteInput";
 import { prisma } from "@/lib/prisma";
 import { isQStashConfigured, queueReminders, type QueuedReminder } from "@/lib/qstash";
 import {
@@ -10,6 +11,7 @@ import {
   REMINDER_QUEUE_WINDOW_MS,
 } from "@/lib/reminderSettings";
 import { localDaysFilter, toLocalSchedule } from "@/lib/schedule";
+import { MINUTE_MS } from "@/lib/time";
 import { resolveTimeZone } from "@/lib/timezone";
 import {
   getNotificationTranslator,
@@ -39,13 +41,6 @@ export type ReminderMessage =
   | { type: "note"; noteId: string; remindAt: string }
   | { type: "digest"; userId: string; day: string; at: string };
 
-const MAX_ID_LENGTH = 64;
-const DAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-
-function isId(value: unknown): value is string {
-  return typeof value === "string" && value.length > 0 && value.length <= MAX_ID_LENGTH;
-}
-
 function isInstant(value: unknown): value is string {
   return typeof value === "string" && !Number.isNaN(new Date(value).getTime());
 }
@@ -53,14 +48,14 @@ function isInstant(value: unknown): value is string {
 /** Validates a delivered message's body (signed by QStash, but checked anyway). */
 export function parseReminderMessage(input: unknown): ReminderMessage | null {
   const message = (input ?? {}) as Record<string, unknown>;
-  if (message.type === "note" && isId(message.noteId) && isInstant(message.remindAt)) {
+  if (message.type === "note" && isValidId(message.noteId) && isInstant(message.remindAt)) {
     return { type: "note", noteId: message.noteId, remindAt: message.remindAt };
   }
   if (
     message.type === "digest" &&
-    isId(message.userId) &&
+    isValidId(message.userId) &&
     typeof message.day === "string" &&
-    DAY_PATTERN.test(message.day) &&
+    isValidDay(message.day) &&
     isInstant(message.at)
   ) {
     return { type: "digest", userId: message.userId, day: message.day, at: message.at };
@@ -110,7 +105,7 @@ function digestReminders(user: QueueUser, now: Date): QueuedReminder[] {
 async function remindersForUser(user: QueueUser, now: Date): Promise<QueuedReminder[]> {
   const reminders: QueuedReminder[] = [];
   if (user.reminderMinutesBefore !== null) {
-    const lead = user.reminderMinutesBefore * 60_000;
+    const lead = user.reminderMinutesBefore * MINUTE_MS;
     const notes = await prisma.note.findMany({
       where: {
         userId: user.id,

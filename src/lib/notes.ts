@@ -1,4 +1,5 @@
-import { addDays, eachDayOfInterval, format, parseISO } from "date-fns";
+import { eachDayOfInterval, format, parseISO } from "date-fns";
+import { nextDay } from "@/lib/datetime";
 import type { ListNotesInput } from "@/lib/noteInput";
 import { groupNotesByDay, toStoredNoteDTO } from "@/lib/noteGroups";
 import { prisma } from "@/lib/prisma";
@@ -35,9 +36,8 @@ export async function listNotesForUser(userId: string, input: ListNotesInput, ti
   const dayKeys = eachDayOfInterval({ start: parseISO(input.from), end: parseISO(input.to) }).map(
     (day) => format(day, "yyyy-MM-dd")
   );
-  const dayAfter = format(addDays(parseISO(input.to), 1), "yyyy-MM-dd");
 
-  const notes = await getNotesForDays(userId, input.from, dayAfter, timeZone);
+  const notes = await getNotesForDays(userId, input.from, nextDay(input.to), timeZone);
   const matching = notes.filter(
     (note) => input.status === "all" || note.isDone === (input.status === "done")
   );

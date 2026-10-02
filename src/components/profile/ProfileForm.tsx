@@ -27,11 +27,11 @@ import NotificationSettings from "@/components/profile/NotificationSettings";
 import WhatsAppLink from "@/components/profile/WhatsAppLink";
 import type { ReminderSettings } from "@/lib/reminderSettings";
 import { resizeImageToDataUrl } from "@/lib/image";
+import { MIN_PASSWORD_LENGTH } from "@/lib/profile";
 import { errorCode, useErrorMessage } from "@/components/errorMessage";
 import { FOCUS_RING } from "@/components/focusRing";
 
 const AVATAR_TARGET_SIZE = 128;
-const MIN_PASSWORD_LENGTH = 8;
 
 export default function ProfileForm({
   name: initialName,

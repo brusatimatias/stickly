@@ -2,20 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { isUniqueViolation } from "@/lib/prismaErrors";
 import { requireUserId } from "@/lib/session";
 import { LINK_CODE_TTL_MS, generateLinkCode, hashLinkCode } from "@/lib/whatsappLink";
 
 // Two users holding the same pending code is unlikely (a million codes, ten
 // minutes each), so a couple of tries is plenty.
 const MAX_CODE_ATTEMPTS = 3;
-
-/**
- * Prisma's unique constraint violation (P2002). On the link code upsert it can
- * only be `codeHash`: the other unique key, `userId`, is the upsert's `where`.
- */
-function isUniqueViolation(error: unknown) {
-  return (error as { code?: unknown } | null)?.code === "P2002";
-}
 
 /**
  * Generates the code the user sends from WhatsApp to link their number,
@@ -39,7 +32,8 @@ export async function createWhatsAppLinkCode(): Promise<{ code: string; expiresA
       });
       return { code, expiresAt };
     } catch (error) {
-      // Another user's pending code has the same hash: draw a new one.
+      // Another user's pending code has the same hash (the only other unique
+      // key, `userId`, is the upsert's `where`): draw a new one.
       if (!isUniqueViolation(error) || attempt >= MAX_CODE_ATTEMPTS) {
         throw error;
       }

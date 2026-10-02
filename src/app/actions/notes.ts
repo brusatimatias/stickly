@@ -11,6 +11,7 @@ import {
   sanitizeDescription,
   sanitizeLocation,
   sanitizeTitle,
+  isValidId,
   type NoteFields,
 } from "@/lib/noteInput";
 import { insertAtIndex, sortDoneLast } from "@/lib/ordering";
@@ -20,13 +21,11 @@ import { localDaysFilter, parseScheduleInput, type ScheduleInput } from "@/lib/s
 import { requireUserId } from "@/lib/session";
 import { getTimeZoneForUser } from "@/lib/userTimeZone";
 
-const MAX_ID_LENGTH = 64;
-
 /** A note as the board sends it: its id (client-generated when new) and what the user wrote. */
 type NoteInput = NoteFields & { id: string };
 
 function sanitizeClientId(id: string): string {
-  if (!id || id.length > MAX_ID_LENGTH) {
+  if (!isValidId(id)) {
     throw new Error("INVALID_NOTE_ID");
   }
   return id;
