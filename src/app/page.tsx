@@ -20,6 +20,7 @@ import SignOutButton from "@/components/auth/SignOutButton";
 import Board from "@/components/board/Board";
 import ChatWidget from "@/components/chat/ChatWidget";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
+import PageHeader from "@/components/PageHeader";
 import ThemeToggle from "@/components/ThemeToggle";
 import TimeZoneSync from "@/components/TimeZoneSync";
 import { FOCUS_RING } from "@/components/focusRing";
@@ -72,7 +73,7 @@ export default async function Home({
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
+      <PageHeader>
         <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
           Stickly
         </h1>
@@ -106,7 +107,7 @@ export default async function Home({
           <LocaleSwitcher />
           <SignOutButton />
         </div>
-      </header>
+      </PageHeader>
       <Board
         key={format(start, "yyyy-MM-dd")}
         days={days}
