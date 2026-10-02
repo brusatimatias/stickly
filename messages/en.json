@@ -42,7 +42,8 @@
     "focusDay": "Focus this day",
     "backToWeek": "Back to week",
     "previousDay": "Previous day",
-    "nextDay": "Next day"
+    "nextDay": "Next day",
+    "dismissError": "Dismiss"
   },
   "auth": {
     "tagline": "Your week, organized like a corkboard full of sticky notes.",

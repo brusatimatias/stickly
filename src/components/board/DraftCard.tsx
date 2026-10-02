@@ -3,8 +3,9 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useTranslations } from "next-intl";
-import { useState, useTransition } from "react";
+import { useOptimistic, useState } from "react";
 import { deleteNote } from "@/app/actions/notes";
+import { useBoardActions } from "@/components/board/BoardActionsContext";
 import ConfirmDialog from "@/components/board/ConfirmDialog";
 import DraftForm from "@/components/board/DraftForm";
 import FoldedCorner from "@/components/board/FoldedCorner";
@@ -22,23 +23,15 @@ export default function DraftCard({
   isNew?: boolean;
 }) {
   const t = useTranslations("board");
+  const { run } = useBoardActions();
   const [isEditing, setIsEditing] = useState(false);
-  const [isDeleting, startDeleteTransition] = useTransition();
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
-  const [optimisticNote, setOptimisticNote] = useState<NoteDTO | null>(null);
+  // What the card shows while its edits or deletion are on their way; back
+  // to the server's `note` once each response commits (or fails).
+  const [displayNote, setDisplayNote] = useOptimistic(note);
+  const [isDeleted, setIsDeleted] = useOptimistic(false);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: note.id });
-
-  const [lastServerNote, setLastServerNote] = useState(note);
-  if (
-    lastServerNote.title !== note.title ||
-    lastServerNote.location !== note.location ||
-    lastServerNote.description !== note.description
-  ) {
-    setLastServerNote(note);
-    if (optimisticNote) setOptimisticNote(null);
-  }
-  const displayNote = optimisticNote ?? note;
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -50,20 +43,15 @@ export default function DraftCard({
     return (
       <DraftForm
         note={displayNote}
-        onDone={(updated) => {
-          if (updated) setOptimisticNote(updated);
-          setIsEditing(false);
-        }}
+        onDone={() => setIsEditing(false)}
+        showSaved={setDisplayNote}
       />
     );
   }
 
   function handleDelete() {
     setIsConfirmingDelete(false);
-    // Hidden right away; the action's response drops it from the panel.
-    startDeleteTransition(async () => {
-      await deleteNote(note.id);
-    });
+    run({ optimistic: () => setIsDeleted(true), action: () => deleteNote(note.id) });
   }
 
   return (
@@ -71,7 +59,7 @@ export default function DraftCard({
       ref={setNodeRef}
       style={style}
       onClick={() => setIsEditing(true)}
-      className={`${isNew ? "animate-note-in" : ""} group relative ${isDeleting ? "hidden" : "flex"} h-44 w-44 -rotate-1 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border p-2 text-sm shadow-md transition-[top] hover:z-10 hover:-top-1 hover:shadow-lg sm:h-48 sm:w-48 ${DRAFT_COLOR}`}
+      className={`${isNew ? "animate-note-in" : ""} group relative ${isDeleted ? "hidden" : "flex"} h-44 w-44 -rotate-1 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border p-2 text-sm shadow-md transition-[top] hover:z-10 hover:-top-1 hover:shadow-lg sm:h-48 sm:w-48 ${DRAFT_COLOR}`}
     >
       <FoldedCorner />
       <button
@@ -91,8 +79,7 @@ export default function DraftCard({
           event.stopPropagation();
           setIsConfirmingDelete(true);
         }}
-        disabled={isDeleting}
-        className={`absolute right-1 top-1 rounded-sm opacity-0 transition-opacity group-hover:opacity-70 disabled:opacity-30 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING}`}
+        className={`absolute right-1 top-1 rounded-sm opacity-0 transition-opacity group-hover:opacity-70 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING}`}
       >
         ✕
       </button>

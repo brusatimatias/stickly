@@ -3,9 +3,9 @@
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
 import { useTranslations } from "next-intl";
+import { DRAFT_CONTAINER } from "@/components/board/BoardActionsContext";
 import DraftCard from "@/components/board/DraftCard";
 import DraftForm from "@/components/board/DraftForm";
-import { DRAFT_CONTAINER } from "@/components/board/PendingNotesContext";
 import type { NoteDTO } from "@/components/board/types";
 import { PlusIcon } from "@/components/board/icons";
 import { useFormTransition } from "@/components/board/useFormTransition";

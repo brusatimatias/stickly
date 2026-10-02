@@ -3,10 +3,11 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useTranslations } from "next-intl";
-import { useState, useTransition } from "react";
+import { useOptimistic, useState, useTransition } from "react";
 import { addNoteToGoogleCalendar } from "@/app/actions/calendar";
 import { deleteNote, toggleNoteDone } from "@/app/actions/notes";
 import { getNoteStyle } from "@/lib/noteColor";
+import { useBoardActions } from "@/components/board/BoardActionsContext";
 import ConfirmDialog from "@/components/board/ConfirmDialog";
 import FoldedCorner from "@/components/board/FoldedCorner";
 import NoteForm from "@/components/board/NoteForm";
@@ -34,30 +35,18 @@ export default function NoteCard({
 }) {
   const t = useTranslations("board");
   const tErrors = useTranslations("errors");
+  const { run } = useBoardActions();
   const [isEditing, setIsEditing] = useState(false);
-  const [isDeleting, startDeleteTransition] = useTransition();
   const [isSyncing, startSyncTransition] = useTransition();
-  const [isToggling, startToggleTransition] = useTransition();
   const [syncError, setSyncError] = useState<string | null>(null);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
-  const [optimisticNote, setOptimisticNote] = useState<NoteDTO | null>(null);
+  // What the card shows while its edits, toggles or deletion are on their
+  // way; back to the server's `note` once each response commits (or fails).
+  const [displayNote, setDisplayNote] = useOptimistic(note);
+  const [isDeleted, setIsDeleted] = useOptimistic(false);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: note.id });
   const noteStyle = getNoteStyle(note.id);
-
-  const [lastServerNote, setLastServerNote] = useState(note);
-  if (
-    lastServerNote.title !== note.title ||
-    lastServerNote.location !== note.location ||
-    lastServerNote.description !== note.description ||
-    lastServerNote.time !== note.time ||
-    lastServerNote.isDone !== note.isDone ||
-    lastServerNote.googleEventId !== note.googleEventId
-  ) {
-    setLastServerNote(note);
-    if (optimisticNote) setOptimisticNote(null);
-  }
-  const displayNote = optimisticNote ?? note;
 
   const style = {
     ...noteStyle.overlapStyle,
@@ -71,27 +60,22 @@ export default function NoteCard({
       <NoteForm
         day={day}
         note={displayNote}
-        onDone={(updated) => {
-          if (updated) setOptimisticNote(updated);
-          setIsEditing(false);
-        }}
+        onDone={() => setIsEditing(false)}
+        showSaved={setDisplayNote}
       />
     );
   }
 
   function handleDelete() {
     setIsConfirmingDelete(false);
-    // Hidden right away; the action's response drops it from the board.
-    startDeleteTransition(async () => {
-      await deleteNote(note.id);
-    });
+    run({ optimistic: () => setIsDeleted(true), action: () => deleteNote(note.id) });
   }
 
   function handleToggleDone() {
-    const nextIsDone = !displayNote.isDone;
-    setOptimisticNote({ ...displayNote, isDone: nextIsDone });
-    startToggleTransition(async () => {
-      await toggleNoteDone(note.id, nextIsDone);
+    const isDone = !displayNote.isDone;
+    run({
+      optimistic: () => setDisplayNote((current) => ({ ...current, isDone })),
+      action: () => toggleNoteDone(note.id, isDone),
     });
   }
 
@@ -112,7 +96,7 @@ export default function NoteCard({
       ref={setNodeRef}
       style={style}
       onClick={() => setIsEditing(true)}
-      className={`${isNew ? "animate-note-in" : ""} group relative ${isDeleting ? "hidden" : "flex"} h-44 w-44 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border p-2 text-sm shadow-[2px_4px_6px_rgba(0,0,0,0.3)] transition-[top] hover:z-10 hover:-top-1 hover:shadow-[3px_6px_10px_rgba(0,0,0,0.35)] dark:shadow-[2px_4px_6px_rgba(0,0,0,0.6)] dark:hover:shadow-[3px_6px_10px_rgba(0,0,0,0.7)] sm:h-48 sm:w-48 ${isDragging ? "z-20" : ""} ${noteStyle.rotation} ${noteStyle.bg} ${noteStyle.border} ${noteStyle.text}`}
+      className={`${isNew ? "animate-note-in" : ""} group relative ${isDeleted ? "hidden" : "flex"} h-44 w-44 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border p-2 text-sm shadow-[2px_4px_6px_rgba(0,0,0,0.3)] transition-[top] hover:z-10 hover:-top-1 hover:shadow-[3px_6px_10px_rgba(0,0,0,0.35)] dark:shadow-[2px_4px_6px_rgba(0,0,0,0.6)] dark:hover:shadow-[3px_6px_10px_rgba(0,0,0,0.7)] sm:h-48 sm:w-48 ${isDragging ? "z-20" : ""} ${noteStyle.rotation} ${noteStyle.bg} ${noteStyle.border} ${noteStyle.text}`}
     >
       {displayNote.isDone && (
         <div className="pointer-events-none absolute inset-0 bg-zinc-500/40 mix-blend-multiply dark:bg-zinc-400/30" />
@@ -137,7 +121,6 @@ export default function NoteCard({
               event.stopPropagation();
               handleToggleDone();
             }}
-            disabled={isToggling}
             className={`rounded-sm opacity-30 transition-opacity group-hover:opacity-70 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING}`}
           >
             {displayNote.isDone ? (
@@ -158,8 +141,7 @@ export default function NoteCard({
           event.stopPropagation();
           setIsConfirmingDelete(true);
         }}
-        disabled={isDeleting}
-        className={`absolute right-1 top-1 rounded-sm opacity-30 transition-opacity group-hover:opacity-70 disabled:opacity-30 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING}`}
+        className={`absolute right-1 top-1 rounded-sm opacity-30 transition-opacity group-hover:opacity-70 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING}`}
       >
         ✕
       </button>

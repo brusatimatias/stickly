@@ -2,29 +2,35 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
-import { useTransition } from "react";
 import { createDraftNote, updateDraftNote } from "@/app/actions/notes";
+import {
+  DRAFT_CONTAINER,
+  toShownNote,
+  useBoardActions,
+} from "@/components/board/BoardActionsContext";
 import FoldedCorner from "@/components/board/FoldedCorner";
 import { LocationIcon } from "@/components/board/icons";
-import { DRAFT_CONTAINER, usePendingNotes } from "@/components/board/PendingNotesContext";
 import type { NoteDTO } from "@/components/board/types";
 import { useNoteEditorKeyboard } from "@/components/board/useNoteEditorKeyboard";
 import { DRAFT_COLOR } from "@/lib/noteColor";
-import { sanitizeDescription, sanitizeLocation, sanitizeTitle } from "@/lib/noteInput";
 
 export default function DraftForm({
   note,
   onDone,
+  showSaved,
 }: {
+  /** The draft being edited; a new one is created without it. */
   note?: NoteDTO;
-  onDone: (updated?: NoteDTO) => void;
+  /** Closes the form, right away (it doesn't wait for the server). */
+  onDone: () => void;
+  /** Shows the saved edit on the card until the server answers. */
+  showSaved?: (note: NoteDTO) => void;
 }) {
   const t = useTranslations("board");
-  const pendingNotes = usePendingNotes();
+  const { run, addPendingNote } = useBoardActions();
   const [title, setTitle] = useState(note?.title ?? "");
   const [location, setLocation] = useState(note?.location ?? "");
   const [description, setDescription] = useState(note?.description ?? "");
-  const [, startTransition] = useTransition();
   const titleRef = useRef<HTMLInputElement>(null);
   const savedRef = useRef(false);
   const stateRef = useRef({ title, location, description });
@@ -49,39 +55,23 @@ export default function DraftForm({
     if (savedRef.current) return;
     savedRef.current = true;
     const { title, location, description } = stateRef.current;
-    if (!title.trim()) {
-      onDone();
-      return;
-    }
-    // Shown right away, sanitized as the server will save it.
-    const shown: NoteDTO = {
-      id: note?.id ?? newNoteId,
-      title: sanitizeTitle(title),
-      location: sanitizeLocation(location),
-      description: sanitizeDescription(description),
-      time: null,
-      isDone: note?.isDone ?? false,
-      googleEventId: null,
-    };
-    if (note) {
-      onDone(shown);
-    } else {
-      onDone();
-      pendingNotes.add(DRAFT_CONTAINER, shown);
-    }
-    const input = { id: shown.id, title: shown.title, location, description };
-    startTransition(async () => {
-      if (note) {
-        await updateDraftNote(input);
-        return;
-      }
-      try {
-        await createDraftNote(input);
-      } catch (error) {
-        pendingNotes.drop(shown.id);
-        throw error;
-      }
-    });
+    onDone();
+    if (!title.trim()) return;
+    const id = note?.id ?? newNoteId;
+    const shown = toShownNote(
+      id,
+      { title, location, description },
+      { time: null, isDone: false, googleEventId: null }
+    );
+    const input = { id, title, location, description };
+    run(
+      note
+        ? { optimistic: () => showSaved?.(shown), action: () => updateDraftNote(input) }
+        : {
+            optimistic: () => addPendingNote(DRAFT_CONTAINER, shown),
+            action: () => createDraftNote(input),
+          }
+    );
   }
 
   function cancel() {

@@ -18,16 +18,30 @@ import {
 } from "@dnd-kit/core";
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
+import {
+  startTransition,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useOptimistic,
+  useRef,
+  useState,
+} from "react";
 import { moveDraftNote, moveNote, scheduleDraftNote } from "@/app/actions/notes";
+import {
+  BoardActionsProvider,
+  DRAFT_CONTAINER,
+  type BoardAction,
+} from "@/components/board/BoardActionsContext";
 import DayColumn from "@/components/board/DayColumn";
 import DayFocusNav from "@/components/board/DayFocusNav";
 import DraftPanel from "@/components/board/DraftPanel";
 import FoldedCorner from "@/components/board/FoldedCorner";
-import { DRAFT_CONTAINER, PendingNotesProvider } from "@/components/board/PendingNotesContext";
 import { TimeZoneProvider } from "@/components/board/TimeZoneContext";
 import WeekNav from "@/components/board/WeekNav";
 import type { BoardDay, NoteDTO, StoredNoteDTO } from "@/components/board/types";
+import { FOCUS_RING } from "@/components/focusRing";
 import { getNoteStyle } from "@/lib/noteColor";
 import { groupNotesByDay, toDraftNoteDTO } from "@/lib/noteGroups";
 import { sortDoneLast } from "@/lib/ordering";
@@ -74,8 +88,8 @@ export default function Board({
   // From the server data, not `notesByDay`, so the hint doesn't come and go
   // (shifting the layout) while a draft is being dragged onto the week.
   const isWeekEmpty = notes.length === 0;
-  function buildNotesByDay(pending: PendingNote[]): NotesByDay {
-    const notesByDay: NotesByDay = {
+  function buildNotesByDay(): NotesByDay {
+    return {
       ...groupNotesByDay(
         notes,
         days.map((day) => day.key),
@@ -83,18 +97,19 @@ export default function Board({
       ),
       [DRAFT_CONTAINER]: draftNotes.map(toDraftNoteDTO),
     };
-    for (const { container, note } of pending) {
-      if (notesByDay[container]) {
-        notesByDay[container] = sortDoneLast([...notesByDay[container], note]);
-      }
-    }
-    return notesByDay;
   }
 
-  const [notesByDay, setNotesByDay] = useState<NotesByDay>(() => buildNotesByDay([]));
-  // Notes created from the forms, shown until the server data has them (the
-  // action's response, which may come after other actions' responses).
-  const [pendingNotes, setPendingNotes] = useState<PendingNote[]>([]);
+  const [notesByDay, setNotesByDay] = useState<NotesByDay>(buildNotesByDay);
+  // Notes being created, shown until the action's response commits (the
+  // server data then has them) or dropped if the action fails.
+  const [pendingNotes, addPendingNote] = useOptimistic<PendingNote[], PendingNote>(
+    [],
+    (current, added) => [...current, added]
+  );
+  // Ids created on this board, set in the action's transition so they commit
+  // with the server data that brings them: they animated in while pending,
+  // so they don't animate again then.
+  const [createdIds, setCreatedIds] = useState<ReadonlySet<string>>(() => new Set());
   const [syncedNotes, setSyncedNotes] = useState(notes);
   const [syncedDraftNotes, setSyncedDraftNotes] = useState(draftNotes);
   const [syncedTimeZone, setSyncedTimeZone] = useState(timeZone);
@@ -105,49 +120,58 @@ export default function Board({
   // replay it), not on every refresh, which could cut it short.
   const [newNoteIds, setNewNoteIds] = useState<ReadonlySet<string>>(() => new Set());
   if (notes !== syncedNotes || draftNotes !== syncedDraftNotes || timeZone !== syncedTimeZone) {
-    // A pending note already animated in when it was added.
-    const previousIds = new Set(
-      [...syncedNotes, ...syncedDraftNotes, ...pendingNotes.map(({ note }) => note)].map(
-        (note) => note.id
-      )
-    );
-    const serverIds = [...notes, ...draftNotes].map((note) => note.id);
-    const addedIds = serverIds.filter((id) => !previousIds.has(id));
+    const previousIds = new Set([...syncedNotes, ...syncedDraftNotes].map((note) => note.id));
+    const serverIds = new Set([...notes, ...draftNotes].map((note) => note.id));
+    const addedIds = [...serverIds].filter((id) => !previousIds.has(id) && !createdIds.has(id));
     if (addedIds.length > 0) setNewNoteIds(new Set(addedIds));
-    // A pending note's day and time were worked out in the old zone.
-    const stillPending =
-      timeZone === syncedTimeZone
-        ? pendingNotes.filter(({ note }) => !serverIds.includes(note.id))
-        : [];
-    setPendingNotes(stillPending);
+    if ([...createdIds].some((id) => serverIds.has(id))) {
+      setCreatedIds(new Set([...createdIds].filter((id) => !serverIds.has(id))));
+    }
     setSyncedNotes(notes);
     setSyncedDraftNotes(draftNotes);
     setSyncedTimeZone(timeZone);
-    setNotesByDay(buildNotesByDay(stillPending));
+    setNotesByDay(buildNotesByDay());
   }
-  const pendingNotesApi = useMemo(
+
+  // What the board renders: the server data (rearranged while dragging) plus
+  // the notes being created, which animate in.
+  function notesIn(container: string): NoteDTO[] {
+    const list = notesByDay[container] ?? [];
+    const pending = pendingNotes
+      .filter((entry) => entry.container === container && !list.some(({ id }) => id === entry.note.id))
+      .map(({ note }) => note);
+    return pending.length > 0 ? sortDoneLast([...list, ...pending]) : list;
+  }
+  const animatedIds =
+    pendingNotes.length > 0
+      ? new Set([...newNoteIds, ...pendingNotes.map(({ note }) => note.id)])
+      : newNoteIds;
+
+  const tErrors = useTranslations("errors");
+  const [actionError, setActionError] = useState<string | null>(null);
+  const boardActions = useMemo(
     () => ({
-      add(container: string, note: NoteDTO) {
-        setPendingNotes((current) => [...current, { container, note }]);
-        setNotesByDay((current) =>
-          current[container]
-            ? { ...current, [container]: sortDoneLast([...current[container], note]) }
-            : current
-        );
-        setNewNoteIds((current) => new Set([...current, note.id]));
+      run({ optimistic, action, onError }: BoardAction) {
+        setActionError(null);
+        startTransition(async () => {
+          optimistic?.();
+          try {
+            await action();
+          } catch (error) {
+            // Whatever `optimistic` set with useOptimistic is undone when the
+            // transition ends; the board stays and says what went wrong.
+            setActionError(error instanceof Error ? error.message : "GENERIC");
+            onError?.();
+          }
+        });
       },
-      drop(id: string) {
-        setPendingNotes((current) => current.filter(({ note }) => note.id !== id));
-        setNotesByDay((current) =>
-          Object.fromEntries(
-            Object.entries(current).map(([key, list]) => [key, list.filter((note) => note.id !== id)])
-          )
-        );
+      addPendingNote(container: string, note: NoteDTO) {
+        addPendingNote({ container, note });
+        setCreatedIds((current) => new Set(current).add(note.id));
       },
     }),
-    []
+    [addPendingNote]
   );
-  const [, startTransition] = useTransition();
   const [activeNote, setActiveNote] = useState<NoteDTO | null>(null);
   const originContainerRef = useRef<string | null>(null);
   const lastOverIdRef = useRef<string | null>(null);
@@ -282,6 +306,11 @@ export default function Board({
     });
   }
 
+  // A failed move puts the notes back where the server has them.
+  function run(boardAction: BoardAction) {
+    boardActions.run({ ...boardAction, onError: () => setNotesByDay(buildNotesByDay()) });
+  }
+
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     const originContainer = originContainerRef.current;
@@ -299,9 +328,7 @@ export default function Board({
     if (destinationContainer === DRAFT_CONTAINER) {
       // Reordered among the drafts (a draft dragged over a day and back ends
       // up here too).
-      startTransition(async () => {
-        await moveDraftNote({ noteId: active.id as string, index });
-      });
+      run({ action: () => moveDraftNote({ noteId: active.id as string, index }) });
       return;
     }
 
@@ -310,27 +337,17 @@ export default function Board({
       toStoredSchedule(destinationContainer, items[index].time, timeZone)
     );
 
-    startTransition(async () => {
-      if (originContainer === DRAFT_CONTAINER) {
-        await scheduleDraftNote({
-          noteId: active.id as string,
-          day: destinationContainer,
-          index,
-        });
-      } else {
-        await moveNote({
-          noteId: active.id as string,
-          day: destinationContainer,
-          index,
-          schedule,
-        });
-      }
+    run({
+      action: () =>
+        originContainer === DRAFT_CONTAINER
+          ? scheduleDraftNote({ noteId: active.id as string, day: destinationContainer, index })
+          : moveNote({ noteId: active.id as string, day: destinationContainer, index, schedule }),
     });
   }
 
   return (
     <TimeZoneProvider value={timeZone}>
-      <PendingNotesProvider value={pendingNotesApi}>
+      <BoardActionsProvider value={boardActions}>
         <div
           className="flex flex-1 flex-col"
           onAnimationEnd={(event) => {
@@ -344,6 +361,22 @@ export default function Board({
             currentWeekParam={currentWeekParam}
             todayWeekParam={todayWeekParam}
           />
+          {actionError && (
+            <div
+              role="alert"
+              className="mx-4 mt-3 flex items-center justify-between gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+            >
+              <span>{tErrors.has(actionError) ? tErrors(actionError) : tErrors("GENERIC")}</span>
+              <button
+                type="button"
+                aria-label={t("dismissError")}
+                onClick={() => setActionError(null)}
+                className={`shrink-0 rounded-full px-1 opacity-70 hover:opacity-100 pointer-coarse:size-10 ${FOCUS_RING}`}
+              >
+                ✕
+              </button>
+            </div>
+          )}
           <DndContext
             id={dndContextId}
             sensors={sensors}
@@ -358,7 +391,7 @@ export default function Board({
           >
             {/* Bottom padding so the chat launcher never covers the last notes. */}
             <div className="flex flex-col gap-3 p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:flex-row">
-              <DraftPanel notes={notesByDay[DRAFT_CONTAINER]} newNoteIds={newNoteIds} />
+              <DraftPanel notes={notesIn(DRAFT_CONTAINER)} newNoteIds={animatedIds} />
               {focusedDayInfo ? (
                 <div className="animate-week-in min-w-0 flex-1">
                   <DayFocusNav
@@ -370,8 +403,8 @@ export default function Board({
                   />
                   <DayColumn
                     day={focusedDayInfo}
-                    notes={notesByDay[focusedDayInfo.key] ?? []}
-                    newNoteIds={newNoteIds}
+                    notes={notesIn(focusedDayInfo.key)}
+                    newNoteIds={animatedIds}
                     todayKey={todayKey}
                     isFocused
                   />
@@ -394,8 +427,8 @@ export default function Board({
                     >
                       <DayColumn
                         day={day}
-                        notes={notesByDay[day.key] ?? []}
-                        newNoteIds={newNoteIds}
+                        notes={notesIn(day.key)}
+                        newNoteIds={animatedIds}
                         todayKey={todayKey}
                         onToggleFocus={() => setFocusedDay(day.key)}
                       />
@@ -420,7 +453,7 @@ export default function Board({
             </DragOverlay>
           </DndContext>
         </div>
-      </PendingNotesProvider>
+      </BoardActionsProvider>
     </TimeZoneProvider>
   );
 }
