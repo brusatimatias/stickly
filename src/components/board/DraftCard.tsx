@@ -9,6 +9,7 @@ import { deleteNote } from "@/app/actions/notes";
 import ConfirmDialog from "@/components/board/ConfirmDialog";
 import DraftForm from "@/components/board/DraftForm";
 import FoldedCorner from "@/components/board/FoldedCorner";
+import { LocationIcon } from "@/components/board/icons";
 import type { NoteDTO } from "@/components/board/types";
 import { DRAFT_COLOR } from "@/lib/noteColor";
 import { FOCUS_RING } from "@/components/focusRing";
@@ -90,7 +91,7 @@ export default function DraftCard({
       <div className="flex items-end justify-between gap-1">
         {note.location ? (
           <p className="flex min-w-0 items-center gap-1 text-xs opacity-70">
-            <span aria-hidden>📍</span>
+            <LocationIcon className="h-3 w-3 shrink-0" />
             <span className="truncate">{note.location}</span>
           </p>
         ) : (

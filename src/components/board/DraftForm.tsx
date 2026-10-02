@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTransition } from "react";
 import { createDraftNote, updateDraftNote } from "@/app/actions/notes";
 import FoldedCorner from "@/components/board/FoldedCorner";
+import { LocationIcon } from "@/components/board/icons";
 import type { NoteDTO } from "@/components/board/types";
 import { useNoteEditorKeyboard } from "@/components/board/useNoteEditorKeyboard";
 import { DRAFT_COLOR } from "@/lib/noteColor";
@@ -97,7 +98,7 @@ export default function DraftForm({
 
       <div className="flex items-end justify-between gap-1">
         <div className="flex min-w-0 items-center gap-1 text-xs opacity-70">
-          <span aria-hidden>📍</span>
+          <LocationIcon className="h-3 w-3 shrink-0" />
           <input
             value={location}
             onChange={(event) => setLocation(event.target.value)}
