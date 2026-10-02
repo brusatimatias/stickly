@@ -46,7 +46,10 @@ Both of these caused infinite render loops before (commits `5dd3e9f`, `d55e0d1`)
 
 ## React state patterns
 - **Syncing state from props**: this codebase adjusts state during render by comparing to a stored previous value (`lastServerNote` in `NoteCard`, `syncedWeekStart` in `Board`) instead of using a `useEffect` that sets state. Follow that pattern. An effect that sets state here adds an extra render and was part of the loops above.
-- **Optimistic updates**: `NoteCard` keeps an `optimisticNote` and shows `optimisticNote ?? note`. The optimistic copy is dropped when the server `note` differs from `lastServerNote`, so any new editable field must be added to that comparison.
+- **Optimistic updates**: every board mutation shows its result before the server answers.
+  - Editing: `NoteCard` and `DraftCard` keep an `optimisticNote` and show `optimisticNote ?? note`; their forms call `onDone(updated)` before awaiting the action. The optimistic copy is dropped when the server `note` differs from `lastServerNote`, so any new editable field must be added to that comparison.
+  - Creating: `NoteForm`/`DraftForm` call `usePendingNotes().add(container, note)` (`PendingNotesContext.tsx`, provided by `Board`) with the client-generated id, and `drop(id)` if the action throws. `Board` keeps those notes in `notesByDay` until the server data has the same id, and doesn't replay their entrance animation then.
+  - The optimistic note goes through the same `sanitize*` helpers (`src/lib/noteInput.ts`) as the server, so the swap is invisible.
 - Don't follow a Server Action with `router.refresh()` when it calls `revalidatePath` (every board action) or sets a cookie (`setTheme`, `setLocale`): the action already returns the re-rendered page in the same response, and the refresh is a second full round trip (measured: 2 requests → 1).
 - Deleting a note or draft hides the card while the transition is pending (`isDeleting` → `hidden`), so it disappears right away instead of after the round trip.
 - Server actions are called from `useTransition` callbacks. Errors come back as string codes, which you translate with `useTranslations("errors")`.

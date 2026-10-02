@@ -70,7 +70,7 @@ export default function NoteCard({
     return (
       <NoteForm
         day={day}
-        note={note}
+        note={displayNote}
         onDone={(updated) => {
           if (updated) setOptimisticNote(updated);
           setIsEditing(false);

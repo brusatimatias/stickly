@@ -25,8 +25,20 @@ export default function DraftCard({
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, startDeleteTransition] = useTransition();
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+  const [optimisticNote, setOptimisticNote] = useState<NoteDTO | null>(null);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: note.id });
+
+  const [lastServerNote, setLastServerNote] = useState(note);
+  if (
+    lastServerNote.title !== note.title ||
+    lastServerNote.location !== note.location ||
+    lastServerNote.description !== note.description
+  ) {
+    setLastServerNote(note);
+    if (optimisticNote) setOptimisticNote(null);
+  }
+  const displayNote = optimisticNote ?? note;
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -35,7 +47,15 @@ export default function DraftCard({
   };
 
   if (isEditing) {
-    return <DraftForm note={note} onDone={() => setIsEditing(false)} />;
+    return (
+      <DraftForm
+        note={displayNote}
+        onDone={(updated) => {
+          if (updated) setOptimisticNote(updated);
+          setIsEditing(false);
+        }}
+      />
+    );
   }
 
   function handleDelete() {
@@ -78,19 +98,19 @@ export default function DraftCard({
       </button>
 
       <div className="mt-4 flex min-w-0 flex-1 flex-col overflow-hidden">
-        <p className="line-clamp-3 font-semibold">{note.title}</p>
-        {note.description && (
+        <p className="line-clamp-3 font-semibold">{displayNote.title}</p>
+        {displayNote.description && (
           <p className="mt-0.5 flex-1 overflow-hidden whitespace-pre-wrap break-words text-[11px] leading-snug opacity-80">
-            {note.description}
+            {displayNote.description}
           </p>
         )}
       </div>
 
       <div className="flex items-end justify-between gap-1">
-        {note.location ? (
+        {displayNote.location ? (
           <p className="flex min-w-0 items-center gap-1 text-xs opacity-70">
             <LocationIcon className="h-3 w-3 shrink-0" />
-            <span className="truncate">{note.location}</span>
+            <span className="truncate">{displayNote.location}</span>
           </p>
         ) : (
           <span />

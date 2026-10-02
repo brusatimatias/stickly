@@ -6,11 +6,13 @@ import { useTransition } from "react";
 import { createNote, updateNote } from "@/app/actions/notes";
 import FoldedCorner from "@/components/board/FoldedCorner";
 import { LocationIcon } from "@/components/board/icons";
+import { usePendingNotes } from "@/components/board/PendingNotesContext";
 import TimePicker from "@/components/board/TimePicker";
 import { useBoardTimeZone } from "@/components/board/TimeZoneContext";
 import type { NoteDTO } from "@/components/board/types";
 import { useNoteEditorKeyboard } from "@/components/board/useNoteEditorKeyboard";
 import { getNoteStyle } from "@/lib/noteColor";
+import { sanitizeDescription, sanitizeLocation, sanitizeTitle } from "@/lib/noteInput";
 import { toScheduleInput, toStoredSchedule } from "@/lib/schedule";
 
 export default function NoteForm({
@@ -24,6 +26,7 @@ export default function NoteForm({
 }) {
   const t = useTranslations("board");
   const timeZone = useBoardTimeZone();
+  const pendingNotes = usePendingNotes();
   const [title, setTitle] = useState(note?.title ?? "");
   const [location, setLocation] = useState(note?.location ?? "");
   const [description, setDescription] = useState(note?.description ?? "");
@@ -54,23 +57,39 @@ export default function NoteForm({
     if (savedRef.current) return;
     savedRef.current = true;
     const { title, location, description, time } = stateRef.current;
-    const trimmedTitle = title.trim();
-    if (!trimmedTitle) {
+    if (!title.trim()) {
       onDone();
       return;
     }
+    // Shown right away, sanitized as the server will save it.
+    const shown: NoteDTO = {
+      id: newNoteId,
+      title: sanitizeTitle(title),
+      location: sanitizeLocation(location),
+      description: sanitizeDescription(description),
+      time: time || null,
+      isDone: note?.isDone ?? false,
+      googleEventId: note?.googleEventId ?? null,
+    };
     if (note) {
-      onDone({ ...note, title: trimmedTitle, location, description, time: time || null });
+      onDone(shown);
     } else {
       onDone();
+      pendingNotes.add(day, shown);
     }
     // The day and time are typed in the board's zone; the server stores UTC.
     const schedule = toScheduleInput(toStoredSchedule(day, time || null, timeZone));
+    const input = { id: newNoteId, title: shown.title, location, description, schedule };
     startTransition(async () => {
       if (note) {
-        await updateNote({ id: note.id, title: trimmedTitle, location, description, schedule });
-      } else {
-        await createNote({ id: newNoteId, title: trimmedTitle, location, description, schedule });
+        await updateNote(input);
+        return;
+      }
+      try {
+        await createNote(input);
+      } catch (error) {
+        pendingNotes.drop(newNoteId);
+        throw error;
       }
     });
   }

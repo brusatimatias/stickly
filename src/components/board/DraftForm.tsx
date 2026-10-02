@@ -6,18 +6,21 @@ import { useTransition } from "react";
 import { createDraftNote, updateDraftNote } from "@/app/actions/notes";
 import FoldedCorner from "@/components/board/FoldedCorner";
 import { LocationIcon } from "@/components/board/icons";
+import { DRAFT_CONTAINER, usePendingNotes } from "@/components/board/PendingNotesContext";
 import type { NoteDTO } from "@/components/board/types";
 import { useNoteEditorKeyboard } from "@/components/board/useNoteEditorKeyboard";
 import { DRAFT_COLOR } from "@/lib/noteColor";
+import { sanitizeDescription, sanitizeLocation, sanitizeTitle } from "@/lib/noteInput";
 
 export default function DraftForm({
   note,
   onDone,
 }: {
   note?: NoteDTO;
-  onDone: () => void;
+  onDone: (updated?: NoteDTO) => void;
 }) {
   const t = useTranslations("board");
+  const pendingNotes = usePendingNotes();
   const [title, setTitle] = useState(note?.title ?? "");
   const [location, setLocation] = useState(note?.location ?? "");
   const [description, setDescription] = useState(note?.description ?? "");
@@ -46,18 +49,38 @@ export default function DraftForm({
     if (savedRef.current) return;
     savedRef.current = true;
     const { title, location, description } = stateRef.current;
-    const trimmedTitle = title.trim();
-    if (!trimmedTitle) {
+    if (!title.trim()) {
       onDone();
       return;
     }
+    // Shown right away, sanitized as the server will save it.
+    const shown: NoteDTO = {
+      id: note?.id ?? newNoteId,
+      title: sanitizeTitle(title),
+      location: sanitizeLocation(location),
+      description: sanitizeDescription(description),
+      time: null,
+      isDone: note?.isDone ?? false,
+      googleEventId: null,
+    };
+    if (note) {
+      onDone(shown);
+    } else {
+      onDone();
+      pendingNotes.add(DRAFT_CONTAINER, shown);
+    }
+    const input = { id: shown.id, title: shown.title, location, description };
     startTransition(async () => {
       if (note) {
-        await updateDraftNote({ id: note.id, title: trimmedTitle, location, description });
-      } else {
-        await createDraftNote({ id: newNoteId, title: trimmedTitle, location, description });
+        await updateDraftNote(input);
+        return;
       }
-      onDone();
+      try {
+        await createDraftNote(input);
+      } catch (error) {
+        pendingNotes.drop(shown.id);
+        throw error;
+      }
     });
   }
 
