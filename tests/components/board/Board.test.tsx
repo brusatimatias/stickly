@@ -117,6 +117,79 @@ afterEach(async () => {
 });
 
 describe("Board", () => {
+  describe("scrolling to today", () => {
+    function stubLayout(todayTop: number) {
+      const scrollIntoView = vi.fn();
+      vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (
+        this: HTMLElement
+      ) {
+        const top = this.dataset.day === "2026-09-30" ? todayTop : 0;
+        return { top } as DOMRect;
+      });
+      // jsdom has no scrollIntoView, so it's defined here and removed after.
+      Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+        value: scrollIntoView,
+        configurable: true,
+      });
+      return scrollIntoView;
+    }
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+      delete (HTMLElement.prototype as Partial<HTMLElement>).scrollIntoView;
+      window.scrollY = 0;
+    });
+
+    test("scrolls to today when the days stack and it's below the fold", () => {
+      const scrollIntoView = stubLayout(window.innerHeight * 2);
+
+      renderBoard([]);
+
+      expect(scrollIntoView).toHaveBeenCalledOnce();
+      expect(scrollIntoView.mock.contexts[0]).toBe(document.querySelector('[data-day="2026-09-30"]'));
+    });
+
+    test("keeps the scroll a reload or back navigation restored", () => {
+      const scrollIntoView = stubLayout(window.innerHeight * 2);
+      window.scrollY = 300;
+
+      renderBoard([]);
+
+      expect(scrollIntoView).not.toHaveBeenCalled();
+    });
+
+    test("does nothing in a week without today", () => {
+      const scrollIntoView = stubLayout(window.innerHeight * 2);
+
+      render(
+        <NextIntlClientProvider locale="es" messages={messages} timeZone="UTC">
+          <Board
+            days={DAYS}
+            notes={[]}
+            draftNotes={[]}
+            timeZone="UTC"
+            weekLabel="sep 28 – oct 4, 2026"
+            prevWeekParam="2026-09-21"
+            nextWeekParam="2026-10-05"
+            currentWeekParam="2026-09-28"
+            todayWeekParam="2026-10-05"
+            todayKey="2026-10-07"
+          />
+        </NextIntlClientProvider>
+      );
+
+      expect(scrollIntoView).not.toHaveBeenCalled();
+    });
+
+    test("stays put when today is already in view", () => {
+      const scrollIntoView = stubLayout(100);
+
+      renderBoard([]);
+
+      expect(scrollIntoView).not.toHaveBeenCalled();
+    });
+  });
+
   test("points at the + buttons and the assistant when the week is empty", () => {
     renderBoard([]);
 

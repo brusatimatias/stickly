@@ -199,6 +199,23 @@ export default function Board({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
+  // When the days stack (phones, narrow or vertical screens) today can be
+  // several screens down, so start there. Only on load (the board remounts
+  // per week), only if today is below the middle of the screen (never in the
+  // seven-column layout) and only if the page wasn't already scrolled (back
+  // navigation or a reload restores it).
+  // Read through a ref so a new `todayKey` after midnight (any revalidation
+  // brings one) doesn't scroll a page the user is already looking at.
+  const initialTodayKeyRef = useRef(todayKey);
+  useEffect(() => {
+    if (window.scrollY > 0) return;
+    const today = document.querySelector<HTMLElement>(
+      `[data-day="${initialTodayKeyRef.current}"]`
+    );
+    if (!today || today.getBoundingClientRect().top < window.innerHeight / 2) return;
+    today.scrollIntoView({ block: "start" });
+  }, []);
+
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
       recentlyMovedToNewContainerRef.current = false;
