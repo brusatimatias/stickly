@@ -89,7 +89,7 @@ export const CREATE_DRAFT_NOTE_TOOL = {
   },
 } as const;
 
-export const LIST_NOTES_STATUSES = ["all", "pending", "done"] as const;
+const LIST_NOTES_STATUSES = ["all", "pending", "done"] as const;
 export type ListNotesStatus = (typeof LIST_NOTES_STATUSES)[number];
 
 /**
@@ -149,7 +149,7 @@ export function sanitizeDay(day: string): string {
 }
 
 /** Validates a note's `HH:mm` time; "" means no time and becomes null. */
-export function sanitizeTime(time: string): string | null {
+function sanitizeTime(time: string): string | null {
   if (!time) {
     return null;
   }

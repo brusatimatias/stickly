@@ -11,7 +11,7 @@ import { getSiteUrl } from "@/lib/siteMetadata";
  * Kept out of "use server" files: it takes no session.
  */
 
-export const DELIVER_PATH = "/api/reminders/deliver";
+const DELIVER_PATH = "/api/reminders/deliver";
 
 // A failed delivery is retried a couple of times; past that, a reminder would
 // be too late anyway (see MAX_REMINDER_DELAY_MS).

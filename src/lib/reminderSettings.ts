@@ -11,8 +11,6 @@ import { zonedTimeToUtc } from "@/lib/schedule";
 /** How long before a TIMED note its reminder can be set to fire, in minutes (0: at its time). */
 export const REMINDER_LEAD_MINUTES = [0, 10, 15, 30, 60] as const;
 
-export const DEFAULT_DIGEST_TIME = "07:00";
-
 /**
  * Reminders are queued (in QStash) for this window ahead; a daily cron queues
  * the next one, so it must be longer than a day plus the cron's slack.

@@ -2,7 +2,7 @@
 // component uses these.
 
 /** Only the digits of a phone number, as Meta's `from` and wa.me links use them. */
-export function phoneDigits(phone: string): string {
+function phoneDigits(phone: string): string {
   return phone.replace(/\D/g, "");
 }
 
