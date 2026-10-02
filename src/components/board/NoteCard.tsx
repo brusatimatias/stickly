@@ -112,7 +112,7 @@ export default function NoteCard({
           onClick={(event) => event.stopPropagation()}
           {...attributes}
           {...dragListeners.handle}
-          className={`cursor-grab touch-none select-none rounded-sm opacity-30 transition-opacity group-hover:opacity-70 active:cursor-grabbing pointer-coarse:-m-2 pointer-coarse:p-2 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING}`}
+          className={`cursor-grab touch-none select-none rounded-sm text-base leading-none opacity-30 transition-opacity group-hover:opacity-70 active:cursor-grabbing pointer-coarse:-m-2 pointer-coarse:p-2 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING}`}
         >
           ⠿
         </button>
@@ -127,9 +127,9 @@ export default function NoteCard({
             className={`rounded-sm opacity-30 transition-opacity group-hover:opacity-70 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING}`}
           >
             {displayNote.isDone ? (
-              <CheckSquareIcon className="h-3.5 w-3.5" />
+              <CheckSquareIcon className="h-4 w-4" />
             ) : (
-              <SquareIcon className="h-3.5 w-3.5" />
+              <SquareIcon className="h-4 w-4" />
             )}
           </button>
           <span className="pointer-events-none absolute left-0 top-full mt-1 whitespace-nowrap rounded bg-zinc-900 px-1.5 py-0.5 text-[10px] text-white opacity-0 transition-opacity group-hover/done:opacity-90 group-has-[:focus-visible]/done:opacity-90 dark:bg-zinc-100 dark:text-zinc-900">
@@ -144,7 +144,7 @@ export default function NoteCard({
           event.stopPropagation();
           setIsConfirmingDelete(true);
         }}
-        className={`absolute right-1 top-1 rounded-sm opacity-30 transition-opacity group-hover:opacity-70 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING}`}
+        className={`absolute right-1 top-1 rounded-sm text-base leading-none opacity-30 transition-opacity group-hover:opacity-70 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING}`}
       >
         ✕
       </button>

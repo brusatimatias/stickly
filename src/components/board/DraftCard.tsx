@@ -71,7 +71,7 @@ export default function DraftCard({
         onClick={(event) => event.stopPropagation()}
         {...attributes}
         {...dragListeners.handle}
-        className={`absolute left-1 top-1 cursor-grab touch-none select-none rounded-sm opacity-0 transition-opacity group-hover:opacity-70 active:cursor-grabbing pointer-coarse:-m-2 pointer-coarse:p-2 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING}`}
+        className={`absolute left-1 top-1 cursor-grab touch-none select-none rounded-sm text-base leading-none opacity-0 transition-opacity group-hover:opacity-70 active:cursor-grabbing pointer-coarse:-m-2 pointer-coarse:p-2 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING}`}
       >
         ⠿
       </button>
@@ -82,7 +82,7 @@ export default function DraftCard({
           event.stopPropagation();
           setIsConfirmingDelete(true);
         }}
-        className={`absolute right-1 top-1 rounded-sm opacity-0 transition-opacity group-hover:opacity-70 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING}`}
+        className={`absolute right-1 top-1 rounded-sm text-base leading-none opacity-0 transition-opacity group-hover:opacity-70 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING}`}
       >
         ✕
       </button>
