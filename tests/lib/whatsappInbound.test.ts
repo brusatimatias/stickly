@@ -18,7 +18,7 @@ vi.mock("@/lib/chatAssistant", () => ({
   runChatTurn: mockRunChatTurn,
 }));
 
-import { MAX_ASSISTANT_MESSAGE_LENGTH } from "@/lib/webChat";
+import { MAX_ASSISTANT_MESSAGE_LENGTH } from "@/lib/chat";
 import {
   HISTORY_IDLE_MS,
   MAX_LINK_ATTEMPTS_PER_HOUR,

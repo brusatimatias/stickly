@@ -9,7 +9,7 @@ import {
   sanitizeChatMessages,
   truncateReply,
   type ChatMessage,
-} from "@/lib/webChat";
+} from "@/lib/chat";
 import { sendWhatsAppText } from "@/lib/whatsappApi";
 import { hashLinkCode, parseLinkCode } from "@/lib/whatsappLink";
 import type { InboundMessage } from "@/lib/whatsappWebhook";

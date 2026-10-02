@@ -7,7 +7,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, useTransition } from "react";
 import { sendChatMessage } from "@/app/actions/chat";
 import { ChatIcon, CloseIcon, SendIcon } from "@/components/icons";
-import { MAX_MESSAGE_LENGTH, type ChatMessage } from "@/lib/webChat";
+import { MAX_MESSAGE_LENGTH, type ChatMessage } from "@/lib/chat";
 import { formatWeekParam } from "@/lib/week";
 import { useErrorMessage } from "@/components/errorMessage";
 import { FOCUS_RING } from "@/components/focusRing";

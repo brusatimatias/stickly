@@ -7,7 +7,7 @@ import {
   getUserToday,
   sanitizeChatMessages,
   truncateReply,
-} from "@/lib/webChat";
+} from "@/lib/chat";
 
 describe("sanitizeChatMessages", () => {
   test("trims contents and keeps a valid conversation", () => {

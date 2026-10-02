@@ -28,7 +28,7 @@ import {
   getChatRateLimitError,
   getUserToday,
   type ChatMessage,
-} from "@/lib/webChat";
+} from "@/lib/chat";
 
 // Tool input errors the model can recover from (e.g. by asking for the date).
 const RECOVERABLE_TOOL_ERRORS = new Set([
