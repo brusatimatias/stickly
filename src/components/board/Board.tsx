@@ -17,7 +17,6 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useId, useRef, useState, useTransition } from "react";
 import { moveDraftNote, moveNote, scheduleDraftNote } from "@/app/actions/notes";
@@ -68,7 +67,6 @@ export default function Board({
   todayWeekParam: string;
   todayKey: string;
 }) {
-  const router = useRouter();
   const t = useTranslations("board");
   // From the server data, not `notesByDay`, so the hint doesn't come and go
   // (shifting the layout) while a draft is being dragged onto the week.
@@ -259,7 +257,6 @@ export default function Board({
       // up here too).
       startTransition(async () => {
         await moveDraftNote({ noteId: active.id as string, index });
-        router.refresh();
       });
       return;
     }
@@ -284,7 +281,6 @@ export default function Board({
           schedule,
         });
       }
-      router.refresh();
     });
   }
 

@@ -1,7 +1,6 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useTransition } from "react";
 import { createNote, updateNote } from "@/app/actions/notes";
@@ -24,7 +23,6 @@ export default function NoteForm({
   onDone: (updated?: NoteDTO) => void;
 }) {
   const t = useTranslations("board");
-  const router = useRouter();
   const timeZone = useBoardTimeZone();
   const [title, setTitle] = useState(note?.title ?? "");
   const [location, setLocation] = useState(note?.location ?? "");
@@ -74,7 +72,6 @@ export default function NoteForm({
       } else {
         await createNote({ id: newNoteId, title: trimmedTitle, location, description, schedule });
       }
-      router.refresh();
     });
   }
 

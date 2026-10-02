@@ -3,7 +3,6 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { addNoteToGoogleCalendar } from "@/app/actions/calendar";
 import { deleteNote, toggleNoteDone } from "@/app/actions/notes";
@@ -35,9 +34,8 @@ export default function NoteCard({
 }) {
   const t = useTranslations("board");
   const tErrors = useTranslations("errors");
-  const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [isDeleting, startDeleteTransition] = useTransition();
   const [isSyncing, startSyncTransition] = useTransition();
   const [isToggling, startToggleTransition] = useTransition();
   const [syncError, setSyncError] = useState<string | null>(null);
@@ -83,9 +81,9 @@ export default function NoteCard({
 
   function handleDelete() {
     setIsConfirmingDelete(false);
-    startTransition(async () => {
+    // Hidden right away; the action's response drops it from the board.
+    startDeleteTransition(async () => {
       await deleteNote(note.id);
-      router.refresh();
     });
   }
 
@@ -94,7 +92,6 @@ export default function NoteCard({
     setOptimisticNote({ ...displayNote, isDone: nextIsDone });
     startToggleTransition(async () => {
       await toggleNoteDone(note.id, nextIsDone);
-      router.refresh();
     });
   }
 
@@ -103,7 +100,6 @@ export default function NoteCard({
     startSyncTransition(async () => {
       try {
         await addNoteToGoogleCalendar(note.id);
-        router.refresh();
       } catch (error) {
         const code = error instanceof Error ? error.message : undefined;
         setSyncError(code && tErrors.has(code) ? tErrors(code) : tErrors("GENERIC"));
@@ -116,7 +112,7 @@ export default function NoteCard({
       ref={setNodeRef}
       style={style}
       onClick={() => setIsEditing(true)}
-      className={`${isNew ? "animate-note-in" : ""} group relative flex h-44 w-44 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border p-2 text-sm shadow-[2px_4px_6px_rgba(0,0,0,0.3)] transition-[top] hover:z-10 hover:-top-1 hover:shadow-[3px_6px_10px_rgba(0,0,0,0.35)] dark:shadow-[2px_4px_6px_rgba(0,0,0,0.6)] dark:hover:shadow-[3px_6px_10px_rgba(0,0,0,0.7)] sm:h-48 sm:w-48 ${isDragging ? "z-20" : ""} ${noteStyle.rotation} ${noteStyle.bg} ${noteStyle.border} ${noteStyle.text}`}
+      className={`${isNew ? "animate-note-in" : ""} group relative ${isDeleting ? "hidden" : "flex"} h-44 w-44 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border p-2 text-sm shadow-[2px_4px_6px_rgba(0,0,0,0.3)] transition-[top] hover:z-10 hover:-top-1 hover:shadow-[3px_6px_10px_rgba(0,0,0,0.35)] dark:shadow-[2px_4px_6px_rgba(0,0,0,0.6)] dark:hover:shadow-[3px_6px_10px_rgba(0,0,0,0.7)] sm:h-48 sm:w-48 ${isDragging ? "z-20" : ""} ${noteStyle.rotation} ${noteStyle.bg} ${noteStyle.border} ${noteStyle.text}`}
     >
       {displayNote.isDone && (
         <div className="pointer-events-none absolute inset-0 bg-zinc-500/40 mix-blend-multiply dark:bg-zinc-400/30" />
@@ -142,7 +138,7 @@ export default function NoteCard({
               handleToggleDone();
             }}
             disabled={isToggling}
-            className={`rounded-sm opacity-30 transition-opacity group-hover:opacity-70 disabled:opacity-40 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING}`}
+            className={`rounded-sm opacity-30 transition-opacity group-hover:opacity-70 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING}`}
           >
             {displayNote.isDone ? (
               <CheckSquareIcon className="h-3.5 w-3.5" />
@@ -162,7 +158,7 @@ export default function NoteCard({
           event.stopPropagation();
           setIsConfirmingDelete(true);
         }}
-        disabled={isPending}
+        disabled={isDeleting}
         className={`absolute right-1 top-1 rounded-sm opacity-30 transition-opacity group-hover:opacity-70 disabled:opacity-30 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING}`}
       >
         ✕

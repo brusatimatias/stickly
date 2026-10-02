@@ -1,7 +1,6 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useTransition } from "react";
 import { createDraftNote, updateDraftNote } from "@/app/actions/notes";
@@ -19,7 +18,6 @@ export default function DraftForm({
   onDone: () => void;
 }) {
   const t = useTranslations("board");
-  const router = useRouter();
   const [title, setTitle] = useState(note?.title ?? "");
   const [location, setLocation] = useState(note?.location ?? "");
   const [description, setDescription] = useState(note?.description ?? "");
@@ -59,7 +57,6 @@ export default function DraftForm({
       } else {
         await createDraftNote({ id: newNoteId, title: trimmedTitle, location, description });
       }
-      router.refresh();
       onDone();
     });
   }

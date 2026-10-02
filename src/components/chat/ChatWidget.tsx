@@ -3,7 +3,6 @@
 import { format, parseISO } from "date-fns";
 import { enUS, es } from "date-fns/locale";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, useTransition } from "react";
 import { sendChatMessage } from "@/app/actions/chat";
@@ -33,7 +32,6 @@ export default function ChatWidget({ weekDays }: { weekDays: string[] }) {
   const tErrors = useTranslations("errors");
   const locale = useLocale();
   const dateFnsLocale = locale === "es" ? es : enUS;
-  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   // Keeps the panel mounted while its exit animation plays.
   const [isClosing, setIsClosing] = useState(false);
@@ -109,9 +107,6 @@ export default function ChatWidget({ weekDays }: { weekDays: string[] }) {
           ...current,
           { role: "assistant", content: reply || fallback, notes: createdNotes },
         ]);
-        if (createdNotes.length > 0) {
-          router.refresh();
-        }
       } catch (caught) {
         // Drop the failed turn and give the text back so it can be retried.
         setMessages((current) => current.slice(0, -1));

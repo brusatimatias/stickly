@@ -155,11 +155,13 @@ describe("updateNote", () => {
     await expect(updateNote({ ...BASE, schedule: TIMED })).rejects.toThrow("NOTE_NOT_FOUND");
   });
 
-  test("unsyncs from Calendar and clears googleEventId when the time is removed", async () => {
+  test("clears googleEventId and deletes the event after the response when the time is removed", async () => {
     mockPrisma.note.findFirst.mockResolvedValue(EXISTING_TIMED);
 
     await updateNote({ ...BASE, schedule: ALL_DAY });
+    expect(mockDeleteCalendarEvent).not.toHaveBeenCalled();
 
+    await runAfterCallbacks();
     expect(mockDeleteCalendarEvent).toHaveBeenCalledWith("user-1", "gcal-1");
     expect(mockPrisma.note.updateMany).toHaveBeenCalledWith({
       where: { id: "id-1", userId: "user-1" },
@@ -208,9 +210,10 @@ describe("updateNote", () => {
       mockPrisma.note.findFirst.mockResolvedValue(SYNCED);
 
       await updateNote({ ...BASE, title: "New title", schedule: ALL_DAY });
+      await runAfterCallbacks();
 
       expect(mockDeleteCalendarEvent).toHaveBeenCalledWith("user-1", "gcal-1");
-      expect(afterCallbacks).toHaveLength(0);
+      expect(mockUpdateCalendarEvent).not.toHaveBeenCalled();
     });
 
     test("doesn't call Google for a note that isn't synced", async () => {
@@ -323,6 +326,25 @@ describe("deleteNote", () => {
       where: { id: "id-1", userId: "user-1" },
     });
     expect(mockRevalidatePath).toHaveBeenCalledWith("/");
+  });
+
+  test("deletes the note's Calendar event after the response", async () => {
+    mockPrisma.note.findFirst.mockResolvedValue({ id: "id-1", googleEventId: "gcal-1" });
+
+    await deleteNote("id-1");
+    expect(mockPrisma.note.deleteMany).toHaveBeenCalled();
+    expect(mockDeleteCalendarEvent).not.toHaveBeenCalled();
+
+    await runAfterCallbacks();
+    expect(mockDeleteCalendarEvent).toHaveBeenCalledWith("user-1", "gcal-1");
+  });
+
+  test("doesn't call Google for a note that isn't synced", async () => {
+    mockPrisma.note.findFirst.mockResolvedValue({ id: "id-1", googleEventId: null });
+
+    await deleteNote("id-1");
+
+    expect(afterCallbacks).toHaveLength(0);
   });
 });
 
@@ -524,12 +546,15 @@ describe("moveNote", () => {
 
     await moveNote({ noteId: "moving", day: "2026-09-16", index: 0, schedule: ALL_DAY });
 
-    expect(mockDeleteCalendarEvent).toHaveBeenCalledWith("user-1", "gcal-1");
     expect(mockPrisma.note.updateMany).toHaveBeenCalledWith({
       where: { id: "moving", userId: "user-1" },
       data: { googleEventId: null },
     });
-    expect(afterCallbacks).toHaveLength(0);
+    expect(mockDeleteCalendarEvent).not.toHaveBeenCalled();
+
+    await runAfterCallbacks();
+    expect(mockDeleteCalendarEvent).toHaveBeenCalledWith("user-1", "gcal-1");
+    expect(mockUpdateCalendarEvent).not.toHaveBeenCalled();
   });
 
   test("doesn't queue anything for a reorder that keeps the note's time", async () => {

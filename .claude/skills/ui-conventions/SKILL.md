@@ -41,13 +41,14 @@ Both of these caused infinite render loops before (commits `5dd3e9f`, `d55e0d1`)
 - **Day columns lay out sortable items with CSS grid** (`[grid-template-columns:repeat(auto-fill,minmax(11rem,1fr))]`), not `flex-wrap`. With flex-wrap, reordering reflowed the items and the sort flipped back and forth.
 - **Sensors**: `MouseSensor` (`distance: 8`) + `TouchSensor` (`delay: 200, tolerance: 5`) + `KeyboardSensor`. Not `PointerSensor`: it also handles touch and would start a drag immediately, so a swipe couldn't scroll. Drag handles are `touch-none`; only the handle has the listeners, so the rest of the card still scrolls the page.
 - Drag feedback: the source card goes to `opacity: 0.5` (inline style) and `z-20`. `DragOverlay` in `Board.tsx` renders a simplified copy (palette + rotation + FoldedCorner + title).
-- A drop calls `moveNote` / `moveDraftNote` / `scheduleDraftNote` inside `startTransition` and then `router.refresh()`.
+- A drop calls `moveNote` / `moveDraftNote` / `scheduleDraftNote` inside `startTransition`; the action's response already carries the re-rendered board (no `router.refresh()`, see below).
 - **Keep `id={useId()}` on `DndContext`.** Without it dnd-kit numbers its `aria-describedby` ids from a module-level counter that differs between server and client, which causes a hydration mismatch warning and leaves the attribute pointing at a missing element.
 
 ## React state patterns
 - **Syncing state from props**: this codebase adjusts state during render by comparing to a stored previous value (`lastServerNote` in `NoteCard`, `syncedWeekStart` in `Board`) instead of using a `useEffect` that sets state. Follow that pattern. An effect that sets state here adds an extra render and was part of the loops above.
 - **Optimistic updates**: `NoteCard` keeps an `optimisticNote` and shows `optimisticNote ?? note`. The optimistic copy is dropped when the server `note` differs from `lastServerNote`, so any new editable field must be added to that comparison.
-- Don't follow a Server Action that sets a cookie (`setTheme`, `setLocale`) with `router.refresh()`: setting a cookie already makes the action return the re-rendered page in the same response, and the refresh is a second full round trip (measured: 2 requests → 1).
+- Don't follow a Server Action with `router.refresh()` when it calls `revalidatePath` (every board action) or sets a cookie (`setTheme`, `setLocale`): the action already returns the re-rendered page in the same response, and the refresh is a second full round trip (measured: 2 requests → 1).
+- Deleting a note or draft hides the card while the transition is pending (`isDeleting` → `hidden`), so it disappears right away instead of after the round trip.
 - Server actions are called from `useTransition` callbacks. Errors come back as string codes, which you translate with `useTranslations("errors")`.
 
 ## Motion and focus

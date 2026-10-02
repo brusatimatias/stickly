@@ -3,7 +3,6 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { deleteNote } from "@/app/actions/notes";
 import ConfirmDialog from "@/components/board/ConfirmDialog";
@@ -23,9 +22,8 @@ export default function DraftCard({
   isNew?: boolean;
 }) {
   const t = useTranslations("board");
-  const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [isDeleting, startDeleteTransition] = useTransition();
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: note.id });
@@ -42,9 +40,9 @@ export default function DraftCard({
 
   function handleDelete() {
     setIsConfirmingDelete(false);
-    startTransition(async () => {
+    // Hidden right away; the action's response drops it from the panel.
+    startDeleteTransition(async () => {
       await deleteNote(note.id);
-      router.refresh();
     });
   }
 
@@ -53,7 +51,7 @@ export default function DraftCard({
       ref={setNodeRef}
       style={style}
       onClick={() => setIsEditing(true)}
-      className={`${isNew ? "animate-note-in" : ""} group relative flex h-44 w-44 -rotate-1 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border p-2 text-sm shadow-md transition-[top] hover:z-10 hover:-top-1 hover:shadow-lg sm:h-48 sm:w-48 ${DRAFT_COLOR}`}
+      className={`${isNew ? "animate-note-in" : ""} group relative ${isDeleting ? "hidden" : "flex"} h-44 w-44 -rotate-1 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border p-2 text-sm shadow-md transition-[top] hover:z-10 hover:-top-1 hover:shadow-lg sm:h-48 sm:w-48 ${DRAFT_COLOR}`}
     >
       <FoldedCorner />
       <button
@@ -73,7 +71,7 @@ export default function DraftCard({
           event.stopPropagation();
           setIsConfirmingDelete(true);
         }}
-        disabled={isPending}
+        disabled={isDeleting}
         className={`absolute right-1 top-1 rounded-sm opacity-0 transition-opacity group-hover:opacity-70 disabled:opacity-30 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING}`}
       >
         ✕

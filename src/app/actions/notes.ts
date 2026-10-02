@@ -59,6 +59,15 @@ function updateCalendarEventAfterResponse(userId: string, noteId: string) {
   });
 }
 
+/**
+ * Deletes a Calendar event once the response is sent, so deleting a note or
+ * clearing its time never waits on Google. The note is unlinked (or gone)
+ * before this runs; `deleteCalendarEvent` is best-effort and never throws.
+ */
+function deleteCalendarEventAfterResponse(userId: string, googleEventId: string) {
+  after(() => deleteCalendarEvent(userId, googleEventId));
+}
+
 /*
  * The board converts what the user types into a stored schedule (UTC, see
  * src/lib/schedule.ts) before calling these, so they receive `schedule`
@@ -104,9 +113,6 @@ export async function updateNote(input: {
   const { kind, startsAt } = parseScheduleInput(input.schedule);
 
   const clearingTime = existing.kind === "TIMED" && kind === "ALL_DAY" && existing.googleEventId;
-  if (clearingTime) {
-    await deleteCalendarEvent(userId, existing.googleEventId!);
-  }
 
   await prisma.note.updateMany({
     where: { id: input.id, userId },
@@ -119,6 +125,10 @@ export async function updateNote(input: {
       ...(clearingTime ? { googleEventId: null } : {}),
     },
   });
+
+  if (clearingTime) {
+    deleteCalendarEventAfterResponse(userId, existing.googleEventId!);
+  }
 
   if (
     existing.googleEventId &&
@@ -152,10 +162,10 @@ export async function toggleNoteDone(id: string, isDone: boolean) {
 export async function deleteNote(id: string) {
   const userId = await requireUserId();
   const existing = await prisma.note.findFirst({ where: { id, userId } });
-  if (existing?.googleEventId) {
-    await deleteCalendarEvent(userId, existing.googleEventId);
-  }
   await prisma.note.deleteMany({ where: { id, userId } });
+  if (existing?.googleEventId) {
+    deleteCalendarEventAfterResponse(userId, existing.googleEventId);
+  }
   revalidatePath("/");
 }
 
@@ -211,11 +221,11 @@ export async function moveNote(input: {
 
   if (movingNote.googleEventId && kind === "ALL_DAY") {
     // Only TIMED notes can be synced, as in updateNote.
-    await deleteCalendarEvent(userId, movingNote.googleEventId);
     await prisma.note.updateMany({
       where: { id: movingNote.id, userId },
       data: { googleEventId: null },
     });
+    deleteCalendarEventAfterResponse(userId, movingNote.googleEventId);
   } else if (movingNote.googleEventId && movingNote.startsAt?.getTime() !== startsAt.getTime()) {
     // Reordering within the same day doesn't change the event.
     updateCalendarEventAfterResponse(userId, movingNote.id);
