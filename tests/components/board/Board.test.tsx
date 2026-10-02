@@ -221,6 +221,7 @@ describe("Board", () => {
     test("closes a draft's form with the edit shown, without waiting for the server", async () => {
       vi.mocked(updateDraftNote).mockImplementation(() => deferred().promise);
       renderBoard([], [DRAFT]);
+      fireEvent.click(screen.getByRole("button", { name: messages.board.showDrafts }));
 
       fireEvent.click(cardOf("Comprar pilas"));
       await writeAndSave("Comprar pilas AA");
@@ -236,6 +237,7 @@ describe("Board", () => {
       const update = deferred();
       vi.mocked(updateDraftNote).mockReturnValue(update.promise);
       renderBoard([], [DRAFT]);
+      fireEvent.click(screen.getByRole("button", { name: messages.board.showDrafts }));
 
       fireEvent.click(cardOf("Comprar pilas"));
       await writeAndSave("Comprar pilas AA");

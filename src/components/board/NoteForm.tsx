@@ -71,11 +71,11 @@ export default function NoteForm({
       ref={containerRef}
       onKeyDown={handleKeyDown}
       style={noteStyle.overlapStyle}
-      className={`relative flex h-44 w-44 flex-col justify-between overflow-hidden rounded-sm border p-2 text-sm shadow-[2px_4px_6px_rgba(0,0,0,0.3)] dark:shadow-[2px_4px_6px_rgba(0,0,0,0.6)] sm:h-48 sm:w-48 ${noteStyle.rotation} ${noteStyle.bg} ${noteStyle.border} ${noteStyle.text}`}
+      className={`@container relative flex aspect-square min-h-40 w-full max-w-44 flex-col justify-between overflow-hidden rounded-sm border p-2 text-sm shadow-[2px_4px_6px_rgba(0,0,0,0.3)] dark:shadow-[2px_4px_6px_rgba(0,0,0,0.6)] sm:max-w-48 ${noteStyle.rotation} ${noteStyle.bg} ${noteStyle.border} ${noteStyle.text}`}
     >
       <FoldedCorner />
       <div className="mt-4 flex min-w-0 flex-1 flex-col overflow-hidden">
-        <div className="flex items-center gap-1 text-xs font-medium opacity-80">
+        <div className="flex items-center gap-1 text-xs font-medium opacity-80 @max-[9rem]:text-[11px]">
           <TimePicker value={time} onChange={setTime} />
         </div>
         <textarea
@@ -85,7 +85,7 @@ export default function NoteForm({
           placeholder={t("titlePlaceholder")}
           aria-label={t("titlePlaceholder")}
           rows={1}
-          className="block w-full resize-none break-words bg-transparent font-semibold outline-none placeholder:opacity-50"
+          className="block w-full resize-none break-words bg-transparent font-semibold outline-none @max-[9rem]:text-[13px] @max-[9rem]:leading-snug placeholder:opacity-50"
         />
         <textarea
           ref={descriptionRef}
@@ -98,7 +98,7 @@ export default function NoteForm({
         />
       </div>
 
-      <div className="flex items-center gap-1 text-xs opacity-70">
+      <div className="flex items-center gap-1 text-xs opacity-70 @max-[9rem]:text-[11px]">
         <LocationIcon className="h-3 w-3 shrink-0" />
         <input
           value={location}

@@ -20,12 +20,12 @@ The look is "sticky notes on a whiteboard". New UI should look like it belongs t
 - **Color, rotation and overlap are derived from the note id**: `getNoteStyle(id)` in `src/lib/noteColor.ts` hashes the id and picks from `PALETTE`, `ROTATIONS` and `OVERLAPS`. The same note always looks the same, and there's no stored color. If a feature needs user-chosen colors, that's a schema change (see `new-entity-crud`), not a tweak here.
 - **Palette entries are trios** (`bg`/`border`/`text`, Tailwind `-200`/`-300`/`-950`: yellow, pink, sky, green, purple). Always apply all three from the same entry.
 - **Rotation**: a Tailwind class from `ROTATIONS`. **Overlap**: inline `marginTop`/`marginLeft` from `OVERLAPS`, not a class.
-- **Card shell**: `relative flex h-44 w-44 sm:h-48 sm:w-48 overflow-hidden rounded-sm border p-2 text-sm` + `<FoldedCorner />`. Every card-like thing renders `FoldedCorner`: cards, forms, the drag overlay, and the sign-in stickers.
+- **Card shell**: `relative flex aspect-square w-full max-w-44 sm:max-w-48 overflow-hidden rounded-sm border p-2 text-sm` + `<FoldedCorner />`. Cards are fluid: they fill their grid track up to 11/12rem, so seven columns fit on a 14" laptop. `NoteCard` is an `@container` and shrinks what doesn't fit a narrow card with `@max-[9rem]:` (Calendar icon, a 13px title clamped to 2 lines, 11px time and location; `NoteForm` is an `@container` too and matches the title size; container queries measure the content box, inside the border and padding), and `NoteForm` keeps a `min-h-40` so its fields fit; the drag overlay is `size-full` (dnd-kit sizes it like the dragged card). Every card-like thing renders `FoldedCorner`: cards, forms, the drag overlay, and the sign-in stickers.
 - **Shadows**: regular cards and `NoteForm` use `shadow-[2px_4px_6px_rgba(0,0,0,0.3)]` with a `dark:` variant at 0.6 and a heavier hover shadow. The draft uses `shadow-md`/`hover:shadow-lg`, and the drag overlay uses `shadow-lg`.
 - **Hover**: `group`, `transition-[top] hover:-top-1 hover:z-10` (the cards are already `relative`). Card controls (drag handle, done toggle, delete) sit at `opacity-30` and go to `group-hover:opacity-70`; on touch screens (no hover) they stay at `pointer-coarse:opacity-70`. Hover-only tooltips also show on keyboard focus (`group-has-[:focus-visible]/…`), and the state they describe must be visible without them (icons, line-through).
 - **Keep card text sharp**: cards are rotated, so anything that gives the text its own compositing layer makes it render blurry. Lift cards on hover with `top`, not a `transform` (`translate`), and dim editable fields with the text color (`text-current/80`), not `opacity` (a focused, dimmed textarea blurred while typing).
 - **Done**: an overlay `bg-zinc-500/40 mix-blend-multiply dark:bg-zinc-400/30` over the palette color, plus `line-through` on the title only. Done notes also sort last in their day (`sortDoneLast`).
-- **Draft**: fixed orange trio (`bg-orange-200 border-orange-300 text-orange-950`), fixed `-rotate-1`, and in the panel each draft overlaps the one before it by a fixed `-mt-3` instead of the hash-based offset. This is what distinguishes it from dated notes, so don't route it through `getNoteStyle`. The classes live in `DRAFT_COLOR` (`src/lib/noteColor.ts`), shared by `DraftCard.tsx` and `DraftForm.tsx`.
+- **Draft**: fixed orange trio (`bg-orange-200 border-orange-300 text-orange-950`), fixed `-rotate-1`, and no hash-based overlap. This is what distinguishes it from dated notes, so don't route it through `getNoteStyle`. The classes live in `DRAFT_COLOR` (`src/lib/noteColor.ts`), shared by `DraftCard.tsx` and `DraftForm.tsx`.
 - **Card colors are coupled**: the done overlay is `mix-blend-multiply` over the palette color, and the card also hardcodes status colors on top of it (the Calendar-synced icon `text-emerald-600 dark:text-emerald-400`, the error line `text-red-700`). Changing the palette changes how all of these read, so check them together.
 
 ## Dark mode
@@ -38,8 +38,9 @@ The look is "sticky notes on a whiteboard". New UI should look like it belongs t
 ## Drag & drop (@dnd-kit)
 Both of these caused infinite render loops before (commits `5dd3e9f`, `d55e0d1`):
 - **Keep the custom `collisionDetectionStrategy` in `Board.tsx`** (`pointerWithin` → `rectIntersection` fallback, sticky `lastOverIdRef` right after a cross-container move). Don't switch back to `closestCenter`: when a note crosses into another day, the rects shift and closestCenter moves it back, over and over. If you add a new droppable container, reset the refs in `onDragEnd`/`onDragCancel` the way the existing code does.
-- **Day columns lay out sortable items with CSS grid** (`[grid-template-columns:repeat(auto-fill,minmax(11rem,1fr))]`), not `flex-wrap`. With flex-wrap, reordering reflowed the items and the sort flipped back and forth.
+- **Day columns lay out sortable items with CSS grid** (`[grid-template-columns:repeat(auto-fill,minmax(min(11rem,100%),1fr))]`; the `min()` lets a narrow column have one track narrower than a card's max), not `flex-wrap`. With flex-wrap, reordering reflowed the items and the sort flipped back and forth.
 - **Sensors**: `MouseSensor` (`distance: 8`) + `TouchSensor` (`delay: 200, tolerance: 5`) + `KeyboardSensor`. Not `PointerSensor`: it also handles touch and would start a drag immediately, so a swipe couldn't scroll. Drag handles are `touch-none`; only the handle has the listeners, so the rest of the card still scrolls the page.
+- **The draft tray keeps its height during a drag** (`isDragging` from `Board`): it sits above the week, so shrinking it as a draft leaves would shift every droppable under the pointer. Anything new above the week must not change height mid-drag either.
 - Drag feedback: the source card goes to `opacity: 0.5` (inline style) and `z-20`. `DragOverlay` in `Board.tsx` renders a simplified copy (palette + rotation + FoldedCorner + title).
 - A drop calls `moveNote` / `moveDraftNote` / `scheduleDraftNote` inside `startTransition`; the action's response already carries the re-rendered board (no `router.refresh()`, see below).
 - **Keep `id={useId()}` on `DndContext`.** Without it dnd-kit numbers its `aria-describedby` ids from a module-level counter that differs between server and client, which causes a hydration mismatch warning and leaves the attribute pointing at a missing element.
@@ -66,9 +67,9 @@ Both of these caused infinite render loops before (commits `5dd3e9f`, `d55e0d1`)
 - Touch targets: small icon buttons grow to 40px with `pointer-coarse:` (e.g. `pointer-coarse:size-10`), without changing the desktop look.
 
 ## Responsive
-- Board: `flex-col` below `lg:`, `lg:flex-row` (draft panel beside the week) above.
+- Board: always `flex-col`. The drafts are a tray above the week (`DraftPanel`), collapsed by default to one row of title chips; expanding it shows the cards, the only way to drag a draft.
 - Week grid: `grid-cols-1` → `sm:grid-cols-2` → `lg:grid-cols-7`. The whole week only fits side by side at `lg:`. On smaller screens, focus-day mode (`DayFocusNav`) is how users look at a single day.
-- Check any new element at phone width. Cards are a fixed size, so containers have to handle them wrapping.
+- Check any new element at phone width and at a 14" laptop (~1280px, the narrowest seven-column layout).
 
 ## i18n
 - No hardcoded user-facing strings, including `aria-label`s and tooltips. Use `useTranslations("board")` (or the relevant namespace) and add every key to **both** `messages/en.json` and `messages/es.json`.

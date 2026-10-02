@@ -17,6 +17,8 @@
     "loadingBoard": "Loading your board…",
     "draft": "Draft",
     "newDraftNote": "New draft note",
+    "showDrafts": "Show drafts",
+    "hideDrafts": "Hide drafts",
     "titlePlaceholder": "Title",
     "locationPlaceholder": "Location",
     "descriptionPlaceholder": "Add details...",

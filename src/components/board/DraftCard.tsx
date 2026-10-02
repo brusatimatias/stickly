@@ -59,7 +59,7 @@ export default function DraftCard({
       ref={setNodeRef}
       style={style}
       onClick={() => setIsEditing(true)}
-      className={`${isNew ? "animate-note-in" : ""} group relative ${isDeleted ? "hidden" : "flex"} h-44 w-44 -rotate-1 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border p-2 text-sm shadow-md transition-[top] hover:z-10 hover:-top-1 hover:shadow-lg sm:h-48 sm:w-48 ${DRAFT_COLOR}`}
+      className={`${isNew ? "animate-note-in" : ""} group relative ${isDeleted ? "hidden" : "flex"} aspect-square w-full max-w-44 -rotate-1 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border p-2 text-sm shadow-md transition-[top] hover:z-10 hover:-top-1 hover:shadow-lg sm:max-w-48 ${DRAFT_COLOR}`}
     >
       <FoldedCorner />
       <button

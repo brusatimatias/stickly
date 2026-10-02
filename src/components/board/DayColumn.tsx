@@ -99,7 +99,7 @@ export default function DayColumn({
         )}
 
         <SortableContext id={day.key} items={notes.map((note) => note.id)} strategy={rectSortingStrategy}>
-          <div className="grid flex-1 auto-rows-min items-start justify-center gap-2 [grid-template-columns:repeat(auto-fill,minmax(11rem,1fr))]">
+          <div className="grid flex-1 auto-rows-min items-start justify-center gap-2 [grid-template-columns:repeat(auto-fill,minmax(min(11rem,100%),1fr))]">
             {notes.map((note) => (
               <NoteCard key={note.id} day={day.key} note={note} isNew={newNoteIds.has(note.id)} />
             ))}

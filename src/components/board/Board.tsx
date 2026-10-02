@@ -392,8 +392,12 @@ export default function Board({
             }}
           >
             {/* Bottom padding so the chat launcher never covers the last notes. */}
-            <div className="flex flex-col gap-3 p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:flex-row">
-              <DraftPanel notes={notesIn(DRAFT_CONTAINER)} newNoteIds={animatedIds} />
+            <div className="flex flex-col gap-3 p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
+              <DraftPanel
+                notes={notesIn(DRAFT_CONTAINER)}
+                newNoteIds={animatedIds}
+                isDragging={activeNote !== null}
+              />
               {focusedDayInfo ? (
                 <div className="animate-week-in min-w-0 flex-1">
                   <DayFocusNav
@@ -445,7 +449,7 @@ export default function Board({
                   const style = getNoteStyle(activeNote.id);
                   return (
                     <div
-                      className={`relative flex h-44 w-44 flex-col justify-center overflow-hidden rounded-sm border p-2 text-sm shadow-lg sm:h-48 sm:w-48 ${style.rotation} ${style.bg} ${style.border} ${style.text}`}
+                      className={`relative flex size-full flex-col justify-center overflow-hidden rounded-sm border p-2 text-sm shadow-lg ${style.rotation} ${style.bg} ${style.border} ${style.text}`}
                     >
                       <FoldedCorner />
                       <p className="line-clamp-3 font-semibold">{activeNote.title}</p>
