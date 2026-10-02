@@ -29,7 +29,7 @@ import Board from "@/components/board/Board";
 import type { StoredNoteDTO } from "@/components/board/types";
 
 const DAYS = ["2026-09-28", "2026-09-29", "2026-09-30", "2026-10-01", "2026-10-02", "2026-10-03", "2026-10-04"].map(
-  (key) => ({ key, label: key })
+  (key) => ({ key, label: key, weekday: "xx", dayNumber: key.slice(-2) })
 );
 
 const NOTE: StoredNoteDTO = {
