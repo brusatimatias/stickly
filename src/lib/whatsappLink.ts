@@ -1,7 +1,8 @@
 import { createHmac, randomInt } from "node:crypto";
+import { MINUTE_MS } from "@/lib/time";
 
 /** How long a link code can be sent from WhatsApp after it's generated. */
-export const LINK_CODE_TTL_MS = 10 * 60_000;
+export const LINK_CODE_TTL_MS = 10 * MINUTE_MS;
 
 const LINK_CODE_DIGITS = 6;
 

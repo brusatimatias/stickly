@@ -21,10 +21,9 @@ import {
 import { listNotesForUser } from "@/lib/notes";
 import { prisma } from "@/lib/prisma";
 import { toStoredSchedule } from "@/lib/schedule";
+import { DAY_MS, MINUTE_MS } from "@/lib/time";
 import {
-  DAY_MS,
   DEFAULT_CHAT_MODEL,
-  MINUTE_MS,
   buildChatSystemPrompt,
   getChatRateLimitError,
   getUserToday,

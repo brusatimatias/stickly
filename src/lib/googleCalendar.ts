@@ -1,6 +1,7 @@
 import { google, type calendar_v3 } from "googleapis";
 import { toCalendarEvent, type CalendarEventNote } from "@/lib/calendarEvent";
 import { clearGoogleTokens, getGoogleTokens, saveGoogleTokens } from "@/lib/googleTokens";
+import { MINUTE_MS } from "@/lib/time";
 
 /**
  * The only way the app talks to Google Calendar. It gets the user's access
@@ -14,7 +15,7 @@ import { clearGoogleTokens, getGoogleTokens, saveGoogleTokens } from "@/lib/goog
  */
 const GOOGLE_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
 // Refresh a bit early so a token doesn't expire between the check and the call.
-const REFRESH_MARGIN_MS = 60_000;
+const REFRESH_MARGIN_MS = MINUTE_MS;
 
 function reconnectRequired(): Error {
   return new Error("GOOGLE_RECONNECT_REQUIRED");
