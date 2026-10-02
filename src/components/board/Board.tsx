@@ -41,6 +41,7 @@ import FoldedCorner from "@/components/board/FoldedCorner";
 import { TimeZoneProvider } from "@/components/board/TimeZoneContext";
 import WeekNav from "@/components/board/WeekNav";
 import type { BoardDay, NoteDTO, StoredNoteDTO } from "@/components/board/types";
+import { useErrorMessage } from "@/components/errorMessage";
 import { FOCUS_RING } from "@/components/focusRing";
 import { getNoteStyle } from "@/lib/noteColor";
 import { groupNotesByDay, toDraftNoteDTO } from "@/lib/noteGroups";
@@ -147,8 +148,9 @@ export default function Board({
       ? new Set([...newNoteIds, ...pendingNotes.map(({ note }) => note.id)])
       : newNoteIds;
 
-  const tErrors = useTranslations("errors");
-  const [actionError, setActionError] = useState<string | null>(null);
+  const errorMessage = useErrorMessage();
+  // What a failed action threw, shown above the board until dismissed or the next action.
+  const [actionError, setActionError] = useState<unknown>(null);
   const boardActions = useMemo(
     () => ({
       run({ optimistic, action, onError }: BoardAction) {
@@ -160,7 +162,7 @@ export default function Board({
           } catch (error) {
             // Whatever `optimistic` set with useOptimistic is undone when the
             // transition ends; the board stays and says what went wrong.
-            setActionError(error instanceof Error ? error.message : "GENERIC");
+            setActionError(error);
             onError?.();
           }
         });
@@ -361,12 +363,12 @@ export default function Board({
             currentWeekParam={currentWeekParam}
             todayWeekParam={todayWeekParam}
           />
-          {actionError && (
+          {actionError != null && (
             <div
               role="alert"
               className="mx-4 mt-3 flex items-center justify-between gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
             >
-              <span>{tErrors.has(actionError) ? tErrors(actionError) : tErrors("GENERIC")}</span>
+              <span>{errorMessage(actionError)}</span>
               <button
                 type="button"
                 aria-label={t("dismissError")}

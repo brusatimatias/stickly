@@ -12,6 +12,7 @@ import ConfirmDialog from "@/components/board/ConfirmDialog";
 import FoldedCorner from "@/components/board/FoldedCorner";
 import NoteForm from "@/components/board/NoteForm";
 import type { NoteDTO } from "@/components/board/types";
+import { useErrorMessage } from "@/components/errorMessage";
 import { FOCUS_RING } from "@/components/focusRing";
 import {
   CalendarCheckIcon,
@@ -34,7 +35,7 @@ export default function NoteCard({
   isNew?: boolean;
 }) {
   const t = useTranslations("board");
-  const tErrors = useTranslations("errors");
+  const errorMessage = useErrorMessage();
   const { run } = useBoardActions();
   const [isEditing, setIsEditing] = useState(false);
   const [isSyncing, startSyncTransition] = useTransition();
@@ -85,8 +86,7 @@ export default function NoteCard({
       try {
         await addNoteToGoogleCalendar(note.id);
       } catch (error) {
-        const code = error instanceof Error ? error.message : undefined;
-        setSyncError(code && tErrors.has(code) ? tErrors(code) : tErrors("GENERIC"));
+        setSyncError(errorMessage(error));
       }
     });
   }

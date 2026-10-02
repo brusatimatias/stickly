@@ -9,6 +9,7 @@ import { sendChatMessage } from "@/app/actions/chat";
 import { ChatIcon, CloseIcon, SendIcon } from "@/components/board/icons";
 import { MAX_MESSAGE_LENGTH, type ChatMessage } from "@/lib/webChat";
 import { formatWeekParam } from "@/lib/week";
+import { useErrorMessage } from "@/components/errorMessage";
 import { FOCUS_RING } from "@/components/focusRing";
 import { animatesExit } from "@/components/motion";
 
@@ -29,7 +30,7 @@ const TYPING_DOT_DELAYS_MS = [0, 150, 300];
  */
 export default function ChatWidget({ weekDays }: { weekDays: string[] }) {
   const t = useTranslations("chat");
-  const tErrors = useTranslations("errors");
+  const errorMessage = useErrorMessage();
   const locale = useLocale();
   const dateFnsLocale = locale === "es" ? es : enUS;
   const [isOpen, setIsOpen] = useState(false);
@@ -111,8 +112,7 @@ export default function ChatWidget({ weekDays }: { weekDays: string[] }) {
         // Drop the failed turn and give the text back so it can be retried.
         setMessages((current) => current.slice(0, -1));
         setDraft(content);
-        const code = caught instanceof Error ? caught.message : undefined;
-        setError(code && tErrors.has(code) ? tErrors(code) : tErrors("GENERIC"));
+        setError(errorMessage(caught));
       }
     });
   }

@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useId, useState, useTransition } from "react";
 import { updateReminderSettings } from "@/app/actions/reminders";
+import { useErrorMessage } from "@/components/errorMessage";
 import { HINT_CLASS, INPUT_CLASS, LABEL_CLASS, StatusMessage, useAutoClearStatus, type Status } from "@/components/profile/ui";
 import { REMINDER_LEAD_MINUTES, type ReminderSettings } from "@/lib/reminderSettings";
 
@@ -14,7 +15,7 @@ const OFF = "off";
  */
 export default function ReminderPreferences({ initial }: { initial: ReminderSettings }) {
   const t = useTranslations("profile.notifications");
-  const tErrors = useTranslations("errors");
+  const errorMessage = useErrorMessage();
   const ids = { lead: useId(), digest: useId(), digestTime: useId() };
   const [settings, setSettings] = useState(initial);
   // What the server has, to go back to if a save fails.
@@ -33,8 +34,7 @@ export default function ReminderPreferences({ initial }: { initial: ReminderSett
         setStatus({ type: "success", text: t("settingsSaved") });
       } catch (error) {
         setSettings(saved);
-        const code = error instanceof Error ? error.message : undefined;
-        setStatus({ type: "error", text: code && tErrors.has(code) ? tErrors(code) : tErrors("GENERIC") });
+        setStatus({ type: "error", text: errorMessage(error) });
       }
     });
   }

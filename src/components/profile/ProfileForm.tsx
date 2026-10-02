@@ -27,15 +27,11 @@ import NotificationSettings from "@/components/profile/NotificationSettings";
 import WhatsAppLink from "@/components/profile/WhatsAppLink";
 import type { ReminderSettings } from "@/lib/reminderSettings";
 import { resizeImageToDataUrl } from "@/lib/image";
+import { errorCode, useErrorMessage } from "@/components/errorMessage";
 import { FOCUS_RING } from "@/components/focusRing";
 
 const AVATAR_TARGET_SIZE = 128;
 const MIN_PASSWORD_LENGTH = 8;
-
-function errorMessage(tErrors: ReturnType<typeof useTranslations>, error: unknown): string {
-  const code = error instanceof Error ? error.message : undefined;
-  return code && tErrors.has(code) ? tErrors(code) : tErrors("GENERIC");
-}
 
 export default function ProfileForm({
   name: initialName,
@@ -65,7 +61,7 @@ export default function ProfileForm({
 }) {
   const t = useTranslations("profile");
   const tCommon = useTranslations("common");
-  const tErrors = useTranslations("errors");
+  const errorMessage = useErrorMessage();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -112,7 +108,7 @@ export default function ProfileForm({
         await updateProfileName(trimmedName);
         setNameStatus({ type: "success", text: t("saved") });
       } catch (error) {
-        setNameStatus({ type: "error", text: errorMessage(tErrors, error) });
+        setNameStatus({ type: "error", text: errorMessage(error) });
       }
     });
   }
@@ -130,7 +126,7 @@ export default function ProfileForm({
           await updateAvatar(dataUrl);
           setAvatarStatus({ type: "success", text: t("saved") });
         } catch (error) {
-          setAvatarStatus({ type: "error", text: errorMessage(tErrors, error) });
+          setAvatarStatus({ type: "error", text: errorMessage(error) });
         }
       });
     } catch {
@@ -157,10 +153,10 @@ export default function ProfileForm({
         closePasswordForm();
         setPasswordStatus({ type: "success", text: t("saved") });
       } catch (error) {
-        setPasswordStatus({ type: "error", text: errorMessage(tErrors, error) });
+        setPasswordStatus({ type: "error", text: errorMessage(error) });
         // The Google sign in stopped being recent while the form was open:
         // refreshing brings the current password field back.
-        if (!needsCurrentPassword && error instanceof Error && error.message === "CURRENT_PASSWORD_REQUIRED") {
+        if (!needsCurrentPassword && errorCode(error) === "CURRENT_PASSWORD_REQUIRED") {
           router.refresh();
         }
       }
