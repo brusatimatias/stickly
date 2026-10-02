@@ -5,11 +5,11 @@ import { useState } from "react";
 import { createNote, updateNote } from "@/app/actions/notes";
 import { toShownNote, useBoardActions } from "@/components/board/BoardActionsContext";
 import FoldedCorner from "@/components/board/FoldedCorner";
-import { LocationIcon } from "@/components/icons";
 import TimePicker from "@/components/board/TimePicker";
 import { useBoardTimeZone } from "@/components/board/TimeZoneContext";
 import type { NoteDTO } from "@/components/board/types";
 import { useNoteEditor } from "@/components/board/useNoteEditor";
+import { LocationIcon } from "@/components/icons";
 import { getNoteStyle } from "@/lib/noteColor";
 import type { NoteFields } from "@/lib/noteInput";
 import { toScheduleInput, toStoredSchedule } from "@/lib/schedule";
@@ -54,7 +54,11 @@ export default function NoteForm({
       googleEventId: note?.googleEventId ?? null,
     });
     // The day and time are typed in the board's zone; the server stores UTC.
-    const input = { id, ...fields, schedule: toScheduleInput(toStoredSchedule(day, time || null, timeZone)) };
+    const input = {
+      id,
+      ...fields,
+      schedule: toScheduleInput(toStoredSchedule(day, time || null, timeZone)),
+    };
     run(
       note
         ? { optimistic: () => showSaved?.(shown), action: () => updateNote(input) }

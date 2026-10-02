@@ -58,6 +58,5 @@ export default function NameSection({ name: initialName }: { name: string }) {
       </div>
       <StatusMessage status={nameStatus} />
     </form>
-
   );
 }

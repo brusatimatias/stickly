@@ -7,6 +7,7 @@ import {
   savePushSubscription,
   sendTestNotification,
 } from "@/app/actions/push";
+import { errorCode, useErrorMessage } from "@/components/errorMessage";
 import {
   enablePush,
   getPushDeviceState,
@@ -24,8 +25,6 @@ import {
   type Status,
   SECTION_CLASS,
 } from "@/components/profile/ui";
-import { errorCode, useErrorMessage } from "@/components/errorMessage";
-
 
 /**
  * Turns notifications on or off for this device (permission and subscription

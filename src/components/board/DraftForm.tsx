@@ -8,9 +8,9 @@ import {
   useBoardActions,
 } from "@/components/board/BoardActionsContext";
 import FoldedCorner from "@/components/board/FoldedCorner";
-import { LocationIcon } from "@/components/icons";
 import type { NoteDTO } from "@/components/board/types";
 import { useNoteEditor } from "@/components/board/useNoteEditor";
+import { LocationIcon } from "@/components/icons";
 import { DRAFT_COLOR } from "@/lib/noteColor";
 import type { NoteFields } from "@/lib/noteInput";
 

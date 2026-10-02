@@ -150,7 +150,7 @@ export default function Board({
 
   const errorMessage = useErrorMessage();
   // What a failed action threw, shown above the board until dismissed or the next action.
-  const [actionError, setActionError] = useState<unknown>(null);
+  const [actionError, setActionError] = useState<{ error: unknown } | null>(null);
   const boardActions = useMemo(
     () => ({
       run({ optimistic, action, onError }: BoardAction) {
@@ -162,7 +162,7 @@ export default function Board({
           } catch (error) {
             // Whatever `optimistic` set with useOptimistic is undone when the
             // transition ends; the board stays and says what went wrong.
-            setActionError(error);
+            setActionError({ error });
             onError?.();
           }
         });
@@ -363,12 +363,12 @@ export default function Board({
             currentWeekParam={currentWeekParam}
             todayWeekParam={todayWeekParam}
           />
-          {actionError != null && (
+          {actionError && (
             <div
               role="alert"
               className="mx-4 mt-3 flex items-center justify-between gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
             >
-              <span>{errorMessage(actionError)}</span>
+              <span>{errorMessage(actionError.error)}</span>
               <button
                 type="button"
                 aria-label={t("dismissError")}
