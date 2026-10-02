@@ -11,7 +11,12 @@ import {
 } from "@/lib/reminderSettings";
 import { localDaysFilter, toLocalSchedule } from "@/lib/schedule";
 import { resolveTimeZone } from "@/lib/timezone";
-import { getNotificationTranslator, sendPushNotification, type PushPayload } from "@/lib/webPush";
+import {
+  getNotificationTranslator,
+  sendPushNotification,
+  type PushPayload,
+  type StoredSubscription,
+} from "@/lib/webPush";
 
 /**
  * Note reminders and the daily digest, as push notifications.
@@ -204,7 +209,8 @@ export function queueNoteReminderAfterResponse(noteId: string): void {
 // ---------------------------------------------------------------------------
 // Delivering
 
-type Subscription = { id: string; endpoint: string; p256dh: string; auth: string; locale: string };
+/** A device, with the locale its notifications are written in. */
+type Subscription = StoredSubscription & { locale: string };
 
 const SUBSCRIPTION_SELECT = { id: true, endpoint: true, p256dh: true, auth: true, locale: true } as const;
 

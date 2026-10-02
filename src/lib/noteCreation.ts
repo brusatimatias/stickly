@@ -3,6 +3,7 @@ import {
   sanitizeDescription,
   sanitizeLocation,
   sanitizeTitle,
+  type NoteFields,
 } from "@/lib/noteInput";
 import { prisma } from "@/lib/prisma";
 import { queueNoteReminderAfterResponse } from "@/lib/reminders";
@@ -21,13 +22,7 @@ import type { StoredSchedule } from "@/lib/schedule";
  */
 export async function createNoteForUser(
   userId: string,
-  input: {
-    id?: string;
-    title: string;
-    location: string;
-    description: string;
-    schedule: StoredSchedule;
-  }
+  input: NoteFields & { id?: string; schedule: StoredSchedule }
 ): Promise<{ id: string }> {
   const id = input.id ?? crypto.randomUUID();
   const title = sanitizeTitle(input.title);
@@ -74,7 +69,7 @@ export async function createNoteForUser(
  */
 export async function createDraftNoteForUser(
   userId: string,
-  input: { id?: string; title: string; location: string; description: string }
+  input: NoteFields & { id?: string }
 ): Promise<{ id: string }> {
   const id = input.id ?? crypto.randomUUID();
   const title = sanitizeTitle(input.title);

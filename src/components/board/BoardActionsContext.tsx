@@ -2,7 +2,12 @@
 
 import { createContext, startTransition, useContext } from "react";
 import type { NoteDTO } from "@/components/board/types";
-import { sanitizeDescription, sanitizeLocation, sanitizeTitle } from "@/lib/noteInput";
+import {
+  sanitizeDescription,
+  sanitizeLocation,
+  sanitizeTitle,
+  type NoteFields,
+} from "@/lib/noteInput";
 
 /** The container id of the drafts panel, next to the day keys (yyyy-MM-dd). */
 export const DRAFT_CONTAINER = "draft";
@@ -50,20 +55,13 @@ export function useBoardActions(): BoardActions {
   return useContext(BoardActionsContext);
 }
 
-/** What the note forms collect. */
-export type NoteFormValues = {
-  title: string;
-  location: string;
-  description: string;
-};
-
 /**
  * The note as the board shows it before the server answers, sanitized the
  * way the server will save it so the swap is invisible.
  */
 export function toShownNote(
   id: string,
-  values: NoteFormValues,
+  values: NoteFields,
   rest: Pick<NoteDTO, "time" | "isDone" | "googleEventId">
 ): NoteDTO {
   return {

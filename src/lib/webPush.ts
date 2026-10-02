@@ -26,7 +26,7 @@ export type PushPayload = {
 // A push service that doesn't answer shouldn't hold up the other sends.
 const SEND_TIMEOUT_MS = 10_000;
 
-type StoredSubscription = { id: string; endpoint: string; p256dh: string; auth: string };
+export type StoredSubscription = { id: string; endpoint: string; p256dh: string; auth: string };
 
 export function getVapidPublicKey(env: Record<string, string | undefined> = process.env): string | null {
   const { VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT } = env;

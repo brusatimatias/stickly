@@ -11,6 +11,7 @@ import {
   sanitizeDescription,
   sanitizeLocation,
   sanitizeTitle,
+  type NoteFields,
 } from "@/lib/noteInput";
 import { insertAtIndex, sortDoneLast } from "@/lib/ordering";
 import { queueNoteReminderAfterResponse } from "@/lib/reminders";
@@ -20,6 +21,9 @@ import { requireUserId } from "@/lib/session";
 import { getTimeZoneForUser } from "@/lib/userTimeZone";
 
 const MAX_ID_LENGTH = 64;
+
+/** A note as the board sends it: its id (client-generated when new) and what the user wrote. */
+type NoteInput = NoteFields & { id: string };
 
 function sanitizeClientId(id: string): string {
   if (!id || id.length > MAX_ID_LENGTH) {
@@ -75,13 +79,7 @@ function deleteCalendarEventAfterResponse(userId: string, googleEventId: string)
  * find the notes that share the destination column when reordering.
  */
 
-export async function createNote(input: {
-  id: string;
-  title: string;
-  location: string;
-  description: string;
-  schedule: ScheduleInput;
-}) {
+export async function createNote(input: NoteInput & { schedule: ScheduleInput }) {
   const userId = await requireUserId();
   await createNoteForUser(userId, {
     ...input,
@@ -92,13 +90,7 @@ export async function createNote(input: {
   revalidatePath("/");
 }
 
-export async function updateNote(input: {
-  id: string;
-  title: string;
-  location: string;
-  description: string;
-  schedule: ScheduleInput;
-}) {
+export async function updateNote(input: NoteInput & { schedule: ScheduleInput }) {
   const userId = await requireUserId();
   const existing = await prisma.note.findFirst({
     where: { id: input.id, userId },
@@ -240,24 +232,14 @@ export async function moveNote(input: {
 }
 
 /** Creates a draft note, up to `MAX_DRAFT_NOTES` per user (see `createDraftNoteForUser`). */
-export async function createDraftNote(input: {
-  id: string;
-  title: string;
-  location: string;
-  description: string;
-}) {
+export async function createDraftNote(input: NoteInput) {
   const userId = await requireUserId();
   await createDraftNoteForUser(userId, { ...input, id: sanitizeClientId(input.id) });
 
   revalidatePath("/");
 }
 
-export async function updateDraftNote(input: {
-  id: string;
-  title: string;
-  location: string;
-  description: string;
-}) {
+export async function updateDraftNote(input: NoteInput) {
   const userId = await requireUserId();
   await prisma.note.updateMany({
     where: { id: input.id, userId, isDraft: true },

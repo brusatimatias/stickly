@@ -114,9 +114,10 @@ export const LIST_NOTES_TOOL = {
 
 export type ListNotesInput = { from: string; to: string; status: ListNotesStatus };
 
-export type DraftNoteToolInput = { title: string; location: string; description: string };
+/** What the user writes in a note (board forms or chat), before sanitizing. */
+export type NoteFields = { title: string; location: string; description: string };
 
-export type NoteToolInput = DraftNoteToolInput & { day: string; time: string };
+export type NoteToolInput = NoteFields & { day: string; time: string };
 
 function readInputObject(raw: unknown): Record<string, unknown> {
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
@@ -187,7 +188,7 @@ export function parseNoteToolInput(raw: unknown): NoteToolInput {
  * `parseNoteToolInput`, the blank-title check and length limits are left to
  * `createDraftNoteForUser`.
  */
-export function parseDraftNoteToolInput(raw: unknown): DraftNoteToolInput {
+export function parseDraftNoteToolInput(raw: unknown): NoteFields {
   const input = readInputObject(raw);
   return {
     title: readOptionalString(input.title),
