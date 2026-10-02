@@ -11,6 +11,8 @@ import {
   sanitizeDescription,
   sanitizeLocation,
   sanitizeTitle,
+  isValidId,
+  type NoteFields,
 } from "@/lib/noteInput";
 import { insertAtIndex, sortDoneLast } from "@/lib/ordering";
 import { queueNoteReminderAfterResponse } from "@/lib/reminders";
@@ -19,10 +21,11 @@ import { localDaysFilter, parseScheduleInput, type ScheduleInput } from "@/lib/s
 import { requireUserId } from "@/lib/session";
 import { getTimeZoneForUser } from "@/lib/userTimeZone";
 
-const MAX_ID_LENGTH = 64;
+/** A note as the board sends it: its id (client-generated when new) and what the user wrote. */
+type NoteInput = NoteFields & { id: string };
 
 function sanitizeClientId(id: string): string {
-  if (!id || id.length > MAX_ID_LENGTH) {
+  if (!isValidId(id)) {
     throw new Error("INVALID_NOTE_ID");
   }
   return id;
@@ -59,6 +62,15 @@ function updateCalendarEventAfterResponse(userId: string, noteId: string) {
   });
 }
 
+/**
+ * Deletes a Calendar event once the response is sent, so deleting a note or
+ * clearing its time never waits on Google. The note is unlinked (or gone)
+ * before this runs; `deleteCalendarEvent` is best-effort and never throws.
+ */
+function deleteCalendarEventAfterResponse(userId: string, googleEventId: string) {
+  after(() => deleteCalendarEvent(userId, googleEventId));
+}
+
 /*
  * The board converts what the user types into a stored schedule (UTC, see
  * src/lib/schedule.ts) before calling these, so they receive `schedule`
@@ -66,13 +78,7 @@ function updateCalendarEventAfterResponse(userId: string, noteId: string) {
  * find the notes that share the destination column when reordering.
  */
 
-export async function createNote(input: {
-  id: string;
-  title: string;
-  location: string;
-  description: string;
-  schedule: ScheduleInput;
-}) {
+export async function createNote(input: NoteInput & { schedule: ScheduleInput }) {
   const userId = await requireUserId();
   await createNoteForUser(userId, {
     ...input,
@@ -83,13 +89,7 @@ export async function createNote(input: {
   revalidatePath("/");
 }
 
-export async function updateNote(input: {
-  id: string;
-  title: string;
-  location: string;
-  description: string;
-  schedule: ScheduleInput;
-}) {
+export async function updateNote(input: NoteInput & { schedule: ScheduleInput }) {
   const userId = await requireUserId();
   const existing = await prisma.note.findFirst({
     where: { id: input.id, userId },
@@ -104,9 +104,6 @@ export async function updateNote(input: {
   const { kind, startsAt } = parseScheduleInput(input.schedule);
 
   const clearingTime = existing.kind === "TIMED" && kind === "ALL_DAY" && existing.googleEventId;
-  if (clearingTime) {
-    await deleteCalendarEvent(userId, existing.googleEventId!);
-  }
 
   await prisma.note.updateMany({
     where: { id: input.id, userId },
@@ -119,6 +116,10 @@ export async function updateNote(input: {
       ...(clearingTime ? { googleEventId: null } : {}),
     },
   });
+
+  if (clearingTime) {
+    deleteCalendarEventAfterResponse(userId, existing.googleEventId!);
+  }
 
   if (
     existing.googleEventId &&
@@ -152,10 +153,10 @@ export async function toggleNoteDone(id: string, isDone: boolean) {
 export async function deleteNote(id: string) {
   const userId = await requireUserId();
   const existing = await prisma.note.findFirst({ where: { id, userId } });
-  if (existing?.googleEventId) {
-    await deleteCalendarEvent(userId, existing.googleEventId);
-  }
   await prisma.note.deleteMany({ where: { id, userId } });
+  if (existing?.googleEventId) {
+    deleteCalendarEventAfterResponse(userId, existing.googleEventId);
+  }
   revalidatePath("/");
 }
 
@@ -211,11 +212,11 @@ export async function moveNote(input: {
 
   if (movingNote.googleEventId && kind === "ALL_DAY") {
     // Only TIMED notes can be synced, as in updateNote.
-    await deleteCalendarEvent(userId, movingNote.googleEventId);
     await prisma.note.updateMany({
       where: { id: movingNote.id, userId },
       data: { googleEventId: null },
     });
+    deleteCalendarEventAfterResponse(userId, movingNote.googleEventId);
   } else if (movingNote.googleEventId && movingNote.startsAt?.getTime() !== startsAt.getTime()) {
     // Reordering within the same day doesn't change the event.
     updateCalendarEventAfterResponse(userId, movingNote.id);
@@ -230,24 +231,14 @@ export async function moveNote(input: {
 }
 
 /** Creates a draft note, up to `MAX_DRAFT_NOTES` per user (see `createDraftNoteForUser`). */
-export async function createDraftNote(input: {
-  id: string;
-  title: string;
-  location: string;
-  description: string;
-}) {
+export async function createDraftNote(input: NoteInput) {
   const userId = await requireUserId();
   await createDraftNoteForUser(userId, { ...input, id: sanitizeClientId(input.id) });
 
   revalidatePath("/");
 }
 
-export async function updateDraftNote(input: {
-  id: string;
-  title: string;
-  location: string;
-  description: string;
-}) {
+export async function updateDraftNote(input: NoteInput) {
   const userId = await requireUserId();
   await prisma.note.updateMany({
     where: { id: input.id, userId, isDraft: true },

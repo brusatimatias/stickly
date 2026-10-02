@@ -42,7 +42,8 @@
     "focusDay": "Hacer foco en este día",
     "backToWeek": "Volver a la semana",
     "previousDay": "Día anterior",
-    "nextDay": "Día siguiente"
+    "nextDay": "Día siguiente",
+    "dismissError": "Cerrar aviso"
   },
   "auth": {
     "tagline": "Tu semana, organizada como un corcho lleno de notas adhesivas.",
@@ -155,6 +156,7 @@
     "CALENDAR_SAVE_FAILED": "El evento se creó en Calendar, pero no se pudo guardar. Intentá sincronizar de nuevo.",
     "GENERIC": "Algo salió mal. Intentalo de nuevo.",
     "INVALID_THEME": "Tema inválido.",
+    "INVALID_LOCALE": "Idioma inválido.",
     "CURRENT_PASSWORD_REQUIRED": "Ingresá tu contraseña actual para cambiarla",
     "INVALID_CURRENT_PASSWORD": "La contraseña actual es incorrecta",
     "PASSWORD_TOO_LONG": "La contraseña es demasiado larga",

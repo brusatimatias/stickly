@@ -7,6 +7,7 @@ import {
   savePushSubscription,
   sendTestNotification,
 } from "@/app/actions/push";
+import { errorCode, useErrorMessage } from "@/components/errorMessage";
 import {
   enablePush,
   getPushDeviceState,
@@ -20,13 +21,10 @@ import {
   PRIMARY_BUTTON,
   SECONDARY_BUTTON,
   StatusMessage,
+  useAutoClearStatus,
   type Status,
   SECTION_CLASS,
 } from "@/components/profile/ui";
-
-function errorCode(error: unknown): string | undefined {
-  return error instanceof Error ? error.message : undefined;
-}
 
 /**
  * Turns notifications on or off for this device (permission and subscription
@@ -42,10 +40,11 @@ export default function NotificationSettings({
   reminders: ReminderSettings | null;
 }) {
   const t = useTranslations("profile.notifications");
-  const tErrors = useTranslations("errors");
+  const errorMessage = useErrorMessage();
   // null until the browser has been checked (it can't be known on the server).
   const [device, setDevice] = useState<PushDeviceState | null>(null);
   const [status, setStatus] = useState<Status>(null);
+  useAutoClearStatus(status, setStatus);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -76,16 +75,12 @@ export default function NotificationSettings({
       try {
         await action();
       } catch (error) {
-        const code = errorCode(error);
-        if (code === "PUSH_SUBSCRIPTION_NOT_FOUND") {
+        if (errorCode(error) === "PUSH_SUBSCRIPTION_NOT_FOUND") {
           // The push service dropped it (or another account took this
           // browser): show the device as off so it can be turned on again.
           setDevice({ kind: "off" });
         }
-        setStatus({
-          type: "error",
-          text: code && tErrors.has(code) ? tErrors(code) : tErrors("GENERIC"),
-        });
+        setStatus({ type: "error", text: errorMessage(error) });
       }
     });
   }

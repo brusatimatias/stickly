@@ -33,7 +33,7 @@ A new column on `Note` doesn't reach the UI by itself. Update each of these:
 1. `StoredNoteDTO` in `src/components/board/types.ts` (what `page.tsx` passes to the board).
 2. The mappers in `src/lib/noteGroups.ts`: `toStoredNoteDTO`, `groupNotesByDay` (scheduled notes) and `toDraftNoteDTO` (drafts).
 3. `NoteDTO` in `src/components/board/types.ts`.
-4. The `lastServerNote` comparison in `NoteCard.tsx`. It decides when the server copy has changed and the optimistic copy can be dropped, so it should compare every DTO field. If a field is missing, the card can keep showing stale optimistic data.
+4. `toShownNote` (`src/components/board/BoardActionsContext.tsx`), which builds the note the board shows before the server answers: give the field the value the server will save, or the card changes when the response arrives.
 5. The form (`NoteForm.tsx` / `DraftForm.tsx`) and the card display. Follow the `ui-conventions` skill for these. If the field is visible on the card, also consider the simplified card copy in `Board.tsx`'s `DragOverlay`.
 6. If the field belongs on the Google Calendar event, update the event body in `actions/calendar.ts`.
 7. Decide whether the assistant chat should know about it. Notes are created through `createNoteForUser` (`src/lib/noteCreation.ts`), shared by `createNote` and the chat's `create_note` tool: a field settable from chat needs a property in `CREATE_NOTE_TOOL`'s schema and in `parseNoteToolInput` (`src/lib/noteInput.ts`); a field the chat should report needs to be added to `listNotesForUser`'s output (`src/lib/notes.ts`). Don't let a new tool argument skip the parser.

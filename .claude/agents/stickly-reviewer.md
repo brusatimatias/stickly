@@ -28,7 +28,7 @@ Your job is ONLY to review and report: do not edit files.
 **Data model and Prisma**
 - A note's schedule is `startsAt` (`timestamptz`) + `kind`: `TIMED` is an instant in UTC, shown in the viewer's zone; `ALL_DAY` is a day stored as its 00:00 UTC and read in UTC, never converted. `startsAt` is `null` only for draft notes (`isDraft: true`); board queries filter `isDraft: false`.
 - Every conversion between the stored schedule and a local day/time goes through `src/lib/schedule.ts` (`toStoredSchedule`, `toLocalSchedule`, `localDaysFilter`); flag hand-rolled offset math, an `ALL_DAY` value read in a local zone, and any server code that derives a day or "today" from the process time zone (`new Date()` + `format`, `getHours`, `startOfDay` on instants...). "Today" comes from `getTodayInZone` with the user's zone (`getUserTimeZone`).
-- The board converts typed days/times to a stored schedule before calling actions, which validate it with `parseScheduleInput`; chat tool days/times are validated with `sanitizeDay`/`sanitizeTime` (`src/lib/noteInput.ts`) and converted with the zone the browser sent.
+- The board converts typed days/times to a stored schedule before calling actions, which validate it with `parseScheduleInput`; chat tool days/times are validated by `parseNoteToolInput` (`src/lib/noteInput.ts`) and converted with the zone the browser sent.
 - At most `MAX_DRAFT_NOTES` (4) drafts per user, enforced in the app: every draft is created through `createDraftNoteForUser` (board action and chat tool), which counts the user's drafts inside a transaction holding `pg_advisory_xact_lock` keyed on `userId`. No DB constraint for it.
 - Week and day queries use `localDaysFilter` (TIMED notes between the local midnights in UTC, ALL_DAY notes between the days), on the `[userId, startsAt]` index; no week number is persisted.
 - No `Account`/`Session` models and no `@auth/prisma-adapter`. Google tokens are stored on `User`, always encrypted with `src/lib/tokenCrypto.ts` (never plaintext, never in the JWT or the session).
@@ -49,7 +49,7 @@ Your job is ONLY to review and report: do not edit files.
 
 **Board UI**
 - dnd-kit changes in `Board.tsx`/`DayColumn.tsx` don't reintroduce the drag infinite loops (see commits `5dd3e9f` and `d55e0d1`): keep the custom `collisionDetectionStrategy` (pointer-first, sticky `lastOverIdRef` right after a cross-container move) and don't set state during `dragOver` when nothing actually changed.
-- Keyboard behavior for the editors stays centralized in `useNoteEditorKeyboard.ts`.
+- Editor state and keyboard behavior stay centralized in `useNoteEditor.ts`.
 - User-visible strings go through `next-intl` (`useTranslations`/`getTranslations`), with keys in both `en.json` and `es.json`; dates use the matching `date-fns` locale.
 - Next.js 16 APIs are used as documented in `node_modules/next/dist/docs/` (e.g. `searchParams` is a `Promise`).
 

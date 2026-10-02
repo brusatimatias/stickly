@@ -6,7 +6,7 @@ import { isSupportedLocale, DEFAULT_LOCALE } from "@/i18n/locales";
 import { consumeChatQuota, runChatTurn } from "@/lib/chatAssistant";
 import { requireUserId } from "@/lib/session";
 import { resolveTimeZone } from "@/lib/timezone";
-import { sanitizeChatMessages } from "@/lib/webChat";
+import { sanitizeChatMessages } from "@/lib/chat";
 
 export async function sendChatMessage(input: { messages: unknown; timeZone: string }) {
   const userId = await requireUserId();

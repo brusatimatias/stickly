@@ -1,71 +1,57 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import { useTransition } from "react";
 import { createDraftNote, updateDraftNote } from "@/app/actions/notes";
+import {
+  DRAFT_CONTAINER,
+  toShownNote,
+  useBoardActions,
+} from "@/components/board/BoardActionsContext";
 import FoldedCorner from "@/components/board/FoldedCorner";
 import type { NoteDTO } from "@/components/board/types";
-import { useNoteEditorKeyboard } from "@/components/board/useNoteEditorKeyboard";
+import { useNoteEditor } from "@/components/board/useNoteEditor";
+import { LocationIcon } from "@/components/icons";
 import { DRAFT_COLOR } from "@/lib/noteColor";
+import type { NoteFields } from "@/lib/noteInput";
 
 export default function DraftForm({
   note,
   onDone,
+  showSaved,
 }: {
+  /** The draft being edited; a new one is created without it. */
   note?: NoteDTO;
+  /** Closes the form, right away (it doesn't wait for the server). */
   onDone: () => void;
+  /** Shows the saved edit on the card until the server answers. */
+  showSaved?: (note: NoteDTO) => void;
 }) {
   const t = useTranslations("board");
-  const router = useRouter();
-  const [title, setTitle] = useState(note?.title ?? "");
-  const [location, setLocation] = useState(note?.location ?? "");
-  const [description, setDescription] = useState(note?.description ?? "");
-  const [, startTransition] = useTransition();
-  const titleRef = useRef<HTMLInputElement>(null);
-  const savedRef = useRef(false);
-  const stateRef = useRef({ title, location, description });
-  const [newNoteId] = useState(() => crypto.randomUUID());
-
-  useEffect(() => {
-    stateRef.current = { title, location, description };
-  });
-
-  useEffect(() => {
-    titleRef.current?.focus();
-  }, []);
-
-  const { containerRef, descriptionRef, handleKeyDown } = useNoteEditorKeyboard({
-    save,
-    cancel,
+  const { run, addPendingNote } = useBoardActions();
+  const {
+    title,
+    setTitle,
+    location,
+    setLocation,
     description,
     setDescription,
-  });
+    titleRef,
+    containerRef,
+    descriptionRef,
+    handleKeyDown,
+  } = useNoteEditor<HTMLInputElement>({ note, onDone, onSave: save });
 
-  function save() {
-    if (savedRef.current) return;
-    savedRef.current = true;
-    const { title, location, description } = stateRef.current;
-    const trimmedTitle = title.trim();
-    if (!trimmedTitle) {
-      onDone();
-      return;
-    }
-    startTransition(async () => {
-      if (note) {
-        await updateDraftNote({ id: note.id, title: trimmedTitle, location, description });
-      } else {
-        await createDraftNote({ id: newNoteId, title: trimmedTitle, location, description });
-      }
-      router.refresh();
-      onDone();
-    });
-  }
-
-  function cancel() {
-    savedRef.current = true;
-    onDone();
+  function save(id: string, fields: NoteFields) {
+    const shown = toShownNote(id, fields, { time: null, isDone: false, googleEventId: null });
+    const input = { id, ...fields };
+    run(
+      note
+        ? { optimistic: () => showSaved?.(shown), action: () => updateDraftNote(input) }
+        : {
+            optimistic: () => addPendingNote(DRAFT_CONTAINER, shown),
+            action: () => createDraftNote(input),
+          }
+    );
   }
 
   return (
@@ -97,7 +83,7 @@ export default function DraftForm({
 
       <div className="flex items-end justify-between gap-1">
         <div className="flex min-w-0 items-center gap-1 text-xs opacity-70">
-          <span aria-hidden>📍</span>
+          <LocationIcon className="h-3 w-3 shrink-0" />
           <input
             value={location}
             onChange={(event) => setLocation(event.target.value)}

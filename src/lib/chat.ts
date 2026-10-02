@@ -24,9 +24,6 @@ export const CHAT_LIMITS = {
   globalPerDay: 200,
 } as const;
 
-export const MINUTE_MS = 60_000;
-export const DAY_MS = 24 * 60 * MINUTE_MS;
-
 /**
  * Cuts a reply to `max` characters at the last line break, so a long list
  * loses whole notes rather than ending mid-sentence. Falls back to a hard cut

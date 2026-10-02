@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import FoldedCorner from "@/components/board/FoldedCorner";
-import { ChevronLeftIcon } from "@/components/board/icons";
+import { ChevronLeftIcon } from "@/components/icons";
 import { FOCUS_RING } from "@/components/focusRing";
 
 /** 404 for unknown URLs and `notFound()`: a note that fell off the board. */

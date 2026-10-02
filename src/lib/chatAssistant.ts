@@ -21,15 +21,14 @@ import {
 import { listNotesForUser } from "@/lib/notes";
 import { prisma } from "@/lib/prisma";
 import { toStoredSchedule } from "@/lib/schedule";
+import { DAY_MS, MINUTE_MS } from "@/lib/time";
 import {
-  DAY_MS,
   DEFAULT_CHAT_MODEL,
-  MINUTE_MS,
   buildChatSystemPrompt,
   getChatRateLimitError,
   getUserToday,
   type ChatMessage,
-} from "@/lib/webChat";
+} from "@/lib/chat";
 
 // Tool input errors the model can recover from (e.g. by asking for the date).
 const RECOVERABLE_TOOL_ERRORS = new Set([

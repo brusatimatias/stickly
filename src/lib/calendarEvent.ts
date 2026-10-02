@@ -1,4 +1,5 @@
 import type { calendar_v3 } from "googleapis";
+import { MINUTE_MS } from "@/lib/time";
 
 const EVENT_DURATION_MINUTES = 60;
 
@@ -19,7 +20,7 @@ export function toCalendarEvent(note: CalendarEventNote): calendar_v3.Schema$Eve
     // A TIMED note is an instant (UTC), shown by Google in the calendar's zone.
     start: { dateTime: note.startsAt.toISOString() },
     end: {
-      dateTime: new Date(note.startsAt.getTime() + EVENT_DURATION_MINUTES * 60_000).toISOString(),
+      dateTime: new Date(note.startsAt.getTime() + EVENT_DURATION_MINUTES * MINUTE_MS).toISOString(),
     },
   };
 }

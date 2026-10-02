@@ -12,6 +12,7 @@ import {
   PRIMARY_BUTTON,
   SECONDARY_BUTTON,
   StatusMessage,
+  useAutoClearStatus,
   type Status,
   SECTION_CLASS,
 } from "@/components/profile/ui";
@@ -35,6 +36,7 @@ export default function WhatsAppLink({
   const router = useRouter();
   const [pendingCode, setPendingCode] = useState<{ code: string; expiresAt: Date } | null>(null);
   const [status, setStatus] = useState<Status>(null);
+  useAutoClearStatus(status, setStatus);
   const [isConfirmingUnlink, setIsConfirmingUnlink] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -59,7 +61,6 @@ export default function WhatsAppLink({
       await unlinkWhatsApp();
       setPendingCode(null);
       setStatus({ type: "success", text: t("unlinked") });
-      router.refresh();
     });
   }
 

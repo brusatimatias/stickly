@@ -1,4 +1,5 @@
-import { differenceInCalendarDays, format, isValid, parseISO } from "date-fns";
+import { differenceInCalendarDays, parseISO } from "date-fns";
+import { isValidDay } from "@/lib/datetime";
 
 const MAX_TITLE_LENGTH = 80;
 /**
@@ -8,10 +9,16 @@ const MAX_TITLE_LENGTH = 80;
 export const TITLE_SOFT_LIMIT = 40;
 const MAX_LOCATION_LENGTH = 60;
 const MAX_DESCRIPTION_LENGTH = 300;
-const DAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 // Caps how many notes a single list_notes call can pull into the model.
 const MAX_LIST_RANGE_DAYS = 31;
+
+const MAX_ID_LENGTH = 64;
+
+/** Whether `value` looks like one of our ids (cuid or uuid): a short, non-empty string. */
+export function isValidId(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0 && value.length <= MAX_ID_LENGTH;
+}
 
 /** How many draft notes (no date yet) a user can keep at once. */
 export const MAX_DRAFT_NOTES = 4;
@@ -82,7 +89,7 @@ export const CREATE_DRAFT_NOTE_TOOL = {
   },
 } as const;
 
-export const LIST_NOTES_STATUSES = ["all", "pending", "done"] as const;
+const LIST_NOTES_STATUSES = ["all", "pending", "done"] as const;
 export type ListNotesStatus = (typeof LIST_NOTES_STATUSES)[number];
 
 /**
@@ -114,9 +121,10 @@ export const LIST_NOTES_TOOL = {
 
 export type ListNotesInput = { from: string; to: string; status: ListNotesStatus };
 
-export type DraftNoteToolInput = { title: string; location: string; description: string };
+/** What the user writes in a note (board forms or chat), before sanitizing. */
+export type NoteFields = { title: string; location: string; description: string };
 
-export type NoteToolInput = DraftNoteToolInput & { day: string; time: string };
+export type NoteToolInput = NoteFields & { day: string; time: string };
 
 function readInputObject(raw: unknown): Record<string, unknown> {
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
@@ -129,9 +137,7 @@ function validateDay(day: string): void {
   if (!day) {
     throw new Error("DAY_REQUIRED");
   }
-  // The round trip rejects well-formed but nonexistent dates like 2026-02-30.
-  const parsedDay = parseISO(day);
-  if (!DAY_PATTERN.test(day) || !isValid(parsedDay) || format(parsedDay, "yyyy-MM-dd") !== day) {
+  if (!isValidDay(day)) {
     throw new Error("INVALID_DAY");
   }
 }
@@ -143,7 +149,7 @@ export function sanitizeDay(day: string): string {
 }
 
 /** Validates a note's `HH:mm` time; "" means no time and becomes null. */
-export function sanitizeTime(time: string): string | null {
+function sanitizeTime(time: string): string | null {
   if (!time) {
     return null;
   }
@@ -187,7 +193,7 @@ export function parseNoteToolInput(raw: unknown): NoteToolInput {
  * `parseNoteToolInput`, the blank-title check and length limits are left to
  * `createDraftNoteForUser`.
  */
-export function parseDraftNoteToolInput(raw: unknown): DraftNoteToolInput {
+export function parseDraftNoteToolInput(raw: unknown): NoteFields {
   const input = readInputObject(raw);
   return {
     title: readOptionalString(input.title),

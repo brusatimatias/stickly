@@ -65,7 +65,6 @@ describe("WhatsAppLink", () => {
     });
 
     expect(mockUnlink).toHaveBeenCalled();
-    expect(mockRefresh).toHaveBeenCalled();
     expect(screen.getByText(t.unlinked)).toBeTruthy();
   });
 
