@@ -9,7 +9,7 @@ import { useBoardActions } from "@/components/board/BoardActionsContext";
 import ConfirmDialog from "@/components/board/ConfirmDialog";
 import DraftForm from "@/components/board/DraftForm";
 import FoldedCorner from "@/components/board/FoldedCorner";
-import { LocationIcon } from "@/components/board/icons";
+import { LocationIcon } from "@/components/icons";
 import type { NoteDTO } from "@/components/board/types";
 import { DRAFT_COLOR } from "@/lib/noteColor";
 import { FOCUS_RING } from "@/components/focusRing";

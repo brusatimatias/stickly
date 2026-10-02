@@ -22,7 +22,7 @@ import {
   LocationIcon,
   SpinnerIcon,
   SquareIcon,
-} from "@/components/board/icons";
+} from "@/components/icons";
 
 export default function NoteCard({
   day,

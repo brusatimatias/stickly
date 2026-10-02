@@ -11,7 +11,7 @@ import { getVapidPublicKey } from "@/lib/webPush";
 import ProfileForm from "@/components/profile/ProfileForm";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
 import ThemeToggle from "@/components/ThemeToggle";
-import { ChevronLeftIcon } from "@/components/board/icons";
+import { ChevronLeftIcon } from "@/components/icons";
 import { FOCUS_RING } from "@/components/focusRing";
 
 export async function generateMetadata(): Promise<Metadata> {

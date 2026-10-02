@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { ChevronLeftIcon } from "@/components/board/icons";
+import { ChevronLeftIcon } from "@/components/icons";
 import { FOCUS_RING } from "@/components/focusRing";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
 import ThemeToggle from "@/components/ThemeToggle";

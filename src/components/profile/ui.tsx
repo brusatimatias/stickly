@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { CheckIcon } from "@/components/profile/icons";
+import { CheckIcon } from "@/components/icons";
 
 const BUTTON_BASE =
   "cursor-pointer rounded-full px-4 py-1.5 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50";

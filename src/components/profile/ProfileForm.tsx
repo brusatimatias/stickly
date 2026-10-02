@@ -9,7 +9,7 @@ import {
   updateAvatar,
   updateProfileName,
 } from "@/app/actions/profile";
-import { CameraIcon, EyeIcon, EyeOffIcon, UserIcon } from "@/components/profile/icons";
+import { CameraIcon, EyeIcon, EyeOffIcon, UserIcon } from "@/components/icons";
 import {
   HINT_CLASS,
   INPUT_CLASS,

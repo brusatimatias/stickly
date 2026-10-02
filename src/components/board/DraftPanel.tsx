@@ -7,7 +7,7 @@ import { DRAFT_CONTAINER } from "@/components/board/BoardActionsContext";
 import DraftCard from "@/components/board/DraftCard";
 import DraftForm from "@/components/board/DraftForm";
 import type { NoteDTO } from "@/components/board/types";
-import { PlusIcon } from "@/components/board/icons";
+import { PlusIcon } from "@/components/icons";
 import { useFormTransition } from "@/components/board/useFormTransition";
 import { MAX_DRAFT_NOTES } from "@/lib/noteInput";
 import { FOCUS_RING } from "@/components/focusRing";

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useRef } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarIcon, ChevronLeftIcon, ChevronRightIcon } from "@/components/board/icons";
+import { CalendarIcon, ChevronLeftIcon, ChevronRightIcon } from "@/components/icons";
 import { FOCUS_RING } from "@/components/focusRing";
 
 export default function WeekNav({

@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { createNote, updateNote } from "@/app/actions/notes";
 import { toShownNote, useBoardActions } from "@/components/board/BoardActionsContext";
 import FoldedCorner from "@/components/board/FoldedCorner";
-import { LocationIcon } from "@/components/board/icons";
+import { LocationIcon } from "@/components/icons";
 import TimePicker from "@/components/board/TimePicker";
 import { useBoardTimeZone } from "@/components/board/TimeZoneContext";
 import type { NoteDTO } from "@/components/board/types";

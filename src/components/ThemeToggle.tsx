@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useTransition } from "react";
 import { setTheme } from "@/app/actions/theme";
-import { MoonIcon, SunIcon } from "@/components/board/icons";
+import { MoonIcon, SunIcon } from "@/components/icons";
 import { THEMES, getNextTheme, type Theme } from "@/lib/theme";
 import { FOCUS_RING } from "@/components/focusRing";
 

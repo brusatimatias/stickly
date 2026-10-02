@@ -23,7 +23,7 @@ import LocaleSwitcher from "@/components/LocaleSwitcher";
 import ThemeToggle from "@/components/ThemeToggle";
 import TimeZoneSync from "@/components/TimeZoneSync";
 import { FOCUS_RING } from "@/components/focusRing";
-import { UserIcon } from "@/components/profile/icons";
+import { UserIcon } from "@/components/icons";
 
 export default async function Home({
   searchParams,
