@@ -1,4 +1,5 @@
 import { nextDay } from "@/lib/datetime";
+import { HOUR_MS, MINUTE_MS } from "@/lib/time";
 import { getTodayInZone } from "@/lib/timezone";
 import { zonedTimeToUtc } from "@/lib/schedule";
 
@@ -10,16 +11,14 @@ import { zonedTimeToUtc } from "@/lib/schedule";
 /** How long before a TIMED note its reminder can be set to fire, in minutes (0: at its time). */
 export const REMINDER_LEAD_MINUTES = [0, 10, 15, 30, 60] as const;
 
-export const DEFAULT_DIGEST_TIME = "07:00";
-
 /**
  * Reminders are queued (in QStash) for this window ahead; a daily cron queues
  * the next one, so it must be longer than a day plus the cron's slack.
  */
-export const REMINDER_QUEUE_WINDOW_MS = 48 * 60 * 60 * 1000;
+export const REMINDER_QUEUE_WINDOW_MS = 48 * HOUR_MS;
 
 /** A reminder that arrives later than this (an outage, retries) is dropped instead. */
-export const MAX_REMINDER_DELAY_MS = 60 * 60 * 1000;
+export const MAX_REMINDER_DELAY_MS = HOUR_MS;
 
 export type ReminderSettings = {
   reminderMinutesBefore: number | null;
@@ -45,7 +44,7 @@ export function parseReminderSettings(input: unknown): ReminderSettings {
 
 /** When a TIMED note starting at `startsAt` is reminded. */
 export function getNoteRemindAt(startsAt: Date, minutesBefore: number): Date {
-  return new Date(startsAt.getTime() - minutesBefore * 60_000);
+  return new Date(startsAt.getTime() - minutesBefore * MINUTE_MS);
 }
 
 /** Whether a reminder due at `dueAt` should go out at `now`: not after its delay limit. */

@@ -12,8 +12,8 @@ The look is "sticky notes on a whiteboard". New UI should look like it belongs t
 - `Board.tsx`: top-level client component. Owns `DndContext`, the `DragOverlay`, `notesByDay` state, and focus-day mode.
 - `DayColumn.tsx` (one day, a `SortableContext`), `DraftPanel.tsx` (the drafts, up to `MAX_DRAFT_NOTES`), `WeekNav.tsx`, `DayFocusNav.tsx`.
 - Cards: `NoteCard.tsx` / `DraftCard.tsx`. Their in-place edit forms: `NoteForm.tsx` / `DraftForm.tsx`, which render in the same card shape and colors as the card they replace.
-- `useNoteEditorKeyboard.ts`: shared keyboard handling (Shift+Enter submits, etc.). Any new editor form should use it instead of adding its own `onKeyDown` logic.
-- `FoldedCorner.tsx`, `icons.tsx`, `ConfirmDialog.tsx`, `TimePicker.tsx`: reuse them before adding new ones.
+- `useNoteEditor.ts`: what the edit forms share (fields, id, focus, Enter/outside click saves, Escape cancels, Shift+Enter adds a line break). Any new editor form should use it instead of its own `onKeyDown` or outside-click logic.
+- `FoldedCorner.tsx`, `ConfirmDialog.tsx`, `TimePicker.tsx`: reuse them before adding new ones. Icons for the whole app live in `src/components/icons.tsx`, each a path inside the shared `Icon` outline.
 - Outside the board, `src/components/chat/ChatWidget.tsx` is the assistant: a floating button plus a panel over a dimmed backdrop (clicking it, the ✕ or Escape closes it). Assistant replies render as small yellow sticky notes. It's mounted in `page.tsx` outside `<Board>` (which is keyed by week) so the conversation survives week navigation.
 
 ## Note card styling
@@ -41,13 +41,20 @@ Both of these caused infinite render loops before (commits `5dd3e9f`, `d55e0d1`)
 - **Day columns lay out sortable items with CSS grid** (`[grid-template-columns:repeat(auto-fill,minmax(11rem,1fr))]`), not `flex-wrap`. With flex-wrap, reordering reflowed the items and the sort flipped back and forth.
 - **Sensors**: `MouseSensor` (`distance: 8`) + `TouchSensor` (`delay: 200, tolerance: 5`) + `KeyboardSensor`. Not `PointerSensor`: it also handles touch and would start a drag immediately, so a swipe couldn't scroll. Drag handles are `touch-none`; only the handle has the listeners, so the rest of the card still scrolls the page.
 - Drag feedback: the source card goes to `opacity: 0.5` (inline style) and `z-20`. `DragOverlay` in `Board.tsx` renders a simplified copy (palette + rotation + FoldedCorner + title).
-- A drop calls `moveNote` / `moveDraftNote` / `scheduleDraftNote` inside `startTransition` and then `router.refresh()`.
+- A drop calls `moveNote` / `moveDraftNote` / `scheduleDraftNote` inside `startTransition`; the action's response already carries the re-rendered board (no `router.refresh()`, see below).
 - **Keep `id={useId()}` on `DndContext`.** Without it dnd-kit numbers its `aria-describedby` ids from a module-level counter that differs between server and client, which causes a hydration mismatch warning and leaves the attribute pointing at a missing element.
 
 ## React state patterns
-- **Syncing state from props**: this codebase adjusts state during render by comparing to a stored previous value (`lastServerNote` in `NoteCard`, `syncedWeekStart` in `Board`) instead of using a `useEffect` that sets state. Follow that pattern. An effect that sets state here adds an extra render and was part of the loops above.
-- **Optimistic updates**: `NoteCard` keeps an `optimisticNote` and shows `optimisticNote ?? note`. The optimistic copy is dropped when the server `note` differs from `lastServerNote`, so any new editable field must be added to that comparison.
-- Don't follow a Server Action that sets a cookie (`setTheme`, `setLocale`) with `router.refresh()`: setting a cookie already makes the action return the re-rendered page in the same response, and the refresh is a second full round trip (measured: 2 requests → 1).
+- **Syncing state from props**: this codebase adjusts state during render by comparing to a stored previous value (`syncedNotes` and `syncedWeekStart` in `Board`) instead of using a `useEffect` that sets state. Follow that pattern. An effect that sets state here adds an extra render and was part of the loops above.
+- **Board mutations go through `useBoardActions().run({ optimistic, action, onError? })`** (`BoardActionsContext.tsx`, provided by `Board`), never a direct `startTransition` + action call:
+  - `optimistic` runs inside the action's transition and sets `useOptimistic` state, so the change shows on the current frame, lasts until the action's response (with the re-rendered board) commits, and is undone by React if the action throws. Don't mirror server props into `useState` for this (the old `lastServerNote` pattern).
+  - A thrown error code shows as a dismissible `role="alert"` notice above the board (translated from `errors`, `GENERIC` otherwise); the board is never replaced by `error.tsx` for an expected failure. `onError` undoes plain state, e.g. a drag's preview.
+  - Cards: `useOptimistic(note)` for edits and toggles, `useOptimistic(false)` for a deletion (the card gets `hidden`). The forms close at once and pass the saved note to the card's `showSaved` (edits) or `addPendingNote(container, note)` (new notes and drafts, with the client-generated id); `toShownNote` sanitizes it like the server does.
+  - `Board` renders `notesIn(container)`: its `notesByDay` plus the pending notes. Ids created here are kept in `createdIds` (set in the transition, so it commits with the data) so they don't animate in twice.
+  - Calendar sync is the exception: it waits on Google, so it keeps its spinner and its inline error on the card.
+  - Tests: React holds every optimistic value until *all* pending actions settle, so mocked actions must settle by the end of each test (`deferred()` in `tests/components/board/Board.test.tsx`), and a re-render with the response's data goes in `startTransition`, as Next commits it.
+- Don't follow a Server Action with `router.refresh()` when it calls `revalidatePath` (every board action) or sets a cookie (`setTheme`, `setLocale`): the action already returns the re-rendered page in the same response, and the refresh is a second full round trip (measured: 2 requests → 1).
+- Deleting a note or draft hides the card while the transition is pending (`isDeleting` → `hidden`), so it disappears right away instead of after the round trip.
 - Server actions are called from `useTransition` callbacks. Errors come back as string codes, which you translate with `useTranslations("errors")`.
 
 ## Motion and focus

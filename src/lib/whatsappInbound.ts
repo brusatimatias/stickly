@@ -1,5 +1,7 @@
 import { consumeChatQuota, runChatTurn } from "@/lib/chatAssistant";
 import { prisma } from "@/lib/prisma";
+import { isUniqueViolation } from "@/lib/prismaErrors";
+import { DAY_MS, HOUR_MS, MINUTE_MS } from "@/lib/time";
 import { resolveTimeZone } from "@/lib/timezone";
 import {
   MAX_ASSISTANT_MESSAGE_LENGTH,
@@ -7,16 +9,13 @@ import {
   sanitizeChatMessages,
   truncateReply,
   type ChatMessage,
-} from "@/lib/webChat";
+} from "@/lib/chat";
 import { sendWhatsAppText } from "@/lib/whatsappApi";
 import { hashLinkCode, parseLinkCode } from "@/lib/whatsappLink";
 import type { InboundMessage } from "@/lib/whatsappWebhook";
 
-const HOUR_MS = 60 * 60_000;
-const DAY_MS = 24 * HOUR_MS;
-
 /** A conversation idle for this long starts over, so an old question isn't picked up again. */
-export const HISTORY_IDLE_MS = 30 * 60_000;
+export const HISTORY_IDLE_MS = 30 * MINUTE_MS;
 /**
  * Earlier turns sent to the model with each new message. Plus the new one it
  * must stay within what `sanitizeChatMessages` keeps, or it'd drop turns.
@@ -85,7 +84,7 @@ async function recordInbound(message: InboundMessage, isLinkAttempt: boolean): P
     });
     return true;
   } catch (error) {
-    if ((error as { code?: unknown } | null)?.code === "P2002") {
+    if (isUniqueViolation(error)) {
       return false;
     }
     throw error;

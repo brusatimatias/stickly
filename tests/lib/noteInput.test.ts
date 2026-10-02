@@ -3,6 +3,7 @@ import {
   CREATE_DRAFT_NOTE_TOOL,
   CREATE_NOTE_TOOL,
   TITLE_SOFT_LIMIT,
+  isValidId,
   parseDraftNoteToolInput,
   parseListNotesInput,
   parseNoteToolInput,
@@ -167,4 +168,18 @@ describe("create_note tool schema", () => {
     expect(CREATE_DRAFT_NOTE_TOOL.inputSchema.properties.title).toBe(title);
     expect(CREATE_DRAFT_NOTE_TOOL.inputSchema.properties.description).toBe(description);
   });
+});
+
+describe("isValidId", () => {
+  test("accepts a short non-empty string", () => {
+    expect(isValidId("clx123abc")).toBe(true);
+    expect(isValidId(crypto.randomUUID())).toBe(true);
+  });
+
+  test.each([["empty", ""], ["too long", "x".repeat(65)], ["a number", 42], ["null", null]])(
+    "rejects %s",
+    (_, value) => {
+      expect(isValidId(value)).toBe(false);
+    }
+  );
 });

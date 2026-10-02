@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { WarningIcon } from "@/components/board/icons";
+import { WarningIcon } from "@/components/icons";
 
 export default function ConfirmDialog({
   title,

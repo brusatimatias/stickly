@@ -2,7 +2,7 @@
 export const PASSWORD_RESET_PARAM = "reset";
 
 const MAX_NAME_LENGTH = 100;
-const MIN_PASSWORD_LENGTH = 8;
+export const MIN_PASSWORD_LENGTH = 8;
 // bcrypt only uses the first 72 bytes; anything past that would be silently ignored.
 const MAX_PASSWORD_BYTES = 72;
 const MAX_AVATAR_BYTES = 200_000; // ~200KB decoded, keeps the DB row small

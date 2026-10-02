@@ -3,12 +3,13 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useOptimistic, useState } from "react";
 import { deleteNote } from "@/app/actions/notes";
+import { useBoardActions } from "@/components/board/BoardActionsContext";
 import ConfirmDialog from "@/components/board/ConfirmDialog";
 import DraftForm from "@/components/board/DraftForm";
 import FoldedCorner from "@/components/board/FoldedCorner";
+import { LocationIcon } from "@/components/icons";
 import type { NoteDTO } from "@/components/board/types";
 import { DRAFT_COLOR } from "@/lib/noteColor";
 import { FOCUS_RING } from "@/components/focusRing";
@@ -22,10 +23,13 @@ export default function DraftCard({
   isNew?: boolean;
 }) {
   const t = useTranslations("board");
-  const router = useRouter();
+  const { run } = useBoardActions();
   const [isEditing, setIsEditing] = useState(false);
-  const [isPending, startTransition] = useTransition();
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+  // What the card shows while its edits or deletion are on their way; back
+  // to the server's `note` once each response commits (or fails).
+  const [displayNote, setDisplayNote] = useOptimistic(note);
+  const [isDeleted, setIsDeleted] = useOptimistic(false);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: note.id });
 
@@ -36,15 +40,18 @@ export default function DraftCard({
   };
 
   if (isEditing) {
-    return <DraftForm note={note} onDone={() => setIsEditing(false)} />;
+    return (
+      <DraftForm
+        note={displayNote}
+        onDone={() => setIsEditing(false)}
+        showSaved={setDisplayNote}
+      />
+    );
   }
 
   function handleDelete() {
     setIsConfirmingDelete(false);
-    startTransition(async () => {
-      await deleteNote(note.id);
-      router.refresh();
-    });
+    run({ optimistic: () => setIsDeleted(true), action: () => deleteNote(note.id) });
   }
 
   return (
@@ -52,7 +59,7 @@ export default function DraftCard({
       ref={setNodeRef}
       style={style}
       onClick={() => setIsEditing(true)}
-      className={`${isNew ? "animate-note-in" : ""} group relative flex h-44 w-44 -rotate-1 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border p-2 text-sm shadow-md transition-[top] hover:z-10 hover:-top-1 hover:shadow-lg sm:h-48 sm:w-48 ${DRAFT_COLOR}`}
+      className={`${isNew ? "animate-note-in" : ""} group relative ${isDeleted ? "hidden" : "flex"} h-44 w-44 -rotate-1 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border p-2 text-sm shadow-md transition-[top] hover:z-10 hover:-top-1 hover:shadow-lg sm:h-48 sm:w-48 ${DRAFT_COLOR}`}
     >
       <FoldedCorner />
       <button
@@ -72,26 +79,25 @@ export default function DraftCard({
           event.stopPropagation();
           setIsConfirmingDelete(true);
         }}
-        disabled={isPending}
-        className={`absolute right-1 top-1 rounded-sm opacity-0 transition-opacity group-hover:opacity-70 disabled:opacity-30 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING}`}
+        className={`absolute right-1 top-1 rounded-sm opacity-0 transition-opacity group-hover:opacity-70 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING}`}
       >
         ✕
       </button>
 
       <div className="mt-4 flex min-w-0 flex-1 flex-col overflow-hidden">
-        <p className="line-clamp-3 font-semibold">{note.title}</p>
-        {note.description && (
+        <p className="line-clamp-3 font-semibold">{displayNote.title}</p>
+        {displayNote.description && (
           <p className="mt-0.5 flex-1 overflow-hidden whitespace-pre-wrap break-words text-[11px] leading-snug opacity-80">
-            {note.description}
+            {displayNote.description}
           </p>
         )}
       </div>
 
       <div className="flex items-end justify-between gap-1">
-        {note.location ? (
+        {displayNote.location ? (
           <p className="flex min-w-0 items-center gap-1 text-xs opacity-70">
-            <span aria-hidden>📍</span>
-            <span className="truncate">{note.location}</span>
+            <LocationIcon className="h-3 w-3 shrink-0" />
+            <span className="truncate">{displayNote.location}</span>
           </p>
         ) : (
           <span />

@@ -1,4 +1,5 @@
 import { dateToDay, dayToDate } from "@/lib/datetime";
+import { MINUTE_MS } from "@/lib/time";
 
 /**
  * A note's schedule is stored as `startsAt` + `kind` (see `NoteKind` in
@@ -48,7 +49,7 @@ function getZonedParts(instant: Date, timeZone: string): ZonedParts {
 function getOffsetMinutes(instant: Date, timeZone: string): number {
   const parts = getZonedParts(instant, timeZone);
   const asUtc = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute);
-  return Math.round((asUtc - Math.floor(instant.getTime() / 60_000) * 60_000) / 60_000);
+  return Math.round((asUtc - Math.floor(instant.getTime() / MINUTE_MS) * MINUTE_MS) / MINUTE_MS);
 }
 
 /**
@@ -57,10 +58,10 @@ function getOffsetMinutes(instant: Date, timeZone: string): number {
  */
 export function zonedTimeToUtc(day: string, time: string, timeZone: string): Date {
   const wallClock = new Date(`${day}T${time}:00.000Z`).getTime();
-  const firstGuess = wallClock - getOffsetMinutes(new Date(wallClock), timeZone) * 60_000;
+  const firstGuess = wallClock - getOffsetMinutes(new Date(wallClock), timeZone) * MINUTE_MS;
   // The offset at the guess can differ from the one at the wall-clock reading
   // near a DST change; a second pass settles it.
-  return new Date(wallClock - getOffsetMinutes(new Date(firstGuess), timeZone) * 60_000);
+  return new Date(wallClock - getOffsetMinutes(new Date(firstGuess), timeZone) * MINUTE_MS);
 }
 
 /** Turns what the user typed in `timeZone` into the schedule to store. */

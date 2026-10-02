@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { ChevronLeftIcon, ChevronRightIcon, GridIcon } from "@/components/board/icons";
+import { ChevronLeftIcon, ChevronRightIcon, GridIcon } from "@/components/icons";
 import type { BoardDay } from "@/components/board/types";
 import { FOCUS_RING } from "@/components/focusRing";
 

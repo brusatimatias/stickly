@@ -1,8 +1,9 @@
 import type { Session } from "next-auth";
 import { auth } from "@/auth";
+import { MINUTE_MS } from "@/lib/time";
 
 /** How recent a Google sign in must be to stand in for the current password. */
-export const RECENT_SIGN_IN_MS = 10 * 60_000;
+export const RECENT_SIGN_IN_MS = 10 * MINUTE_MS;
 
 export async function requireUserId(): Promise<string> {
   const session = await auth();

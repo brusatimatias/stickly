@@ -1,4 +1,5 @@
 import { useTranslations } from "next-intl";
+import PageHeader from "@/components/PageHeader";
 
 // No radius here: each block sets its own, since two radius classes on one
 // element don't combine predictably.
@@ -15,7 +16,7 @@ export default function Loading() {
     <div role="status" className="flex flex-1 flex-col motion-safe:animate-pulse">
       <span className="sr-only">{t("loadingBoard")}</span>
       <div aria-hidden className="flex flex-1 flex-col">
-        <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
+        <PageHeader>
           <div className={`rounded-md h-6 w-20 ${BLOCK}`} />
           <div className="flex items-center gap-2 sm:gap-3">
             <div className={`h-8 w-8 rounded-full ${BLOCK}`} />
@@ -23,7 +24,7 @@ export default function Loading() {
             <div className={`h-6 w-16 rounded-full ${BLOCK}`} />
             <div className={`h-8 w-24 rounded-full ${BLOCK}`} />
           </div>
-        </div>
+        </PageHeader>
         <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
           <div className={`h-7 w-7 rounded-full ${BLOCK}`} />
           <div className={`h-8 w-48 rounded-full ${BLOCK}`} />

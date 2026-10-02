@@ -3,10 +3,11 @@
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
 import { useTranslations } from "next-intl";
+import { DRAFT_CONTAINER } from "@/components/board/BoardActionsContext";
 import DraftCard from "@/components/board/DraftCard";
 import DraftForm from "@/components/board/DraftForm";
 import type { NoteDTO } from "@/components/board/types";
-import { PlusIcon } from "@/components/board/icons";
+import { PlusIcon } from "@/components/icons";
 import { useFormTransition } from "@/components/board/useFormTransition";
 import { MAX_DRAFT_NOTES } from "@/lib/noteInput";
 import { FOCUS_RING } from "@/components/focusRing";
@@ -19,7 +20,7 @@ export default function DraftPanel({
   newNoteIds: ReadonlySet<string>;
 }) {
   const t = useTranslations("board");
-  const { setNodeRef } = useDroppable({ id: "draft" });
+  const { setNodeRef } = useDroppable({ id: DRAFT_CONTAINER });
   const form = useFormTransition();
   const canCreate = notes.length < MAX_DRAFT_NOTES && !form.isMounted;
 

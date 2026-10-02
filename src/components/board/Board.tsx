@@ -17,10 +17,23 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useId, useRef, useState, useTransition } from "react";
+import {
+  startTransition,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useOptimistic,
+  useRef,
+  useState,
+} from "react";
 import { moveDraftNote, moveNote, scheduleDraftNote } from "@/app/actions/notes";
+import {
+  BoardActionsProvider,
+  DRAFT_CONTAINER,
+  type BoardAction,
+} from "@/components/board/BoardActionsContext";
 import DayColumn from "@/components/board/DayColumn";
 import DayFocusNav from "@/components/board/DayFocusNav";
 import DraftPanel from "@/components/board/DraftPanel";
@@ -28,13 +41,17 @@ import FoldedCorner from "@/components/board/FoldedCorner";
 import { TimeZoneProvider } from "@/components/board/TimeZoneContext";
 import WeekNav from "@/components/board/WeekNav";
 import type { BoardDay, NoteDTO, StoredNoteDTO } from "@/components/board/types";
+import { useErrorMessage } from "@/components/errorMessage";
+import { FOCUS_RING } from "@/components/focusRing";
 import { getNoteStyle } from "@/lib/noteColor";
 import { groupNotesByDay, toDraftNoteDTO } from "@/lib/noteGroups";
+import { sortDoneLast } from "@/lib/ordering";
 import { toScheduleInput, toStoredSchedule } from "@/lib/schedule";
 
-const DRAFT_CONTAINER = "draft";
-
 type NotesByDay = Record<string, NoteDTO[]>;
+
+/** A note being created, shown before the server data has it. */
+type PendingNote = { container: string; note: NoteDTO };
 
 function findContainer(id: string, notesByDay: NotesByDay): string | undefined {
   if (id in notesByDay) return id;
@@ -68,7 +85,6 @@ export default function Board({
   todayWeekParam: string;
   todayKey: string;
 }) {
-  const router = useRouter();
   const t = useTranslations("board");
   // From the server data, not `notesByDay`, so the hint doesn't come and go
   // (shifting the layout) while a draft is being dragged onto the week.
@@ -85,6 +101,16 @@ export default function Board({
   }
 
   const [notesByDay, setNotesByDay] = useState<NotesByDay>(buildNotesByDay);
+  // Notes being created, shown until the action's response commits (the
+  // server data then has them) or dropped if the action fails.
+  const [pendingNotes, addPendingNote] = useOptimistic<PendingNote[], PendingNote>(
+    [],
+    (current, added) => [...current, added]
+  );
+  // Ids created on this board, set in the action's transition so they commit
+  // with the server data that brings them: they animated in while pending,
+  // so they don't animate again then.
+  const [createdIds, setCreatedIds] = useState<ReadonlySet<string>>(() => new Set());
   const [syncedNotes, setSyncedNotes] = useState(notes);
   const [syncedDraftNotes, setSyncedDraftNotes] = useState(draftNotes);
   const [syncedTimeZone, setSyncedTimeZone] = useState(timeZone);
@@ -96,16 +122,58 @@ export default function Board({
   const [newNoteIds, setNewNoteIds] = useState<ReadonlySet<string>>(() => new Set());
   if (notes !== syncedNotes || draftNotes !== syncedDraftNotes || timeZone !== syncedTimeZone) {
     const previousIds = new Set([...syncedNotes, ...syncedDraftNotes].map((note) => note.id));
-    const addedIds = [...notes, ...draftNotes]
-      .map((note) => note.id)
-      .filter((id) => !previousIds.has(id));
+    const serverIds = new Set([...notes, ...draftNotes].map((note) => note.id));
+    const addedIds = [...serverIds].filter((id) => !previousIds.has(id) && !createdIds.has(id));
     if (addedIds.length > 0) setNewNoteIds(new Set(addedIds));
+    if ([...createdIds].some((id) => serverIds.has(id))) {
+      setCreatedIds(new Set([...createdIds].filter((id) => !serverIds.has(id))));
+    }
     setSyncedNotes(notes);
     setSyncedDraftNotes(draftNotes);
     setSyncedTimeZone(timeZone);
     setNotesByDay(buildNotesByDay());
   }
-  const [, startTransition] = useTransition();
+
+  // What the board renders: the server data (rearranged while dragging) plus
+  // the notes being created, which animate in.
+  function notesIn(container: string): NoteDTO[] {
+    const list = notesByDay[container] ?? [];
+    const pending = pendingNotes
+      .filter((entry) => entry.container === container && !list.some(({ id }) => id === entry.note.id))
+      .map(({ note }) => note);
+    return pending.length > 0 ? sortDoneLast([...list, ...pending]) : list;
+  }
+  const animatedIds =
+    pendingNotes.length > 0
+      ? new Set([...newNoteIds, ...pendingNotes.map(({ note }) => note.id)])
+      : newNoteIds;
+
+  const errorMessage = useErrorMessage();
+  // What a failed action threw, shown above the board until dismissed or the next action.
+  const [actionError, setActionError] = useState<{ error: unknown } | null>(null);
+  const boardActions = useMemo(
+    () => ({
+      run({ optimistic, action, onError }: BoardAction) {
+        setActionError(null);
+        startTransition(async () => {
+          optimistic?.();
+          try {
+            await action();
+          } catch (error) {
+            // Whatever `optimistic` set with useOptimistic is undone when the
+            // transition ends; the board stays and says what went wrong.
+            setActionError({ error });
+            onError?.();
+          }
+        });
+      },
+      addPendingNote(container: string, note: NoteDTO) {
+        addPendingNote({ container, note });
+        setCreatedIds((current) => new Set(current).add(note.id));
+      },
+    }),
+    [addPendingNote]
+  );
   const [activeNote, setActiveNote] = useState<NoteDTO | null>(null);
   const originContainerRef = useRef<string | null>(null);
   const lastOverIdRef = useRef<string | null>(null);
@@ -240,6 +308,11 @@ export default function Board({
     });
   }
 
+  // A failed move puts the notes back where the server has them.
+  function run(boardAction: BoardAction) {
+    boardActions.run({ ...boardAction, onError: () => setNotesByDay(buildNotesByDay()) });
+  }
+
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     const originContainer = originContainerRef.current;
@@ -257,10 +330,7 @@ export default function Board({
     if (destinationContainer === DRAFT_CONTAINER) {
       // Reordered among the drafts (a draft dragged over a day and back ends
       // up here too).
-      startTransition(async () => {
-        await moveDraftNote({ noteId: active.id as string, index });
-        router.refresh();
-      });
+      run({ action: () => moveDraftNote({ noteId: active.id as string, index }) });
       return;
     }
 
@@ -269,116 +339,123 @@ export default function Board({
       toStoredSchedule(destinationContainer, items[index].time, timeZone)
     );
 
-    startTransition(async () => {
-      if (originContainer === DRAFT_CONTAINER) {
-        await scheduleDraftNote({
-          noteId: active.id as string,
-          day: destinationContainer,
-          index,
-        });
-      } else {
-        await moveNote({
-          noteId: active.id as string,
-          day: destinationContainer,
-          index,
-          schedule,
-        });
-      }
-      router.refresh();
+    run({
+      action: () =>
+        originContainer === DRAFT_CONTAINER
+          ? scheduleDraftNote({ noteId: active.id as string, day: destinationContainer, index })
+          : moveNote({ noteId: active.id as string, day: destinationContainer, index, schedule }),
     });
   }
 
   return (
     <TimeZoneProvider value={timeZone}>
-      <div
-        className="flex flex-1 flex-col"
-        onAnimationEnd={(event) => {
-          if (event.animationName === "note-in") setNewNoteIds(new Set());
-        }}
-      >
-        <WeekNav
-          weekLabel={weekLabel}
-          prevWeekParam={prevWeekParam}
-          nextWeekParam={nextWeekParam}
-          currentWeekParam={currentWeekParam}
-          todayWeekParam={todayWeekParam}
-        />
-        <DndContext
-          id={dndContextId}
-          sensors={sensors}
-          collisionDetection={collisionDetectionStrategy}
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDragEnd={handleDragEnd}
-          onDragCancel={() => {
-            lastOverIdRef.current = null;
-            setActiveNote(null);
+      <BoardActionsProvider value={boardActions}>
+        <div
+          className="flex flex-1 flex-col"
+          onAnimationEnd={(event) => {
+            if (event.animationName === "note-in") setNewNoteIds(new Set());
           }}
         >
-          {/* Bottom padding so the chat launcher never covers the last notes. */}
-          <div className="flex flex-col gap-3 p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:flex-row">
-            <DraftPanel notes={notesByDay[DRAFT_CONTAINER]} newNoteIds={newNoteIds} />
-            {focusedDayInfo ? (
-              <div className="animate-week-in min-w-0 flex-1">
-                <DayFocusNav
-                  days={days}
-                  focusedDay={focusedDayInfo.key}
-                  todayKey={todayKey}
-                  onSelect={setFocusedDay}
-                  onExit={() => setFocusedDay(null)}
-                />
-                <DayColumn
-                  day={focusedDayInfo}
-                  notes={notesByDay[focusedDayInfo.key] ?? []}
-                  newNoteIds={newNoteIds}
-                  todayKey={todayKey}
-                  isFocused
-                />
-              </div>
-            ) : (
-              <div className="animate-week-in grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-7">
-                {isWeekEmpty && (
-                  <p className="col-span-full rounded-lg border border-dashed border-zinc-200 px-4 py-2.5 text-center text-sm text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
-                    {t("emptyWeekHint")}
-                  </p>
-                )}
-                {days.map((day, index) => (
-                  <div
-                    key={day.key}
-                    className={
-                      index > 0
-                        ? "shadow-[inset_1px_0_0_rgba(0,0,0,0.1)] dark:shadow-[inset_1px_0_0_rgba(255,255,255,0.08)]"
-                        : ""
-                    }
-                  >
-                    <DayColumn
-                      day={day}
-                      notes={notesByDay[day.key] ?? []}
-                      newNoteIds={newNoteIds}
-                      todayKey={todayKey}
-                      onToggleFocus={() => setFocusedDay(day.key)}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <DragOverlay>
-            {activeNote &&
-              (() => {
-                const style = getNoteStyle(activeNote.id);
-                return (
-                  <div
-                    className={`relative flex h-44 w-44 flex-col justify-center overflow-hidden rounded-sm border p-2 text-sm shadow-lg sm:h-48 sm:w-48 ${style.rotation} ${style.bg} ${style.border} ${style.text}`}
-                  >
-                    <FoldedCorner />
-                    <p className="line-clamp-3 font-semibold">{activeNote.title}</p>
-                  </div>
-                );
-              })()}
-          </DragOverlay>
-        </DndContext>
-      </div>
+          <WeekNav
+            weekLabel={weekLabel}
+            prevWeekParam={prevWeekParam}
+            nextWeekParam={nextWeekParam}
+            currentWeekParam={currentWeekParam}
+            todayWeekParam={todayWeekParam}
+          />
+          {actionError && (
+            <div
+              role="alert"
+              className="mx-4 mt-3 flex items-center justify-between gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+            >
+              <span>{errorMessage(actionError.error)}</span>
+              <button
+                type="button"
+                aria-label={t("dismissError")}
+                onClick={() => setActionError(null)}
+                className={`shrink-0 rounded-full px-1 opacity-70 hover:opacity-100 pointer-coarse:size-10 ${FOCUS_RING}`}
+              >
+                ✕
+              </button>
+            </div>
+          )}
+          <DndContext
+            id={dndContextId}
+            sensors={sensors}
+            collisionDetection={collisionDetectionStrategy}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
+            onDragCancel={() => {
+              lastOverIdRef.current = null;
+              setActiveNote(null);
+            }}
+          >
+            {/* Bottom padding so the chat launcher never covers the last notes. */}
+            <div className="flex flex-col gap-3 p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:flex-row">
+              <DraftPanel notes={notesIn(DRAFT_CONTAINER)} newNoteIds={animatedIds} />
+              {focusedDayInfo ? (
+                <div className="animate-week-in min-w-0 flex-1">
+                  <DayFocusNav
+                    days={days}
+                    focusedDay={focusedDayInfo.key}
+                    todayKey={todayKey}
+                    onSelect={setFocusedDay}
+                    onExit={() => setFocusedDay(null)}
+                  />
+                  <DayColumn
+                    day={focusedDayInfo}
+                    notes={notesIn(focusedDayInfo.key)}
+                    newNoteIds={animatedIds}
+                    todayKey={todayKey}
+                    isFocused
+                  />
+                </div>
+              ) : (
+                <div className="animate-week-in grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-7">
+                  {isWeekEmpty && (
+                    <p className="col-span-full rounded-lg border border-dashed border-zinc-200 px-4 py-2.5 text-center text-sm text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+                      {t("emptyWeekHint")}
+                    </p>
+                  )}
+                  {days.map((day, index) => (
+                    <div
+                      key={day.key}
+                      className={
+                        index > 0
+                          ? "shadow-[inset_1px_0_0_rgba(0,0,0,0.1)] dark:shadow-[inset_1px_0_0_rgba(255,255,255,0.08)]"
+                          : ""
+                      }
+                    >
+                      <DayColumn
+                        day={day}
+                        notes={notesIn(day.key)}
+                        newNoteIds={animatedIds}
+                        todayKey={todayKey}
+                        onToggleFocus={() => setFocusedDay(day.key)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <DragOverlay>
+              {activeNote &&
+                (() => {
+                  const style = getNoteStyle(activeNote.id);
+                  return (
+                    <div
+                      className={`relative flex h-44 w-44 flex-col justify-center overflow-hidden rounded-sm border p-2 text-sm shadow-lg sm:h-48 sm:w-48 ${style.rotation} ${style.bg} ${style.border} ${style.text}`}
+                    >
+                      <FoldedCorner />
+                      <p className="line-clamp-3 font-semibold">{activeNote.title}</p>
+                    </div>
+                  );
+                })()}
+            </DragOverlay>
+          </DndContext>
+        </div>
+      </BoardActionsProvider>
     </TimeZoneProvider>
   );
 }

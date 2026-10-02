@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { type FormEvent, useState, useTransition } from "react";
-import { EyeIcon, EyeOffIcon } from "@/components/profile/icons";
+import { EyeIcon, EyeOffIcon } from "@/components/icons";
 import { FOCUS_RING } from "@/components/focusRing";
 
 export default function CredentialsSignInForm() {

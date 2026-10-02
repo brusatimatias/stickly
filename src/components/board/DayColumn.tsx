@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import NoteCard from "@/components/board/NoteCard";
 import NoteForm from "@/components/board/NoteForm";
 import type { BoardDay, NoteDTO } from "@/components/board/types";
-import { ExpandIcon, PlusIcon } from "@/components/board/icons";
+import { ExpandIcon, PlusIcon } from "@/components/icons";
 import { useFormTransition } from "@/components/board/useFormTransition";
 import { FOCUS_RING } from "@/components/focusRing";
 

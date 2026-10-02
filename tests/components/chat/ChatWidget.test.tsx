@@ -4,10 +4,8 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import messages from "../../../messages/es.json";
 
 const mockSendChatMessage = vi.hoisted(() => vi.fn());
-const mockRefresh = vi.hoisted(() => vi.fn());
 
 vi.mock("@/app/actions/chat", () => ({ sendChatMessage: mockSendChatMessage }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: mockRefresh }) }));
 
 import ChatWidget from "@/components/chat/ChatWidget";
 
@@ -56,7 +54,6 @@ describe("ChatWidget", () => {
     });
     expect(screen.getByText("Recordame mañana llamar al plomero")).toBeTruthy();
     expect(screen.getByText("Listo, lo agendé para mañana domingo.")).toBeTruthy();
-    expect(mockRefresh).toHaveBeenCalled();
     // The note is in the week on screen, so there's no link to another week.
     expect(screen.queryByRole("link")).toBeNull();
   });
@@ -93,7 +90,7 @@ describe("ChatWidget", () => {
     expect(link.getAttribute("href")).toBe("/?week=2026-09-28");
   });
 
-  test("refreshes the board for a draft without linking to any week", async () => {
+  test("shows a draft without linking to any week", async () => {
     mockSendChatMessage.mockResolvedValue({
       reply: "Listo, quedó en tus borradores.",
       createdNotes: [{ id: "draft-1", day: null }],
@@ -103,7 +100,6 @@ describe("ChatWidget", () => {
     await sendMessage("Anotame como borrador comprar pilas");
 
     expect(screen.getByText("Listo, quedó en tus borradores.")).toBeTruthy();
-    expect(mockRefresh).toHaveBeenCalled();
     expect(screen.queryByRole("link")).toBeNull();
   });
 

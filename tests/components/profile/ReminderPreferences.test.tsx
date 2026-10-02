@@ -49,6 +49,20 @@ describe("ReminderPreferences", () => {
     expect(screen.getByText(t.settingsSaved)).toBeTruthy();
   });
 
+  test("clears the saved message after a moment", async () => {
+    vi.useFakeTimers();
+    renderPreferences();
+
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText(t.remindersLabel), { target: { value: "15" } });
+    });
+    expect(screen.getByText(t.settingsSaved)).toBeTruthy();
+
+    act(() => vi.advanceTimersByTime(3000));
+    expect(screen.queryByText(t.settingsSaved)).toBeNull();
+    vi.useRealTimers();
+  });
+
   test("turns the digest on and saves its time when done editing it", async () => {
     renderPreferences();
 
