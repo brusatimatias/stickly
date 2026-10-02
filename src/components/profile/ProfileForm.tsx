@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { type ChangeEvent, type FormEvent, useEffect, useId, useRef, useState, useTransition } from "react";
+import { type ChangeEvent, type FormEvent, useId, useRef, useState, useTransition } from "react";
 import {
   confirmPasswordResetWithGoogle,
   setPassword,
@@ -17,6 +17,7 @@ import {
   PRIMARY_BUTTON,
   SECONDARY_BUTTON,
   StatusMessage,
+  useAutoClearStatus,
   type Status,
   CARD_CLASS,
   SECTION_CLASS,
@@ -30,16 +31,6 @@ import { FOCUS_RING } from "@/components/focusRing";
 
 const AVATAR_TARGET_SIZE = 128;
 const MIN_PASSWORD_LENGTH = 8;
-const STATUS_CLEAR_DELAY_MS = 2500;
-
-/** Clears a success status message a couple seconds after it's set. */
-function useAutoClearStatus(status: Status, clear: () => void) {
-  useEffect(() => {
-    if (status?.type !== "success") return;
-    const timeout = setTimeout(clear, STATUS_CLEAR_DELAY_MS);
-    return () => clearTimeout(timeout);
-  }, [status, clear]);
-}
 
 function errorMessage(tErrors: ReturnType<typeof useTranslations>, error: unknown): string {
   const code = error instanceof Error ? error.message : undefined;
@@ -97,9 +88,9 @@ export default function ProfileForm({
   const [isGooglePending, startGoogleTransition] = useTransition();
   const ids = { name: useId(), currentPassword: useId(), password: useId(), confirmPassword: useId() };
 
-  useAutoClearStatus(nameStatus, () => setNameStatus(null));
-  useAutoClearStatus(avatarStatus, () => setAvatarStatus(null));
-  useAutoClearStatus(passwordStatus, () => setPasswordStatus(null));
+  useAutoClearStatus(nameStatus, setNameStatus);
+  useAutoClearStatus(avatarStatus, setAvatarStatus);
+  useAutoClearStatus(passwordStatus, setPasswordStatus);
 
   const trimmedName = name.trim();
   const canSaveName = trimmedName.length > 0 && trimmedName !== initialName.trim();
@@ -120,7 +111,6 @@ export default function ProfileForm({
       try {
         await updateProfileName(trimmedName);
         setNameStatus({ type: "success", text: t("saved") });
-        router.refresh();
       } catch (error) {
         setNameStatus({ type: "error", text: errorMessage(tErrors, error) });
       }
@@ -139,7 +129,6 @@ export default function ProfileForm({
         try {
           await updateAvatar(dataUrl);
           setAvatarStatus({ type: "success", text: t("saved") });
-          router.refresh();
         } catch (error) {
           setAvatarStatus({ type: "error", text: errorMessage(tErrors, error) });
         }
@@ -167,8 +156,6 @@ export default function ProfileForm({
         await setPassword(password, needsCurrentPassword ? currentPassword : undefined);
         closePasswordForm();
         setPasswordStatus({ type: "success", text: t("saved") });
-        // A first-time password flips hasPassword, which the server provides.
-        router.refresh();
       } catch (error) {
         setPasswordStatus({ type: "error", text: errorMessage(tErrors, error) });
         // The Google sign in stopped being recent while the form was open:

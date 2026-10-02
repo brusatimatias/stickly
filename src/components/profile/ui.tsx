@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { CheckIcon } from "@/components/profile/icons";
 
 const BUTTON_BASE =
@@ -26,6 +27,17 @@ export const CARD_CLASS =
 export const SECTION_CLASS = "flex flex-col gap-2 pt-6 first:pt-0 not-last:pb-6";
 
 export type Status = { type: "success" | "error"; text: string } | null;
+
+const STATUS_CLEAR_DELAY_MS = 2500;
+
+/** Clears a success status a couple seconds after it's set; errors stay. */
+export function useAutoClearStatus(status: Status, setStatus: (status: Status) => void) {
+  useEffect(() => {
+    if (status?.type !== "success") return;
+    const timeout = setTimeout(() => setStatus(null), STATUS_CLEAR_DELAY_MS);
+    return () => clearTimeout(timeout);
+  }, [status, setStatus]);
+}
 
 /** A section's result: green with a check when it worked, red when it didn't. Announced to screen readers. */
 export function StatusMessage({ status }: { status: Status }) {

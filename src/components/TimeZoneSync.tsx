@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { updateTimeZone } from "@/app/actions/profile";
 
@@ -11,18 +10,15 @@ import { updateTimeZone } from "@/app/actions/profile";
  * timed notes move to the local time. Renders nothing.
  */
 export default function TimeZoneSync({ storedTimeZone }: { storedTimeZone: string | null }) {
-  const router = useRouter();
-
   useEffect(() => {
     const browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     if (!browserTimeZone || browserTimeZone === storedTimeZone) return;
 
-    updateTimeZone(browserTimeZone)
-      .then(() => router.refresh())
-      .catch(() => {
-        // Not worth bothering the user: the server keeps its fallback zone.
-      });
-  }, [storedTimeZone, router]);
+    // The action revalidates the board, so its response re-renders it.
+    updateTimeZone(browserTimeZone).catch(() => {
+      // Not worth bothering the user: the server keeps its fallback zone.
+    });
+  }, [storedTimeZone]);
 
   return null;
 }

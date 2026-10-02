@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useId, useState, useTransition } from "react";
 import { updateReminderSettings } from "@/app/actions/reminders";
-import { HINT_CLASS, INPUT_CLASS, LABEL_CLASS, StatusMessage, type Status } from "@/components/profile/ui";
+import { HINT_CLASS, INPUT_CLASS, LABEL_CLASS, StatusMessage, useAutoClearStatus, type Status } from "@/components/profile/ui";
 import { REMINDER_LEAD_MINUTES, type ReminderSettings } from "@/lib/reminderSettings";
 
 const OFF = "off";
@@ -20,6 +20,7 @@ export default function ReminderPreferences({ initial }: { initial: ReminderSett
   // What the server has, to go back to if a save fails.
   const [saved, setSaved] = useState(initial);
   const [status, setStatus] = useState<Status>(null);
+  useAutoClearStatus(status, setStatus);
   const [isPending, startTransition] = useTransition();
 
   function save(next: ReminderSettings) {

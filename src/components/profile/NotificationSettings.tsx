@@ -20,6 +20,7 @@ import {
   PRIMARY_BUTTON,
   SECONDARY_BUTTON,
   StatusMessage,
+  useAutoClearStatus,
   type Status,
   SECTION_CLASS,
 } from "@/components/profile/ui";
@@ -46,6 +47,7 @@ export default function NotificationSettings({
   // null until the browser has been checked (it can't be known on the server).
   const [device, setDevice] = useState<PushDeviceState | null>(null);
   const [status, setStatus] = useState<Status>(null);
+  useAutoClearStatus(status, setStatus);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
