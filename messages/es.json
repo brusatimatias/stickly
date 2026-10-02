@@ -17,6 +17,8 @@
     "loadingBoard": "Cargando tu tablero…",
     "draft": "Borrador",
     "newDraftNote": "Nueva nota borrador",
+    "showDrafts": "Mostrar borradores",
+    "hideDrafts": "Ocultar borradores",
     "titlePlaceholder": "Título",
     "locationPlaceholder": "Ubicación",
     "descriptionPlaceholder": "Agregar detalles...",

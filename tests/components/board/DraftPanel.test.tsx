@@ -30,13 +30,16 @@ function renderPanel(notes: NoteDTO[], newNoteIds: ReadonlySet<string> = new Set
   render(
     <NextIntlClientProvider locale="es" messages={messages}>
       <DndContext>
-        <DraftPanel notes={notes} newNoteIds={newNoteIds} />
+        <DraftPanel notes={notes} newNoteIds={newNoteIds} isDragging={false} />
       </DndContext>
     </NextIntlClientProvider>
   );
 }
 
 const NEW_DRAFT = messages.board.newDraftNote;
+const SHOW_DRAFTS = messages.board.showDrafts;
+const HIDE_DRAFTS = messages.board.hideDrafts;
+const card = (title: string) => screen.getByText(title).closest("div.group");
 
 afterEach(() => {
   cleanup();
@@ -50,6 +53,33 @@ describe("DraftPanel", () => {
     expect(screen.getByText("Draft 0")).toBeTruthy();
     expect(screen.getByText("Draft 2")).toBeTruthy();
     expect(screen.getByRole("button", { name: NEW_DRAFT })).toBeTruthy();
+  });
+
+  test("starts collapsed, showing only the drafts' titles", () => {
+    renderPanel(drafts(2));
+
+    expect(screen.getByText("Draft 0")).toBeTruthy();
+    expect(card("Draft 0")).toBeNull();
+    expect(screen.getByRole("button", { name: SHOW_DRAFTS }).getAttribute("aria-expanded")).toBe("false");
+  });
+
+  test("shows the cards when expanded, from the toggle or a title", () => {
+    renderPanel(drafts(2));
+
+    fireEvent.click(screen.getByText("Draft 1"));
+    expect(card("Draft 1")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: HIDE_DRAFTS }));
+    expect(card("Draft 1")).toBeNull();
+  });
+
+  test("expands to write a new draft", () => {
+    renderPanel(drafts(1));
+
+    fireEvent.click(screen.getByRole("button", { name: NEW_DRAFT }));
+
+    expect(card("Draft 0")).toBeTruthy();
+    expect(screen.getByLabelText(messages.board.titlePlaceholder)).toBeTruthy();
   });
 
   test("hides the new draft button at four drafts", () => {
@@ -70,10 +100,10 @@ describe("DraftPanel", () => {
 
   test("animates only the drafts that just appeared", () => {
     renderPanel(drafts(2), new Set(["draft-1"]));
+    fireEvent.click(screen.getByRole("button", { name: SHOW_DRAFTS }));
 
-    const card = (title: string) => screen.getByText(title).closest("div.group")!;
-    expect(card("Draft 1").className).toContain("animate-note-in");
-    expect(card("Draft 0").className).not.toContain("animate-note-in");
+    expect(card("Draft 1")!.className).toContain("animate-note-in");
+    expect(card("Draft 0")!.className).not.toContain("animate-note-in");
   });
 
   test("keeps a cancelled new draft mounted until its exit animation ends", () => {

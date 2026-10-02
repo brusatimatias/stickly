@@ -14,6 +14,7 @@ import NoteForm from "@/components/board/NoteForm";
 import type { NoteDTO } from "@/components/board/types";
 import { useErrorMessage } from "@/components/errorMessage";
 import { FOCUS_RING } from "@/components/focusRing";
+import { TOUCH_DRAG_CARD, splitDragListeners } from "@/components/board/touchDrag";
 import {
   CalendarCheckIcon,
   CalendarIcon,
@@ -47,6 +48,7 @@ export default function NoteCard({
   const [isDeleted, setIsDeleted] = useOptimistic(false);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: note.id });
+  const dragListeners = splitDragListeners(listeners);
   const noteStyle = getNoteStyle(note.id);
 
   const style = {
@@ -96,7 +98,8 @@ export default function NoteCard({
       ref={setNodeRef}
       style={style}
       onClick={() => setIsEditing(true)}
-      className={`${isNew ? "animate-note-in" : ""} group relative ${isDeleted ? "hidden" : "flex"} h-44 w-44 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border p-2 text-sm shadow-[2px_4px_6px_rgba(0,0,0,0.3)] transition-[top] hover:z-10 hover:-top-1 hover:shadow-[3px_6px_10px_rgba(0,0,0,0.35)] dark:shadow-[2px_4px_6px_rgba(0,0,0,0.6)] dark:hover:shadow-[3px_6px_10px_rgba(0,0,0,0.7)] sm:h-48 sm:w-48 ${isDragging ? "z-20" : ""} ${noteStyle.rotation} ${noteStyle.bg} ${noteStyle.border} ${noteStyle.text}`}
+      {...dragListeners.card}
+      className={`${isNew ? "animate-note-in" : ""} group relative ${isDeleted ? "hidden" : "flex"} @container aspect-square w-full max-w-44 cursor-pointer flex-col justify-between ${TOUCH_DRAG_CARD} overflow-hidden rounded-sm border p-2 text-sm shadow-[2px_4px_6px_rgba(0,0,0,0.3)] transition-[top] hover:z-10 hover:-top-1 hover:shadow-[3px_6px_10px_rgba(0,0,0,0.35)] dark:shadow-[2px_4px_6px_rgba(0,0,0,0.6)] dark:hover:shadow-[3px_6px_10px_rgba(0,0,0,0.7)] sm:max-w-48 ${isDragging ? "z-20" : ""} ${noteStyle.rotation} ${noteStyle.bg} ${noteStyle.border} ${noteStyle.text}`}
     >
       {displayNote.isDone && (
         <div className="pointer-events-none absolute inset-0 bg-zinc-500/40 mix-blend-multiply dark:bg-zinc-400/30" />
@@ -108,8 +111,8 @@ export default function NoteCard({
           aria-label={t("dragToReorder")}
           onClick={(event) => event.stopPropagation()}
           {...attributes}
-          {...listeners}
-          className={`cursor-grab touch-none select-none rounded-sm opacity-30 transition-opacity group-hover:opacity-70 active:cursor-grabbing pointer-coarse:-m-2 pointer-coarse:p-2 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING}`}
+          {...dragListeners.handle}
+          className={`cursor-grab touch-none select-none rounded-sm text-base leading-none opacity-30 transition-opacity group-hover:opacity-70 active:cursor-grabbing pointer-coarse:-m-2 pointer-coarse:p-2 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING}`}
         >
           ⠿
         </button>
@@ -124,9 +127,9 @@ export default function NoteCard({
             className={`rounded-sm opacity-30 transition-opacity group-hover:opacity-70 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING}`}
           >
             {displayNote.isDone ? (
-              <CheckSquareIcon className="h-3.5 w-3.5" />
+              <CheckSquareIcon className="h-4 w-4" />
             ) : (
-              <SquareIcon className="h-3.5 w-3.5" />
+              <SquareIcon className="h-4 w-4" />
             )}
           </button>
           <span className="pointer-events-none absolute left-0 top-full mt-1 whitespace-nowrap rounded bg-zinc-900 px-1.5 py-0.5 text-[10px] text-white opacity-0 transition-opacity group-hover/done:opacity-90 group-has-[:focus-visible]/done:opacity-90 dark:bg-zinc-100 dark:text-zinc-900">
@@ -141,20 +144,20 @@ export default function NoteCard({
           event.stopPropagation();
           setIsConfirmingDelete(true);
         }}
-        className={`absolute right-1 top-1 rounded-sm opacity-30 transition-opacity group-hover:opacity-70 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING}`}
+        className={`absolute right-1 top-1 rounded-sm text-base leading-none opacity-30 transition-opacity group-hover:opacity-70 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING}`}
       >
         ✕
       </button>
 
       <div className="mt-4 flex min-w-0 flex-1 flex-col overflow-hidden">
-        <p className="flex items-center gap-1 text-xs font-medium opacity-80">
+        <p className="flex items-center gap-1 text-xs font-medium opacity-80 @max-[9rem]:text-[11px]">
           <ClockIcon className="h-3 w-3 shrink-0" />
           {displayNote.time ?? "--:--"}
         </p>
         {/* Clamped so a long title can't push the description out; hover shows it whole. */}
         <p
           title={displayNote.title}
-          className={`line-clamp-3 shrink-0 break-words font-semibold ${displayNote.isDone ? "line-through" : ""}`}
+          className={`line-clamp-3 shrink-0 break-words font-semibold @max-[9rem]:line-clamp-2 @max-[9rem]:text-[13px] @max-[9rem]:leading-snug ${displayNote.isDone ? "line-through" : ""}`}
         >
           {displayNote.title}
         </p>
@@ -167,7 +170,7 @@ export default function NoteCard({
 
       <div className="flex items-end justify-between gap-1">
         {displayNote.location ? (
-          <p className="flex min-w-0 items-center gap-1 text-xs opacity-70">
+          <p className="flex min-w-0 items-center gap-1 text-xs opacity-70 @max-[9rem]:text-[11px]">
             <LocationIcon className="h-3 w-3 shrink-0" />
             <span className="truncate">{displayNote.location}</span>
           </p>
@@ -194,11 +197,11 @@ export default function NoteCard({
             }`}
           >
             {isSyncing ? (
-              <SpinnerIcon className="h-8 w-8 animate-spin" />
+              <SpinnerIcon className="h-8 w-8 @max-[9rem]:h-6 @max-[9rem]:w-6 animate-spin" />
             ) : displayNote.googleEventId ? (
-              <CalendarCheckIcon className="h-8 w-8" />
+              <CalendarCheckIcon className="h-8 w-8 @max-[9rem]:h-6 @max-[9rem]:w-6" />
             ) : (
-              <CalendarIcon className="h-8 w-8" />
+              <CalendarIcon className="h-8 w-8 @max-[9rem]:h-6 @max-[9rem]:w-6" />
             )}
           </button>
           <span className="pointer-events-none absolute bottom-full right-0 mb-1 whitespace-nowrap rounded bg-zinc-900 px-1.5 py-0.5 text-[10px] text-white opacity-0 transition-opacity group-hover/sync:opacity-90 group-has-[:focus-visible]/sync:opacity-90 dark:bg-zinc-100 dark:text-zinc-900">

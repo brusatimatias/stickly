@@ -33,7 +33,8 @@ export default function DayColumn({
   return (
     <div
       ref={setNodeRef}
-      className={`flex min-h-[16rem] w-full flex-col gap-3 rounded-lg border border-dashed p-2 transition-colors ${
+      data-day={day.key}
+      className={`flex min-h-[16rem] w-full scroll-mt-3 flex-col gap-3 rounded-lg border border-dashed p-2 transition-colors ${
         isOver
           ? "border-amber-400 bg-amber-50/60 dark:border-amber-700 dark:bg-amber-950/20"
           : "border-transparent"
@@ -99,7 +100,7 @@ export default function DayColumn({
         )}
 
         <SortableContext id={day.key} items={notes.map((note) => note.id)} strategy={rectSortingStrategy}>
-          <div className="grid flex-1 auto-rows-min items-start justify-center gap-2 [grid-template-columns:repeat(auto-fill,minmax(11rem,1fr))]">
+          <div className="grid flex-1 auto-rows-min items-start justify-center gap-2 [grid-template-columns:repeat(auto-fill,minmax(min(11rem,100%),1fr))]">
             {notes.map((note) => (
               <NoteCard key={note.id} day={day.key} note={note} isNew={newNoteIds.has(note.id)} />
             ))}
