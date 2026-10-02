@@ -69,6 +69,7 @@ Both of these caused infinite render loops before (commits `5dd3e9f`, `d55e0d1`)
 ## Responsive
 - Board: always `flex-col`. The drafts are a tray above the week (`DraftPanel`), collapsed by default to one row of title chips; expanding it shows the cards, the only way to drag a draft.
 - Week grid: `grid-cols-1` → `sm:grid-cols-2` → `lg:grid-cols-7`. The whole week only fits side by side at `lg:`. On smaller screens, focus-day mode (`DayFocusNav`) is how users look at a single day.
+- **On-screen keyboard**: iOS Safari doesn't resize the layout viewport for the keyboard (and ignores `interactive-widget`), so a `fixed` element anchored to the bottom or sized with `dvh` ends up under it. Anything fixed with a text field (the chat) must follow the visual viewport (`useVisualViewportBox`, which the chat uses to go full screen on phones). iOS's zoom on focusing fields under 16px is stopped by `maximumScale: 1` in `generateViewport` (iOS only, by user agent), so fields don't need to be 16px.
 - Check any new element at phone width and at a 14" laptop (~1280px, the narrowest seven-column layout).
 
 ## i18n
