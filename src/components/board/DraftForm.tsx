@@ -1,7 +1,6 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState } from "react";
 import { createDraftNote, updateDraftNote } from "@/app/actions/notes";
 import {
   DRAFT_CONTAINER,
@@ -11,8 +10,9 @@ import {
 import FoldedCorner from "@/components/board/FoldedCorner";
 import { LocationIcon } from "@/components/icons";
 import type { NoteDTO } from "@/components/board/types";
-import { useNoteEditorKeyboard } from "@/components/board/useNoteEditorKeyboard";
+import { useNoteEditor } from "@/components/board/useNoteEditor";
 import { DRAFT_COLOR } from "@/lib/noteColor";
+import type { NoteFields } from "@/lib/noteInput";
 
 export default function DraftForm({
   note,
@@ -28,42 +28,22 @@ export default function DraftForm({
 }) {
   const t = useTranslations("board");
   const { run, addPendingNote } = useBoardActions();
-  const [title, setTitle] = useState(note?.title ?? "");
-  const [location, setLocation] = useState(note?.location ?? "");
-  const [description, setDescription] = useState(note?.description ?? "");
-  const titleRef = useRef<HTMLInputElement>(null);
-  const savedRef = useRef(false);
-  const stateRef = useRef({ title, location, description });
-  const [newNoteId] = useState(() => crypto.randomUUID());
-
-  useEffect(() => {
-    stateRef.current = { title, location, description };
-  });
-
-  useEffect(() => {
-    titleRef.current?.focus();
-  }, []);
-
-  const { containerRef, descriptionRef, handleKeyDown } = useNoteEditorKeyboard({
-    save,
-    cancel,
+  const {
+    title,
+    setTitle,
+    location,
+    setLocation,
     description,
     setDescription,
-  });
+    titleRef,
+    containerRef,
+    descriptionRef,
+    handleKeyDown,
+  } = useNoteEditor<HTMLInputElement>({ note, onDone, onSave: save });
 
-  function save() {
-    if (savedRef.current) return;
-    savedRef.current = true;
-    const { title, location, description } = stateRef.current;
-    onDone();
-    if (!title.trim()) return;
-    const id = note?.id ?? newNoteId;
-    const shown = toShownNote(
-      id,
-      { title, location, description },
-      { time: null, isDone: false, googleEventId: null }
-    );
-    const input = { id, title, location, description };
+  function save(id: string, fields: NoteFields) {
+    const shown = toShownNote(id, fields, { time: null, isDone: false, googleEventId: null });
+    const input = { id, ...fields };
     run(
       note
         ? { optimistic: () => showSaved?.(shown), action: () => updateDraftNote(input) }
@@ -72,11 +52,6 @@ export default function DraftForm({
             action: () => createDraftNote(input),
           }
     );
-  }
-
-  function cancel() {
-    savedRef.current = true;
-    onDone();
   }
 
   return (

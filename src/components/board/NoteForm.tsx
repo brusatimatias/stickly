@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { createNote, updateNote } from "@/app/actions/notes";
 import { toShownNote, useBoardActions } from "@/components/board/BoardActionsContext";
 import FoldedCorner from "@/components/board/FoldedCorner";
@@ -9,8 +9,9 @@ import { LocationIcon } from "@/components/icons";
 import TimePicker from "@/components/board/TimePicker";
 import { useBoardTimeZone } from "@/components/board/TimeZoneContext";
 import type { NoteDTO } from "@/components/board/types";
-import { useNoteEditorKeyboard } from "@/components/board/useNoteEditorKeyboard";
+import { useNoteEditor } from "@/components/board/useNoteEditor";
 import { getNoteStyle } from "@/lib/noteColor";
+import type { NoteFields } from "@/lib/noteInput";
 import { toScheduleInput, toStoredSchedule } from "@/lib/schedule";
 
 export default function NoteForm({
@@ -30,65 +31,35 @@ export default function NoteForm({
   const t = useTranslations("board");
   const timeZone = useBoardTimeZone();
   const { run, addPendingNote } = useBoardActions();
-  const [title, setTitle] = useState(note?.title ?? "");
-  const [location, setLocation] = useState(note?.location ?? "");
-  const [description, setDescription] = useState(note?.description ?? "");
   const [time, setTime] = useState(note?.time ?? "");
-  const titleRef = useRef<HTMLTextAreaElement>(null);
-  const savedRef = useRef(false);
-  const stateRef = useRef({ title, location, description, time });
-  // A new note's id is made here, so it can be shown before the server has it.
-  const [noteId] = useState(() => note?.id ?? crypto.randomUUID());
-  const noteStyle = getNoteStyle(noteId);
-
-  useEffect(() => {
-    stateRef.current = { title, location, description, time };
-  });
-
-  useEffect(() => {
-    titleRef.current?.focus();
-  }, []);
-
-  const { containerRef, descriptionRef, handleKeyDown } = useNoteEditorKeyboard({
-    save,
-    cancel,
+  const {
+    id,
+    title,
+    setTitle,
+    location,
+    setLocation,
     description,
     setDescription,
-  });
+    titleRef,
+    containerRef,
+    descriptionRef,
+    handleKeyDown,
+  } = useNoteEditor<HTMLTextAreaElement>({ note, onDone, onSave: save });
+  const noteStyle = getNoteStyle(id);
 
-  function save() {
-    if (savedRef.current) return;
-    savedRef.current = true;
-    const { title, location, description, time } = stateRef.current;
-    onDone();
-    if (!title.trim()) return;
-    const shown = toShownNote(
-      noteId,
-      { title, location, description },
-      {
-        time: time || null,
-        isDone: note?.isDone ?? false,
-        googleEventId: note?.googleEventId ?? null,
-      }
-    );
+  function save(id: string, fields: NoteFields) {
+    const shown = toShownNote(id, fields, {
+      time: time || null,
+      isDone: note?.isDone ?? false,
+      googleEventId: note?.googleEventId ?? null,
+    });
     // The day and time are typed in the board's zone; the server stores UTC.
-    const input = {
-      id: noteId,
-      title,
-      location,
-      description,
-      schedule: toScheduleInput(toStoredSchedule(day, time || null, timeZone)),
-    };
+    const input = { id, ...fields, schedule: toScheduleInput(toStoredSchedule(day, time || null, timeZone)) };
     run(
       note
         ? { optimistic: () => showSaved?.(shown), action: () => updateNote(input) }
         : { optimistic: () => addPendingNote(day, shown), action: () => createNote(input) }
     );
-  }
-
-  function cancel() {
-    savedRef.current = true;
-    onDone();
   }
 
   return (

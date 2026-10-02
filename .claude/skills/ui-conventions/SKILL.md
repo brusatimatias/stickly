@@ -12,7 +12,7 @@ The look is "sticky notes on a whiteboard". New UI should look like it belongs t
 - `Board.tsx`: top-level client component. Owns `DndContext`, the `DragOverlay`, `notesByDay` state, and focus-day mode.
 - `DayColumn.tsx` (one day, a `SortableContext`), `DraftPanel.tsx` (the drafts, up to `MAX_DRAFT_NOTES`), `WeekNav.tsx`, `DayFocusNav.tsx`.
 - Cards: `NoteCard.tsx` / `DraftCard.tsx`. Their in-place edit forms: `NoteForm.tsx` / `DraftForm.tsx`, which render in the same card shape and colors as the card they replace.
-- `useNoteEditorKeyboard.ts`: shared keyboard handling (Shift+Enter submits, etc.). Any new editor form should use it instead of adding its own `onKeyDown` logic.
+- `useNoteEditor.ts`: what the edit forms share (fields, id, focus, Enter/outside click saves, Escape cancels, Shift+Enter adds a line break). Any new editor form should use it instead of its own `onKeyDown` or outside-click logic.
 - `FoldedCorner.tsx`, `ConfirmDialog.tsx`, `TimePicker.tsx`: reuse them before adding new ones. Icons for the whole app live in `src/components/icons.tsx`, each a path inside the shared `Icon` outline.
 - Outside the board, `src/components/chat/ChatWidget.tsx` is the assistant: a floating button plus a panel over a dimmed backdrop (clicking it, the ✕ or Escape closes it). Assistant replies render as small yellow sticky notes. It's mounted in `page.tsx` outside `<Board>` (which is keyed by week) so the conversation survives week navigation.
 

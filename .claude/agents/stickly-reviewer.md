@@ -49,7 +49,7 @@ Your job is ONLY to review and report: do not edit files.
 
 **Board UI**
 - dnd-kit changes in `Board.tsx`/`DayColumn.tsx` don't reintroduce the drag infinite loops (see commits `5dd3e9f` and `d55e0d1`): keep the custom `collisionDetectionStrategy` (pointer-first, sticky `lastOverIdRef` right after a cross-container move) and don't set state during `dragOver` when nothing actually changed.
-- Keyboard behavior for the editors stays centralized in `useNoteEditorKeyboard.ts`.
+- Editor state and keyboard behavior stay centralized in `useNoteEditor.ts`.
 - User-visible strings go through `next-intl` (`useTranslations`/`getTranslations`), with keys in both `en.json` and `es.json`; dates use the matching `date-fns` locale.
 - Next.js 16 APIs are used as documented in `node_modules/next/dist/docs/` (e.g. `searchParams` is a `Promise`).
 
