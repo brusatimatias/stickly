@@ -13,6 +13,7 @@ import { LocationIcon } from "@/components/icons";
 import type { NoteDTO } from "@/components/board/types";
 import { DRAFT_COLOR } from "@/lib/noteColor";
 import { FOCUS_RING } from "@/components/focusRing";
+import { TOUCH_DRAG_CARD, splitDragListeners } from "@/components/board/touchDrag";
 
 export default function DraftCard({
   note,
@@ -32,6 +33,7 @@ export default function DraftCard({
   const [isDeleted, setIsDeleted] = useOptimistic(false);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: note.id });
+  const dragListeners = splitDragListeners(listeners);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -59,7 +61,8 @@ export default function DraftCard({
       ref={setNodeRef}
       style={style}
       onClick={() => setIsEditing(true)}
-      className={`${isNew ? "animate-note-in" : ""} group relative ${isDeleted ? "hidden" : "flex"} h-44 w-44 -rotate-1 cursor-pointer flex-col justify-between overflow-hidden rounded-sm border p-2 text-sm shadow-md transition-[top] hover:z-10 hover:-top-1 hover:shadow-lg sm:h-48 sm:w-48 ${DRAFT_COLOR}`}
+      {...dragListeners.card}
+      className={`${isNew ? "animate-note-in" : ""} group relative ${isDeleted ? "hidden" : "flex"} aspect-square w-full max-w-44 -rotate-1 cursor-pointer flex-col justify-between ${TOUCH_DRAG_CARD} overflow-hidden rounded-sm border p-2 text-sm shadow-md transition-[top] hover:z-10 hover:-top-1 hover:shadow-lg sm:max-w-48 ${DRAFT_COLOR}`}
     >
       <FoldedCorner />
       <button
@@ -67,8 +70,8 @@ export default function DraftCard({
         aria-label={t("dragToSchedule")}
         onClick={(event) => event.stopPropagation()}
         {...attributes}
-        {...listeners}
-        className={`absolute left-1 top-1 cursor-grab touch-none select-none rounded-sm opacity-0 transition-opacity group-hover:opacity-70 active:cursor-grabbing pointer-coarse:-m-2 pointer-coarse:p-2 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING}`}
+        {...dragListeners.handle}
+        className={`absolute left-1 top-1 cursor-grab touch-none select-none rounded-sm text-base leading-none opacity-0 transition-opacity group-hover:opacity-70 active:cursor-grabbing pointer-coarse:-m-2 pointer-coarse:p-2 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING}`}
       >
         ⠿
       </button>
@@ -79,7 +82,7 @@ export default function DraftCard({
           event.stopPropagation();
           setIsConfirmingDelete(true);
         }}
-        className={`absolute right-1 top-1 rounded-sm opacity-0 transition-opacity group-hover:opacity-70 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING}`}
+        className={`absolute right-1 top-1 rounded-sm text-base leading-none opacity-0 transition-opacity group-hover:opacity-70 pointer-coarse:opacity-70 focus-visible:opacity-100 ${FOCUS_RING}`}
       >
         ✕
       </button>

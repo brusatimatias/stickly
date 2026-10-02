@@ -19,5 +19,7 @@ export type StoredNoteDTO = Omit<NoteDTO, "time"> & {
 
 export type BoardDay = {
   key: string; // yyyy-MM-dd
-  label: string;
+  label: string; // "lun 28"
+  weekday: string; // two letters ("lu", "Mo"; one is ambiguous in Spanish): the focus-day nav on phones
+  dayNumber: string; // "28"
 };

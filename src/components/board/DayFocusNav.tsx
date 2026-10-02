@@ -27,7 +27,11 @@ export default function DayFocusNav({
   }
 
   return (
-    <div className="mb-3 flex items-center gap-2">
+    // One row from `sm` up. On phones the seven days don't fit beside "back
+    // to week", so it gets its own row (the line break below) and the days
+    // show as weekday over number, like a phone calendar. No `order`, so the
+    // tab order is the visual one at every width.
+    <div className="mb-3 flex flex-wrap items-center gap-2">
       <button
         type="button"
         onClick={onExit}
@@ -37,6 +41,7 @@ export default function DayFocusNav({
         <GridIcon className="h-3.5 w-3.5" />
         {t("backToWeek")}
       </button>
+      <span aria-hidden className="basis-full sm:hidden" />
 
       <button
         type="button"
@@ -58,7 +63,8 @@ export default function DayFocusNav({
               type="button"
               onClick={() => onSelect(day.key)}
               aria-current={isActive ? "true" : undefined}
-              className={`rounded-full px-2 py-1.5 text-center text-xs font-medium transition-colors pointer-coarse:py-2.5 ${FOCUS_RING} ${
+              aria-label={day.label}
+              className={`flex flex-col items-center rounded-xl px-1 py-1 text-center text-xs font-medium transition-colors pointer-coarse:py-2 sm:block sm:rounded-full sm:px-2 sm:py-1.5 sm:pointer-coarse:py-2.5 ${FOCUS_RING} ${
                 isActive
                   ? "bg-amber-500 text-white shadow-sm"
                   : isToday
@@ -66,7 +72,9 @@ export default function DayFocusNav({
                     : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800"
               }`}
             >
-              {day.label}
+              <span className="sm:hidden text-[10px] leading-tight opacity-80">{day.weekday}</span>
+              <span className="sm:hidden text-sm leading-tight font-semibold">{day.dayNumber}</span>
+              <span className="max-sm:hidden">{day.label}</span>
             </button>
           );
         })}

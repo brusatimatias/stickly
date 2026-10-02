@@ -66,6 +66,8 @@ export default async function Home({
     return {
       key: format(date, "yyyy-MM-dd"),
       label: format(date, "EEE d", { locale: dateFnsLocale }),
+      weekday: format(date, "EEEEEE", { locale: dateFnsLocale }),
+      dayNumber: format(date, "d"),
     };
   });
 

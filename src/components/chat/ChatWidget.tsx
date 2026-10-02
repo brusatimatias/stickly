@@ -12,6 +12,7 @@ import { formatWeekParam } from "@/lib/week";
 import { useErrorMessage } from "@/components/errorMessage";
 import { FOCUS_RING } from "@/components/focusRing";
 import { animatesExit } from "@/components/motion";
+import { useVisualViewportBox } from "@/components/chat/useVisualViewportBox";
 
 // `day` is null for drafts, which are always in view in the draft panel.
 type DisplayMessage = ChatMessage & { notes?: { id: string; day: string | null }[] };
@@ -22,6 +23,13 @@ const EXAMPLE_KEYS = ["exampleCreate", "exampleWeek", "exampleToday"] as const;
 const COUNTER_THRESHOLD = 0.8;
 
 const TYPING_DOT_DELAYS_MS = [0, 150, 300];
+
+// On phones the panel takes the visible area (what the keyboard leaves, via
+// `useVisualViewportBox`) instead of floating over the launcher: a floating
+// panel has no room once the keyboard is up, and iOS would cover its input.
+// The header's close button replaces the launcher, which is hidden meanwhile.
+const FULL_SCREEN_ON_PHONES =
+  "max-sm:inset-x-0 max-sm:top-[var(--vv-top,0px)] max-sm:bottom-auto max-sm:h-[var(--vv-height,100dvh)] max-sm:max-h-none max-sm:w-full max-sm:max-w-none max-sm:rounded-none max-sm:border-0 max-sm:pb-[env(safe-area-inset-bottom)]";
 
 /**
  * Floating assistant that creates notes from natural language. The
@@ -46,7 +54,9 @@ export default function ChatWidget({ weekDays }: { weekDays: string[] }) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const launcherRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLElement>(null);
   const counterId = useId();
+  useVisualViewportBox(panelRef, isOpen);
 
   const close = useCallback(() => {
     setIsOpen(false);
@@ -137,12 +147,13 @@ export default function ChatWidget({ weekDays }: { weekDays: string[] }) {
             className={`fixed inset-0 z-30 bg-black/25 dark:bg-black/50 ${isOpen ? "animate-overlay-in" : "animate-overlay-out pointer-events-none"}`}
           />
           <section
+            ref={panelRef}
             aria-label={t("title")}
             inert={!isOpen}
             onAnimationEnd={(event) => {
               if (!isOpen && event.target === event.currentTarget) setIsClosing(false);
             }}
-            className={`${isOpen ? "animate-dialog-in" : "animate-dialog-out"} fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-40 flex h-[28rem] max-h-[calc(100dvh-7rem-env(safe-area-inset-bottom))] w-[calc(100vw-2rem)] max-w-sm flex-col overflow-hidden rounded-2xl border border-zinc-300 bg-white shadow-2xl dark:border-zinc-700 dark:bg-zinc-900`}
+            className={`${isOpen ? "animate-dialog-in" : "animate-dialog-out"} fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-40 flex h-[28rem] max-h-[calc(100dvh-7rem-env(safe-area-inset-bottom))] w-[calc(100vw-2rem)] max-w-sm flex-col overflow-hidden rounded-2xl border border-zinc-300 bg-white shadow-2xl dark:border-zinc-700 dark:bg-zinc-900 ${FULL_SCREEN_ON_PHONES}`}
           >
             <header className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-700">
               <h2 className="flex items-center gap-2 font-semibold text-zinc-900 dark:text-zinc-100">
@@ -287,7 +298,7 @@ export default function ChatWidget({ weekDays }: { weekDays: string[] }) {
         onClick={isOpen ? close : open}
         aria-label={isOpen ? t("close") : t("open")}
         aria-expanded={isOpen}
-        className={`fixed right-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-40 cursor-pointer rounded-full bg-zinc-900 p-3.5 text-white shadow-lg transition-transform hover:-translate-y-0.5 hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white ${FOCUS_RING}`}
+        className={`${isOpen ? "max-sm:hidden" : ""} fixed right-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-40 cursor-pointer rounded-full bg-zinc-900 p-3.5 text-white shadow-lg transition-transform hover:-translate-y-0.5 hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white ${FOCUS_RING}`}
       >
         {isOpen ? <CloseIcon className="h-5 w-5" /> : <ChatIcon className="h-5 w-5" />}
       </button>

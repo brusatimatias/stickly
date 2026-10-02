@@ -191,12 +191,30 @@ export default function Board({
   const dndContextId = useId();
   const sensors = useSensors(
     // Mouse and touch instead of PointerSensor, which would also start a drag
-    // on touch right away. On touch, a drag needs a short press on the handle,
-    // so a swipe over it still scrolls the page.
+    // on touch right away. The mouse drags from the handle; a touch drags from
+    // anywhere on the card after a short press (`splitDragListeners`), so a
+    // swipe over the cards still scrolls the page.
     useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
+
+  // When the days stack (phones, narrow or vertical screens) today can be
+  // several screens down, so start there. Only on load (the board remounts
+  // per week), only if today is below the middle of the screen (never in the
+  // seven-column layout) and only if the page wasn't already scrolled (back
+  // navigation or a reload restores it).
+  // Read through a ref so a new `todayKey` after midnight (any revalidation
+  // brings one) doesn't scroll a page the user is already looking at.
+  const initialTodayKeyRef = useRef(todayKey);
+  useEffect(() => {
+    if (window.scrollY > 0) return;
+    const today = document.querySelector<HTMLElement>(
+      `[data-day="${initialTodayKeyRef.current}"]`
+    );
+    if (!today || today.getBoundingClientRect().top < window.innerHeight / 2) return;
+    today.scrollIntoView({ block: "start" });
+  }, []);
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
@@ -233,6 +251,11 @@ export default function Board({
   );
 
   function handleDragStart(event: DragStartEvent) {
+    // The press delay has no other cue, so tell the finger it can move now
+    // (Android; iOS has no vibration API).
+    if (typeof TouchEvent !== "undefined" && event.activatorEvent instanceof TouchEvent) {
+      navigator.vibrate?.(10);
+    }
     // A card dragged into another day remounts there; don't replay its entrance.
     setNewNoteIds(new Set());
     const container = findContainer(event.active.id as string, notesByDay) ?? null;
@@ -392,8 +415,12 @@ export default function Board({
             }}
           >
             {/* Bottom padding so the chat launcher never covers the last notes. */}
-            <div className="flex flex-col gap-3 p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:flex-row">
-              <DraftPanel notes={notesIn(DRAFT_CONTAINER)} newNoteIds={animatedIds} />
+            <div className="flex flex-col gap-3 p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
+              <DraftPanel
+                notes={notesIn(DRAFT_CONTAINER)}
+                newNoteIds={animatedIds}
+                isDragging={activeNote !== null}
+              />
               {focusedDayInfo ? (
                 <div className="animate-week-in min-w-0 flex-1">
                   <DayFocusNav
@@ -445,7 +472,7 @@ export default function Board({
                   const style = getNoteStyle(activeNote.id);
                   return (
                     <div
-                      className={`relative flex h-44 w-44 flex-col justify-center overflow-hidden rounded-sm border p-2 text-sm shadow-lg sm:h-48 sm:w-48 ${style.rotation} ${style.bg} ${style.border} ${style.text}`}
+                      className={`relative flex size-full flex-col justify-center overflow-hidden rounded-sm border p-2 text-sm shadow-lg ${style.rotation} ${style.bg} ${style.border} ${style.text}`}
                     >
                       <FoldedCorner />
                       <p className="line-clamp-3 font-semibold">{activeNote.title}</p>

@@ -48,6 +48,14 @@ export function ChevronRightIcon({ className }: IconProps) {
   );
 }
 
+export function ChevronDownIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <path d="M6 9l6 6 6-6" />
+    </Icon>
+  );
+}
+
 export function CalendarIcon({ className }: IconProps) {
   return (
     <Icon className={className}>

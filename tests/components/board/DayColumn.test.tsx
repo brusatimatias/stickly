@@ -16,7 +16,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 import DayColumn from "@/components/board/DayColumn";
 import type { NoteDTO } from "@/components/board/types";
 
-const DAY = { key: "2026-10-01", label: "jue 1" };
+const DAY = { key: "2026-10-01", label: "jue 1", weekday: "ju", dayNumber: "1" };
 const t = messages.board;
 
 const NOTE: NoteDTO = {
