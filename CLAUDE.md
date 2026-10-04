@@ -88,7 +88,7 @@ A notes/reminders app organized on a whiteboard-style weekly board, with Google 
 - Reminders go through QStash, not a frequent cron, on purpose: Vercel Hobby only allows a daily cron, and polling every few minutes would keep Neon's free-tier compute awake all month. Don't replace it with polling. Everything about notifications is configured from the profile; notes have no per-note reminder control (rejected as redundant clutter).
 - The WhatsApp bot only replies (inside Meta's 24 h window); it never starts a conversation, since that needs Meta-approved templates and is billed separately.
 - WebMCP (exposing the tools to external browser agents via `document.modelContext`) was prototyped and deliberately removed; the chat talks to the server only. Don't reintroduce it without asking.
-- Postgres runs on the user's local server (not Docker). The dev database is `stickly-development`, following the `<app>-development`/`<app>-test` convention used in their other projects.
+- Postgres runs on the user's local server by default (`.env` + `npm run dev`). The dev database is `stickly-development`, following the `<app>-development`/`<app>-test` convention used in their other projects. A Docker alternative exists for local development only (`docker-compose.yml`, `Dockerfile`, `Makefile`, `.env.dev`, see the README): never point it at production, never touch `.env` from it, and keep it out of the Vercel deploy and CI.
 
 ## Broader plan context
 
