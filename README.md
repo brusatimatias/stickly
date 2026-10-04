@@ -87,6 +87,40 @@ A notes/reminders app organized on a whiteboard-style weekly board, with Google 
 
    It (re)creates two users with notes in the current week. They sign in with email and password only: `ana@stickly.test` and `bruno@stickly.test`, both with `stickly-demo-123`.
 
+### Development environment with Docker
+
+**For local development only**: nothing here is used by the Vercel deploy, CI or any other environment. It runs Postgres in a container (no Postgres needed on the host) and, optionally, the app too. The steps above with `.env` and `npm run dev` keep working as before.
+
+1. Create `.env.dev` from the example (it's gitignored and holds only the local database settings; the other variables are still read from `.env`):
+
+   ```bash
+   cp .env.dev.example .env.dev
+   ```
+
+   The container's Postgres is published on `127.0.0.1:5433` (`POSTGRES_PORT`), so it doesn't clash with a Postgres already running on the host's 5432. Likewise, the app runs on [http://localhost:3001](http://localhost:3001) (`APP_PORT`) with both `make dev` and `make app`, so it can run next to `npm run dev`. Google sign in on that port needs `http://localhost:3001/api/auth/callback/google` added to the OAuth client's authorized redirect URIs.
+
+2. Start the database and apply the migrations:
+
+   ```bash
+   make up
+   make migrate
+   make seed   # optional: the demo users described above
+   ```
+
+3. Start the app on the host against that database. In this flow, start it with `make dev`, **not** `npm run dev`: `make` exports `.env.dev`, whose `DATABASE_URL` takes precedence over the one in `.env`.
+
+   ```bash
+   make dev
+   ```
+
+   Or run the app in Docker as well, with hot reload over the mounted code (`make app-rebuild` after changing dependencies):
+
+   ```bash
+   make app
+   ```
+
+`make help` lists every command (`down`, `logs`, `psql`, `studio`…). `make dev`, `make migrate`, `make seed` and `make studio` abort if `.env.dev` is missing or its `DATABASE_URL` doesn't point to `localhost`/`127.0.0.1`. `make down` keeps the data in a Docker volume.
+
 ### Other commands
 
 - `npm test`: unit and component tests (Vitest). Run a single file with `npm test -- tests/lib/notes.test.ts`.
