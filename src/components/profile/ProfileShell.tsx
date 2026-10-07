@@ -7,8 +7,12 @@ import LocaleSwitcher from "@/components/LocaleSwitcher";
 import PageHeader from "@/components/PageHeader";
 import ThemeToggle from "@/components/ThemeToggle";
 
-/** The profile's header and background, shared by the page and its loading skeleton. */
-export default function ProfileShell({ children }: { children: ReactNode }) {
+/**
+ * The profile's header and background, shared by the page and its loading
+ * skeleton. Only the page passes `signOut`: the button is a server component
+ * bound to the session.
+ */
+export default function ProfileShell({ signOut, children }: { signOut?: ReactNode; children: ReactNode }) {
   const t = useTranslations("profile");
 
   return (
@@ -24,6 +28,7 @@ export default function ProfileShell({ children }: { children: ReactNode }) {
         <div className="flex items-center gap-2">
           <ThemeToggle />
           <LocaleSwitcher />
+          {signOut}
         </div>
       </PageHeader>
       <div className="flex flex-1 justify-center bg-zinc-50 px-4 py-10 dark:bg-black">{children}</div>
