@@ -3,7 +3,9 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { createPortal } from "react-dom";
+import { useBoardTimeZone } from "@/components/board/TimeZoneContext";
 import { ClockIcon } from "@/components/icons";
+import { toLocalSchedule } from "@/lib/schedule";
 
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
 const MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0"));
@@ -20,6 +22,7 @@ export default function TimePicker({
   onChange: (time: string) => void;
 }) {
   const t = useTranslations("board");
+  const timeZone = useBoardTimeZone();
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -65,8 +68,10 @@ export default function TimePicker({
 
   useEffect(() => {
     if (!open) return;
-    const targetHour = hour || "09";
-    const targetMinute = minute || "00";
+    // Without a time yet, start at the current time in the board's zone.
+    const [targetHour, targetMinute] = value
+      ? [hour, minute]
+      : toLocalSchedule(new Date(), "TIMED", timeZone).time!.split(":");
     requestAnimationFrame(() => {
       hourListRef.current
         ?.querySelector<HTMLElement>(`[data-value="${targetHour}"]`)
