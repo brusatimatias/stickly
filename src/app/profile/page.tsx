@@ -7,6 +7,7 @@ import { PASSWORD_RESET_PARAM } from "@/lib/profile";
 import { isRecentGoogleSignIn } from "@/lib/session";
 import { isQStashConfigured } from "@/lib/qstash";
 import { getVapidPublicKey } from "@/lib/webPush";
+import SignOutButton from "@/components/auth/SignOutButton";
 import ProfileForm from "@/components/profile/ProfileForm";
 import ProfileShell from "@/components/profile/ProfileShell";
 
@@ -47,7 +48,7 @@ export default async function ProfilePage({
   const vapidPublicKey = getVapidPublicKey();
 
   return (
-    <ProfileShell>
+    <ProfileShell signOut={<SignOutButton />}>
       <ProfileForm
         name={user.name ?? ""}
         email={user.email}

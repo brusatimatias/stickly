@@ -16,7 +16,6 @@ import {
   parseWeekParam,
 } from "@/lib/week";
 import SignInScreen from "@/components/auth/SignInScreen";
-import SignOutButton from "@/components/auth/SignOutButton";
 import Board from "@/components/board/Board";
 import ChatWidget from "@/components/chat/ChatWidget";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
@@ -107,7 +106,6 @@ export default async function Home({
           </Link>
           <ThemeToggle />
           <LocaleSwitcher />
-          <SignOutButton />
         </div>
       </PageHeader>
       <Board
