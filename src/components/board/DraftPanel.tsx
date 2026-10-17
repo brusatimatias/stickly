@@ -30,11 +30,14 @@ export default function DraftPanel({
   notes,
   newNoteIds,
   isDragging,
+  isDropTarget = false,
 }: {
   notes: NoteDTO[];
   newNoteIds: ReadonlySet<string>;
   /** A note is being dragged anywhere on the board. */
   isDragging: boolean;
+  /** A scheduled note is dragged over the tray, and dropping it makes it a draft. */
+  isDropTarget?: boolean;
 }) {
   const t = useTranslations("board");
   const { setNodeRef } = useDroppable({ id: DRAFT_CONTAINER });
@@ -62,7 +65,13 @@ export default function DraftPanel({
     <section
       ref={setNodeRef}
       aria-label={t("draft")}
-      className="flex w-full flex-col gap-3 rounded-lg border border-dashed border-zinc-200 px-3 py-1.5 dark:border-zinc-800"
+      className={`flex w-full flex-col gap-3 rounded-lg border border-dashed px-3 py-1.5 transition-colors ${
+        isDropTarget
+          ? notes.length < MAX_DRAFT_NOTES
+            ? "border-orange-400 bg-orange-50 dark:border-orange-500 dark:bg-orange-950/30"
+            : "border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950/30"
+          : "border-zinc-200 dark:border-zinc-800"
+      }`}
     >
       <header className="flex min-h-8 items-center gap-2">
         <p className="shrink-0 text-sm font-semibold text-zinc-700 dark:text-zinc-300">

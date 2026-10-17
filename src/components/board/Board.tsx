@@ -28,7 +28,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { moveDraftNote, moveNote, scheduleDraftNote } from "@/app/actions/notes";
+import { moveDraftNote, moveNote, moveNoteToDrafts, scheduleDraftNote } from "@/app/actions/notes";
 import {
   BoardActionsProvider,
   DRAFT_CONTAINER,
@@ -44,6 +44,7 @@ import type { BoardDay, NoteDTO, StoredNoteDTO } from "@/components/board/types"
 import { useErrorMessage } from "@/components/errorMessage";
 import { FOCUS_RING } from "@/components/focusRing";
 import { getNoteStyle } from "@/lib/noteColor";
+import { MAX_DRAFT_NOTES } from "@/lib/noteInput";
 import { groupNotesByDay, toDraftNoteDTO } from "@/lib/noteGroups";
 import { sortDoneLast } from "@/lib/ordering";
 import { toScheduleInput, toStoredSchedule } from "@/lib/schedule";
@@ -175,6 +176,8 @@ export default function Board({
     [addPendingNote]
   );
   const [activeNote, setActiveNote] = useState<NoteDTO | null>(null);
+  // A scheduled note is being dragged over the drafts, which it joins on drop.
+  const [isOverDrafts, setIsOverDrafts] = useState(false);
   const originContainerRef = useRef<string | null>(null);
   const lastOverIdRef = useRef<string | null>(null);
   const recentlyMovedToNewContainerRef = useRef(false);
@@ -297,11 +300,14 @@ export default function Board({
       return;
     }
 
-    // Only drafts may ever occupy the draft container, so a regular scheduled
-    // note can never be dropped back into it.
-    if (overContainer === DRAFT_CONTAINER && originContainerRef.current !== DRAFT_CONTAINER) {
-      return;
-    }
+    // A scheduled note isn't moved into the drafts while dragging: a
+    // collapsed tray renders no cards, so it would have nowhere to be (and
+    // expanding it mid-drag would shift the week under the pointer). It stays
+    // in its day, the tray is highlighted, and the drop moves it.
+    const isOverDraftsNow =
+      overContainer === DRAFT_CONTAINER && originContainerRef.current !== DRAFT_CONTAINER;
+    if (isOverDraftsNow !== isOverDrafts) setIsOverDrafts(isOverDraftsNow);
+    if (isOverDraftsNow) return;
 
     recentlyMovedToNewContainerRef.current = true;
     setNotesByDay((prev) => {
@@ -342,7 +348,14 @@ export default function Board({
     originContainerRef.current = null;
     lastOverIdRef.current = null;
     setActiveNote(null);
+    setIsOverDrafts(false);
     if (!over) return;
+
+    const overContainer = findContainer(over.id as string, notesByDay) ?? (over.id as string);
+    if (overContainer === DRAFT_CONTAINER && originContainer && originContainer !== DRAFT_CONTAINER) {
+      moveToDrafts(active.id as string, over.id as string);
+      return;
+    }
 
     const destinationContainer =
       findContainer(active.id as string, notesByDay) ?? (over.id as string);
@@ -368,6 +381,34 @@ export default function Board({
           ? scheduleDraftNote({ noteId: active.id as string, day: destinationContainer, index })
           : moveNote({ noteId: active.id as string, day: destinationContainer, index, schedule }),
     });
+  }
+
+  /** Drops a scheduled note on the drafts: before the draft it's over, or last. */
+  function moveToDrafts(noteId: string, overId: string) {
+    const drafts = notesIn(DRAFT_CONTAINER);
+    const overIndex = drafts.findIndex((note) => note.id === overId);
+    const index = overIndex >= 0 ? overIndex : drafts.length;
+    if (drafts.length < MAX_DRAFT_NOTES) {
+      setNotesByDay((prev) => {
+        // Where dragOver left it, which may be a day it crossed on the way.
+        const container = findContainer(noteId, prev);
+        const note = container && prev[container].find(({ id }) => id === noteId);
+        if (!container || !note) return prev;
+        const moved = { ...note, time: null, isDone: false, googleEventId: null };
+        const list = prev[DRAFT_CONTAINER];
+        return {
+          ...prev,
+          [container]: prev[container].filter(({ id }) => id !== noteId),
+          [DRAFT_CONTAINER]: [...list.slice(0, index), moved, ...list.slice(index)],
+        };
+      });
+    } else {
+      // No room: back where the server has it, and the server says why
+      // (DRAFT_LIMIT_REACHED).
+      setNotesByDay(buildNotesByDay());
+    }
+    // A failure resets the board to the server's data (`run` above).
+    run({ action: () => moveNoteToDrafts({ noteId, index }) });
   }
 
   return (
@@ -412,6 +453,7 @@ export default function Board({
             onDragCancel={() => {
               lastOverIdRef.current = null;
               setActiveNote(null);
+              setIsOverDrafts(false);
             }}
           >
             {/* Bottom padding so the chat launcher never covers the last notes. */}
@@ -420,6 +462,7 @@ export default function Board({
                 notes={notesIn(DRAFT_CONTAINER)}
                 newNoteIds={animatedIds}
                 isDragging={activeNote !== null}
+                isDropTarget={isOverDrafts}
               />
               {focusedDayInfo ? (
                 <div className="animate-week-in min-w-0 flex-1">

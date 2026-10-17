@@ -12,7 +12,7 @@
     "today": "Hoy",
     "nextWeek": "Semana siguiente",
     "addNote": "Agregar nota",
-    "emptyDraftsHint": "Notas sin fecha. Guardá hasta {count} acá y arrastralas a un día cuando sepas cuándo.",
+    "emptyDraftsHint": "Notas sin fecha. Guardá hasta {count} acá y arrastralas a un día cuando sepas cuándo. También podés traer acá una nota de un día.",
     "emptyWeekHint": "Todavía no hay nada planeado esta semana. Agregá una nota con + en cualquier día, o pedíselo al asistente (abajo a la derecha).",
     "loadingBoard": "Cargando tu tablero…",
     "draft": "Borrador",
