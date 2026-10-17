@@ -12,7 +12,7 @@
     "today": "Today",
     "nextWeek": "Next week",
     "addNote": "Add note",
-    "emptyDraftsHint": "Notes without a date. Keep up to {count} here and drag them onto a day once you know when.",
+    "emptyDraftsHint": "Notes without a date. Keep up to {count} here and drag them onto a day once you know when. You can also drag a day's note back here.",
     "emptyWeekHint": "Nothing planned this week yet. Add a note with + on any day, or ask the assistant (bottom right).",
     "loadingBoard": "Loading your board…",
     "draft": "Draft",

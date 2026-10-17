@@ -42,6 +42,7 @@ import {
   deleteNote,
   moveDraftNote,
   moveNote,
+  moveNoteToDrafts,
   scheduleDraftNote,
   toggleNoteDone,
   updateDraftNote,
@@ -645,5 +646,69 @@ describe("scheduleDraftNote", () => {
       "done-1": 3,
       "done-2": 4,
     });
+  });
+});
+
+describe("moveNoteToDrafts", () => {
+  beforeEach(() => {
+    mockPrisma.note.aggregate.mockResolvedValue({ _count: 1, _max: { position: 0 } });
+  });
+
+  test("turns the note into a pending draft at the given index, without a schedule", async () => {
+    mockPrisma.note.findFirst.mockResolvedValue({ id: "note-1", googleEventId: null });
+    mockPrisma.note.findMany.mockResolvedValue([{ id: "draft-1" }]);
+
+    await moveNoteToDrafts({ noteId: "note-1", index: 0 });
+
+    expect(mockPrisma.$executeRaw).toHaveBeenCalled();
+    expect(mockPrisma.note.findFirst).toHaveBeenCalledWith({
+      where: { id: "note-1", userId: "user-1", isDraft: false },
+    });
+    expect(mockPrisma.note.update).toHaveBeenCalledWith({
+      where: { id: "note-1" },
+      data: {
+        position: 0,
+        isDraft: true,
+        isDone: false,
+        kind: "ALL_DAY",
+        startsAt: null,
+        googleEventId: null,
+        reminderSentFor: null,
+      },
+    });
+    expect(mockPrisma.note.update).toHaveBeenCalledWith({
+      where: { id: "draft-1" },
+      data: { position: 1 },
+    });
+    expect(afterCallbacks).toHaveLength(0);
+    expect(mockRevalidatePath).toHaveBeenCalledWith("/");
+  });
+
+  test("deletes the Calendar event of a synced note after the response", async () => {
+    mockPrisma.note.findFirst.mockResolvedValue({ id: "note-1", googleEventId: "event-1" });
+    mockPrisma.note.findMany.mockResolvedValue([]);
+
+    await moveNoteToDrafts({ noteId: "note-1", index: 0 });
+    await runAfterCallbacks();
+
+    expect(mockDeleteCalendarEvent).toHaveBeenCalledWith("user-1", "event-1");
+  });
+
+  test("throws when the drafts are full", async () => {
+    mockPrisma.note.findFirst.mockResolvedValue({ id: "note-1", googleEventId: null });
+    mockPrisma.note.aggregate.mockResolvedValue({ _count: 4, _max: { position: 3 } });
+
+    await expect(moveNoteToDrafts({ noteId: "note-1", index: 0 })).rejects.toThrow(
+      "DRAFT_LIMIT_REACHED"
+    );
+    expect(mockPrisma.note.update).not.toHaveBeenCalled();
+  });
+
+  test("throws when the note isn't a scheduled note of this user", async () => {
+    mockPrisma.note.findFirst.mockResolvedValue(null);
+
+    await expect(moveNoteToDrafts({ noteId: "note-1", index: 0 })).rejects.toThrow(
+      "NOTE_NOT_FOUND"
+    );
   });
 });

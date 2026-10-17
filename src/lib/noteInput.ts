@@ -54,7 +54,7 @@ export const CREATE_NOTE_TOOL = {
         type: "string",
         description: `2 to 6 words, at most ${TITLE_SOFT_LIMIT} characters, starting with a verb or the key noun, e.g. "Call the plumber". No day, time or place (they have their own fields) and no filler like "remind me to".`,
       },
-      day: { type: "string", description: "Day of the note, yyyy-MM-dd." },
+      day: { type: "string", description: "Day of the note, yyyy-MM-dd. Today when the user gave no date." },
       time: { type: "string", description: "Time of day in 24h HH:mm. Omit when none was given." },
       location: {
         type: "string",
@@ -76,7 +76,7 @@ export const CREATE_NOTE_TOOL = {
  */
 export const CREATE_DRAFT_NOTE_TOOL = {
   name: "create_draft_note",
-  description: `Creates a draft note (no date) in the draft panel of the user's Stickly board. Only use it when the user explicitly asks for a draft ("borrador"); a note missing its date is not a draft. The user can keep at most ${MAX_DRAFT_NOTES} drafts.`,
+  description: `Creates a draft note (no date) in the draft panel of the user's Stickly board. Only use it when the user explicitly asks for a draft ("borrador"); a note missing its date is not a draft, it's for today. The user can keep at most ${MAX_DRAFT_NOTES} drafts.`,
   inputSchema: {
     type: "object",
     properties: {
