@@ -5,7 +5,7 @@ import { after } from "next/server";
 import { calendarEventChanged } from "@/lib/calendarEvent";
 import { dayToDate, nextDay } from "@/lib/datetime";
 import { deleteCalendarEvent, updateCalendarEvent } from "@/lib/googleCalendar";
-import { createDraftNoteForUser, createNoteForUser } from "@/lib/noteCreation";
+import { createDraftNoteForUser, createNoteForUser, lockDraftsWithRoom } from "@/lib/noteCreation";
 import {
   sanitizeDay,
   sanitizeDescription,
@@ -319,6 +319,62 @@ export async function scheduleDraftNote(input: { noteId: string; day: string; in
       )
     );
   });
+
+  revalidatePath("/");
+}
+
+/**
+ * Turns a scheduled note back into a draft at position `index` among the
+ * drafts, for a note whose day is no longer clear. It loses its schedule, so
+ * its Calendar event goes too and it's left pending (drafts have no done
+ * state). Counted against `MAX_DRAFT_NOTES` under the same lock as
+ * `createDraftNoteForUser`. A queued reminder needs no cancelling:
+ * `deliverReminder` drops it once the note has no time.
+ */
+export async function moveNoteToDrafts(input: { noteId: string; index: number }) {
+  const userId = await requireUserId();
+
+  const movingNote = await prisma.$transaction(async (tx) => {
+    const movingNote = await tx.note.findFirst({
+      where: { id: input.noteId, userId, isDraft: false },
+    });
+    if (!movingNote) {
+      throw new Error("NOTE_NOT_FOUND");
+    }
+    await lockDraftsWithRoom(tx, userId);
+
+    const drafts = await tx.note.findMany({
+      where: { userId, isDraft: true },
+      orderBy: [{ position: "asc" }, { createdAt: "asc" }],
+    });
+    const ordered = insertAtIndex(drafts, movingNote, input.index);
+
+    await Promise.all(
+      ordered.map((note, position) =>
+        tx.note.update({
+          where: { id: note.id },
+          data: {
+            position,
+            ...(note.id === input.noteId
+              ? {
+                  isDraft: true,
+                  isDone: false,
+                  kind: "ALL_DAY" as const,
+                  startsAt: null,
+                  googleEventId: null,
+                  reminderSentFor: null,
+                }
+              : {}),
+          },
+        })
+      )
+    );
+    return movingNote;
+  });
+
+  if (movingNote.googleEventId) {
+    deleteCalendarEventAfterResponse(userId, movingNote.googleEventId);
+  }
 
   revalidatePath("/");
 }

@@ -5,6 +5,7 @@ import {
   sanitizeTitle,
   type NoteFields,
 } from "@/lib/noteInput";
+import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { queueNoteReminderAfterResponse } from "@/lib/reminders";
 import type { StoredSchedule } from "@/lib/schedule";
@@ -77,16 +78,7 @@ export async function createDraftNoteForUser(
   const description = sanitizeDescription(input.description);
 
   await prisma.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${userId})::bigint)`;
-
-    const drafts = await tx.note.aggregate({
-      where: { userId, isDraft: true },
-      _count: true,
-      _max: { position: true },
-    });
-    if (drafts._count >= MAX_DRAFT_NOTES) {
-      throw new Error("DRAFT_LIMIT_REACHED");
-    }
+    const drafts = await lockDraftsWithRoom(tx, userId);
 
     // Drafts are ordered among themselves; scheduleDraftNote gives a draft
     // its position in the day it's dropped on.
@@ -104,4 +96,24 @@ export async function createDraftNoteForUser(
   });
 
   return { id };
+}
+
+/**
+ * Takes the user's draft advisory lock for the rest of `tx` and checks there's
+ * room for one more draft (`DRAFT_LIMIT_REACHED` otherwise). Every way a note
+ * becomes a draft (`createDraftNoteForUser`, `moveNoteToDrafts`) goes through
+ * it, so concurrent calls can't go over `MAX_DRAFT_NOTES` together.
+ */
+export async function lockDraftsWithRoom(tx: Prisma.TransactionClient, userId: string) {
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${userId})::bigint)`;
+
+  const drafts = await tx.note.aggregate({
+    where: { userId, isDraft: true },
+    _count: true,
+    _max: { position: true },
+  });
+  if (drafts._count >= MAX_DRAFT_NOTES) {
+    throw new Error("DRAFT_LIMIT_REACHED");
+  }
+  return drafts;
 }
