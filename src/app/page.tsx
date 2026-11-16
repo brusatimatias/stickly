@@ -109,7 +109,6 @@ export default async function Home({
         </div>
       </PageHeader>
       <Board
-        key={format(start, "yyyy-MM-dd")}
         days={days}
         notes={notes.map(toStoredNoteDTO)}
         draftNotes={drafts.map(toStoredNoteDTO)}

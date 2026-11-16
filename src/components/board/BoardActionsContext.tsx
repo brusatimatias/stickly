@@ -12,6 +12,10 @@ import {
 /** The container id of the drafts panel, next to the day keys (yyyy-MM-dd). */
 export const DRAFT_CONTAINER = "draft";
 
+/** The droppable ids of the week arrows: holding a note there changes week. */
+export const WEEK_ARROWS = { prev: "week-prev", next: "week-next" } as const;
+export type WeekDirection = keyof typeof WEEK_ARROWS;
+
 export type BoardAction = {
   /**
    * Shows the result right away. It runs inside the action's transition, so

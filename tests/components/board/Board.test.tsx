@@ -64,6 +64,30 @@ function board(notes: StoredNoteDTO[], draftNotes: StoredNoteDTO[] = []) {
   );
 }
 
+/** The board after changing to the next week (which a drag can do without remounting it). */
+const NEXT_DAYS = ["2026-10-05", "2026-10-06", "2026-10-07", "2026-10-08", "2026-10-09", "2026-10-10", "2026-10-11"].map(
+  (key) => ({ key, label: key, weekday: "xx", dayNumber: key.slice(-2) })
+);
+
+function nextWeekBoard(notes: StoredNoteDTO[], todayKey = "2026-09-30") {
+  return (
+    <NextIntlClientProvider locale="es" messages={messages} timeZone="UTC">
+      <Board
+        days={NEXT_DAYS}
+        notes={notes}
+        draftNotes={[]}
+        timeZone="UTC"
+        weekLabel="oct 5 – oct 11, 2026"
+        prevWeekParam="2026-09-28"
+        nextWeekParam="2026-10-12"
+        currentWeekParam="2026-10-05"
+        todayWeekParam="2026-09-28"
+        todayKey={todayKey}
+      />
+    </NextIntlClientProvider>
+  );
+}
+
 function renderBoard(notes: StoredNoteDTO[], draftNotes: StoredNoteDTO[] = []) {
   return render(board(notes, draftNotes));
 }
@@ -181,6 +205,16 @@ describe("Board", () => {
       expect(scrollIntoView).not.toHaveBeenCalled();
     });
 
+    test("scrolls to today when its week is shown on the same board", () => {
+      const scrollIntoView = stubLayout(window.innerHeight * 2);
+      const { rerender } = render(nextWeekBoard([]));
+      expect(scrollIntoView).not.toHaveBeenCalled();
+
+      rerender(board([]));
+
+      expect(scrollIntoView).toHaveBeenCalledOnce();
+    });
+
     test("stays put when today is already in view", () => {
       const scrollIntoView = stubLayout(100);
 
@@ -214,6 +248,49 @@ describe("Board", () => {
 
     endEntranceAnimation(cardOf("Llamar al plomero"));
     expect(cardOf("Llamar al plomero").className).not.toContain("animate-note-in");
+  });
+
+  describe("changing week on the same board", () => {
+    const NEXT_NOTE: StoredNoteDTO = {
+      ...NOTE,
+      id: "note-next",
+      title: "Turno médico",
+      startsAt: "2026-10-07T14:00:00.000Z",
+    };
+
+    test("doesn't animate the notes of the week it changes to", () => {
+      const { rerender } = renderBoard([NOTE]);
+
+      rerender(nextWeekBoard([NEXT_NOTE]));
+
+      expect(screen.queryByText("Renovar DNI")).toBeNull();
+      expect(cardOf("Turno médico").className).not.toContain("animate-note-in");
+    });
+
+    test("clears the error notice", async () => {
+      const create = deferred();
+      vi.mocked(createNote).mockReturnValue(create.promise);
+      const { rerender } = renderBoard([]);
+      fireEvent.click(screen.getAllByLabelText(messages.board.addNote)[2]);
+      await writeAndSave("Llamar al plomero");
+      await act(async () => create.reject(new Error("INVALID_SCHEDULE")));
+      await act(async () => {});
+      expect(screen.getByRole("alert")).toBeTruthy();
+
+      rerender(nextWeekBoard([]));
+
+      expect(screen.queryByRole("alert")).toBeNull();
+    });
+
+    test("leaves focus-day mode for the whole week when not dragging", () => {
+      const { rerender } = renderBoard([]);
+      fireEvent.click(screen.getAllByLabelText(messages.board.focusDay)[2]);
+      expect(document.querySelectorAll("[data-day]")).toHaveLength(1);
+
+      rerender(nextWeekBoard([]));
+
+      expect(document.querySelectorAll("[data-day]")).toHaveLength(7);
+    });
   });
 
   describe("showing changes before the server answers", () => {
