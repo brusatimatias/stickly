@@ -191,6 +191,9 @@ export default function Board({
     [addPendingNote]
   );
   const [activeNote, setActiveNote] = useState<NoteDTO | null>(null);
+  // Only a mouse or keyboard drag can change week: on a phone the arrows are
+  // usually screens away from the note, so a touch drag stays in its week.
+  const [isTouchDrag, setIsTouchDrag] = useState(false);
   // A scheduled note is being dragged over the drafts, which it joins on drop.
   const [isOverDrafts, setIsOverDrafts] = useState(false);
   const originContainerRef = useRef<string | null>(null);
@@ -201,11 +204,14 @@ export default function Board({
   if (isNewWeek) {
     setSyncedWeekStart(weekStart);
     setActionError(null);
-    // Focus-day mode stays on the same weekday, so changing week mid-drag
-    // doesn't swap the single day for the whole week under the finger.
-    if (focusedDay && syncedWeekStart) {
+    // Focus-day mode goes back to the whole week, except mid-drag: then it
+    // stays on the same weekday, so the day isn't swapped for the whole week
+    // under the pointer.
+    if (focusedDay && syncedWeekStart && activeNote) {
       const weekday = differenceInCalendarDays(parseISO(focusedDay), parseISO(syncedWeekStart));
       setFocusedDay(days[weekday]?.key ?? null);
+    } else if (focusedDay) {
+      setFocusedDay(null);
     }
   }
   const focusedDayInfo = days.find((day) => day.key === focusedDay) ?? null;
@@ -279,9 +285,10 @@ export default function Board({
   function handleDragStart(event: DragStartEvent) {
     // The press delay has no other cue, so tell the finger it can move now
     // (Android; iOS has no vibration API).
-    if (typeof TouchEvent !== "undefined" && event.activatorEvent instanceof TouchEvent) {
-      navigator.vibrate?.(10);
-    }
+    const isTouch =
+      typeof TouchEvent !== "undefined" && event.activatorEvent instanceof TouchEvent;
+    if (isTouch) navigator.vibrate?.(10);
+    setIsTouchDrag(isTouch);
     // A card dragged into another day remounts there; don't replay its entrance.
     setNewNoteIds(new Set());
     const container = findContainer(event.active.id as string, notesByDay) ?? null;
@@ -333,7 +340,7 @@ export default function Board({
       return;
     }
 
-    if (!activeContainer || !overContainer) {
+    if (!activeContainer || !(overContainer in notesByDay)) {
       return;
     }
 
@@ -395,6 +402,7 @@ export default function Board({
     originContainerRef.current = null;
     lastOverIdRef.current = null;
     setActiveNote(null);
+    setIsTouchDrag(false);
     setIsOverDrafts(false);
     weekFlip.stop();
     if (!over || weekArrowDirection(over.id) || weekFlip.isFlipping) {
@@ -497,6 +505,7 @@ export default function Board({
               setNotesByDay(buildNotesByDay());
               lastOverIdRef.current = null;
               setActiveNote(null);
+              setIsTouchDrag(false);
               setIsOverDrafts(false);
             }}
           >
@@ -507,6 +516,7 @@ export default function Board({
             currentWeekParam={currentWeekParam}
             todayWeekParam={todayWeekParam}
             isLoading={weekFlip.isFlipping}
+            acceptsNotes={!isTouchDrag}
           />
           {actionError && (
             <div

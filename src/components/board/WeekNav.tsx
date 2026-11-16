@@ -17,6 +17,7 @@ export default function WeekNav({
   currentWeekParam,
   todayWeekParam,
   isLoading = false,
+  acceptsNotes = true,
 }: {
   weekLabel: string;
   prevWeekParam: string;
@@ -25,6 +26,8 @@ export default function WeekNav({
   todayWeekParam: string;
   /** A week is loading while a note is dragged (the label pulses until it's shown). */
   isLoading?: boolean;
+  /** The arrows take a dragged note (to change week); off for a touch drag. */
+  acceptsNotes?: boolean;
 }) {
   const t = useTranslations("board");
   const router = useRouter();
@@ -32,8 +35,14 @@ export default function WeekNav({
   const isoWeekValue = format(parseISO(currentWeekParam), "RRRR-'W'II");
   const isCurrentWeek = currentWeekParam === todayWeekParam;
   // Destructured, as in DayColumn: the lint reads `drop.setNodeRef` as a ref access.
-  const { setNodeRef: setPrevRef, isOver: isOverPrev } = useDroppable({ id: WEEK_ARROWS.prev });
-  const { setNodeRef: setNextRef, isOver: isOverNext } = useDroppable({ id: WEEK_ARROWS.next });
+  const { setNodeRef: setPrevRef, isOver: isOverPrev } = useDroppable({
+    id: WEEK_ARROWS.prev,
+    disabled: !acceptsNotes,
+  });
+  const { setNodeRef: setNextRef, isOver: isOverNext } = useDroppable({
+    id: WEEK_ARROWS.next,
+    disabled: !acceptsNotes,
+  });
   const dropRing = "ring-4 ring-amber-400 dark:ring-amber-600";
 
   function handleWeekPick(value: string) {

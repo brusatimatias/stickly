@@ -282,18 +282,14 @@ describe("Board", () => {
       expect(screen.queryByRole("alert")).toBeNull();
     });
 
-    test("keeps focus-day mode on the same weekday", () => {
+    test("leaves focus-day mode for the whole week when not dragging", () => {
       const { rerender } = renderBoard([]);
       fireEvent.click(screen.getAllByLabelText(messages.board.focusDay)[2]);
-      expect([...document.querySelectorAll("[data-day]")].map((day) => day.getAttribute("data-day"))).toEqual([
-        "2026-09-30",
-      ]);
+      expect(document.querySelectorAll("[data-day]")).toHaveLength(1);
 
       rerender(nextWeekBoard([]));
 
-      expect([...document.querySelectorAll("[data-day]")].map((day) => day.getAttribute("data-day"))).toEqual([
-        "2026-10-07",
-      ]);
+      expect(document.querySelectorAll("[data-day]")).toHaveLength(7);
     });
   });
 
