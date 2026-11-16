@@ -1,5 +1,6 @@
 "use client";
 
+import { useDroppable } from "@dnd-kit/core";
 import { format, parseISO } from "date-fns";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
@@ -7,6 +8,7 @@ import { useRef } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarIcon, ChevronLeftIcon, ChevronRightIcon } from "@/components/icons";
 import { FOCUS_RING } from "@/components/focusRing";
+import { WEEK_ARROWS } from "@/components/board/BoardActionsContext";
 
 export default function WeekNav({
   weekLabel,
@@ -26,6 +28,10 @@ export default function WeekNav({
   const inputRef = useRef<HTMLInputElement>(null);
   const isoWeekValue = format(parseISO(currentWeekParam), "RRRR-'W'II");
   const isCurrentWeek = currentWeekParam === todayWeekParam;
+  // Destructured, as in DayColumn: the lint reads `drop.setNodeRef` as a ref access.
+  const { setNodeRef: setPrevRef, isOver: isOverPrev } = useDroppable({ id: WEEK_ARROWS.prev });
+  const { setNodeRef: setNextRef, isOver: isOverNext } = useDroppable({ id: WEEK_ARROWS.next });
+  const dropRing = "ring-4 ring-amber-400 dark:ring-amber-600";
 
   function handleWeekPick(value: string) {
     if (!value) return;
@@ -39,9 +45,10 @@ export default function WeekNav({
   return (
     <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
       <Link
+        ref={setPrevRef}
         href={`/?week=${prevWeekParam}`}
         aria-label={t("previousWeek")}
-        className={`rounded-full bg-zinc-900 p-1.5 text-white shadow-sm hover:bg-zinc-700 pointer-coarse:p-3 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white ${FOCUS_RING}`}
+        className={`${isOverPrev ? dropRing : ""} rounded-full bg-zinc-900 p-1.5 text-white shadow-sm hover:bg-zinc-700 pointer-coarse:p-3 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white ${FOCUS_RING}`}
       >
         <ChevronLeftIcon className="h-4 w-4" />
       </Link>
@@ -81,9 +88,10 @@ export default function WeekNav({
       </div>
 
       <Link
+        ref={setNextRef}
         href={`/?week=${nextWeekParam}`}
         aria-label={t("nextWeek")}
-        className={`rounded-full bg-zinc-900 p-1.5 text-white shadow-sm hover:bg-zinc-700 pointer-coarse:p-3 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white ${FOCUS_RING}`}
+        className={`${isOverNext ? dropRing : ""} rounded-full bg-zinc-900 p-1.5 text-white shadow-sm hover:bg-zinc-700 pointer-coarse:p-3 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white ${FOCUS_RING}`}
       >
         <ChevronRightIcon className="h-4 w-4" />
       </Link>

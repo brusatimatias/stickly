@@ -18,6 +18,7 @@ import {
 } from "@dnd-kit/core";
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
 import {
   startTransition,
   useCallback,
@@ -32,7 +33,9 @@ import { moveDraftNote, moveNote, moveNoteToDrafts, scheduleDraftNote } from "@/
 import {
   BoardActionsProvider,
   DRAFT_CONTAINER,
+  WEEK_ARROWS,
   type BoardAction,
+  type WeekDirection,
 } from "@/components/board/BoardActionsContext";
 import DayColumn from "@/components/board/DayColumn";
 import DayFocusNav from "@/components/board/DayFocusNav";
@@ -50,6 +53,15 @@ import { sortDoneLast } from "@/lib/ordering";
 import { toScheduleInput, toStoredSchedule } from "@/lib/schedule";
 
 type NotesByDay = Record<string, NoteDTO[]>;
+
+/** How long a dragged note waits over a week arrow before the week changes. */
+const WEEK_FLIP_DELAY_MS = 700;
+
+function weekArrowDirection(id: unknown): WeekDirection | null {
+  if (id === WEEK_ARROWS.prev) return "prev";
+  if (id === WEEK_ARROWS.next) return "next";
+  return null;
+}
 
 /** A note being created, shown before the server data has it. */
 type PendingNote = { container: string; note: NoteDTO };
@@ -181,6 +193,27 @@ export default function Board({
   const originContainerRef = useRef<string | null>(null);
   const lastOverIdRef = useRef<string | null>(null);
   const recentlyMovedToNewContainerRef = useRef(false);
+  const router = useRouter();
+  // The adjacent weeks, read when the timer fires (the props change with
+  // every week the drag goes through).
+  const weekParamsRef = useRef({ prev: prevWeekParam, next: nextWeekParam });
+  useEffect(() => {
+    weekParamsRef.current = { prev: prevWeekParam, next: nextWeekParam };
+  }, [prevWeekParam, nextWeekParam]);
+  const weekFlipRef = useRef<{ direction: WeekDirection; timer: number } | null>(null);
+  function stopWeekFlip() {
+    if (weekFlipRef.current) window.clearInterval(weekFlipRef.current.timer);
+    weekFlipRef.current = null;
+  }
+  function startWeekFlip(direction: WeekDirection) {
+    if (weekFlipRef.current?.direction === direction) return;
+    stopWeekFlip();
+    const timer = window.setInterval(() => {
+      router.push(`/?week=${weekParamsRef.current[direction]}`, { scroll: false });
+    }, WEEK_FLIP_DELAY_MS);
+    weekFlipRef.current = { direction, timer };
+  }
+  useEffect(() => stopWeekFlip, []);
   const [focusedDay, setFocusedDay] = useState<string | null>(null);
   const [syncedWeekStart, setSyncedWeekStart] = useState(days[0]?.key);
   if (days[0]?.key !== syncedWeekStart) {
@@ -272,11 +305,34 @@ export default function Board({
 
   function handleDragOver(event: DragOverEvent) {
     const { active, over } = event;
+    const arrow = weekArrowDirection(over?.id);
+    if (arrow) {
+      startWeekFlip(arrow);
+      return;
+    }
+    stopWeekFlip();
     if (!over) return;
 
-    const activeContainer = findContainer(active.id as string, notesByDay);
     const overContainer =
       findContainer(over.id as string, notesByDay) ?? (over.id as string);
+    const activeContainer = findContainer(active.id as string, notesByDay);
+
+    // The note came from another week: it isn't in this week's data, so it
+    // joins the day it's over.
+    if (!activeContainer && activeNote && overContainer !== DRAFT_CONTAINER) {
+      recentlyMovedToNewContainerRef.current = true;
+      setNotesByDay((prev) => {
+        const overItems = prev[overContainer];
+        if (!overItems) return prev;
+        const pendingCount = overItems.filter((note) => !note.isDone).length;
+        const index = activeNote.isDone ? overItems.length : pendingCount;
+        return {
+          ...prev,
+          [overContainer]: [...overItems.slice(0, index), activeNote, ...overItems.slice(index)],
+        };
+      });
+      return;
+    }
 
     if (!activeContainer || !overContainer) {
       return;
@@ -349,7 +405,12 @@ export default function Board({
     lastOverIdRef.current = null;
     setActiveNote(null);
     setIsOverDrafts(false);
-    if (!over) return;
+    stopWeekFlip();
+    if (!over || weekArrowDirection(over.id)) {
+      // Dropped on an arrow (or nowhere): the note stays where the server has it.
+      setNotesByDay(buildNotesByDay());
+      return;
+    }
 
     const overContainer = findContainer(over.id as string, notesByDay) ?? (over.id as string);
     if (overContainer === DRAFT_CONTAINER && originContainer && originContainer !== DRAFT_CONTAINER) {
@@ -420,6 +481,21 @@ export default function Board({
             if (event.animationName === "note-in") setNewNoteIds(new Set());
           }}
         >
+          <DndContext
+            id={dndContextId}
+            sensors={sensors}
+            collisionDetection={collisionDetectionStrategy}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
+            onDragCancel={() => {
+              stopWeekFlip();
+              setNotesByDay(buildNotesByDay());
+              lastOverIdRef.current = null;
+              setActiveNote(null);
+              setIsOverDrafts(false);
+            }}
+          >
           <WeekNav
             weekLabel={weekLabel}
             prevWeekParam={prevWeekParam}
@@ -443,19 +519,6 @@ export default function Board({
               </button>
             </div>
           )}
-          <DndContext
-            id={dndContextId}
-            sensors={sensors}
-            collisionDetection={collisionDetectionStrategy}
-            onDragStart={handleDragStart}
-            onDragOver={handleDragOver}
-            onDragEnd={handleDragEnd}
-            onDragCancel={() => {
-              lastOverIdRef.current = null;
-              setActiveNote(null);
-              setIsOverDrafts(false);
-            }}
-          >
             {/* Bottom padding so the chat launcher never covers the last notes. */}
             <div className="flex flex-col gap-3 p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
               <DraftPanel
@@ -482,7 +545,9 @@ export default function Board({
                   />
                 </div>
               ) : (
-                <div className="animate-week-in grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-7">
+                <div
+                  key={days[0]?.key}
+                  className="animate-week-in grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-7">
                   {isWeekEmpty && (
                     <p className="col-span-full rounded-lg border border-dashed border-zinc-200 px-4 py-2.5 text-center text-sm text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
                       {t("emptyWeekHint")}
