@@ -14,7 +14,7 @@ The look is "sticky notes on a whiteboard". New UI should look like it belongs t
 - Cards: `NoteCard.tsx` / `DraftCard.tsx`. Their in-place edit forms: `NoteForm.tsx` / `DraftForm.tsx`, which render in the same card shape and colors as the card they replace.
 - `useNoteEditor.ts`: what the edit forms share (fields, id, focus, Enter/outside click saves, Escape cancels, Shift+Enter adds a line break). Any new editor form should use it instead of its own `onKeyDown` or outside-click logic.
 - `FoldedCorner.tsx`, `ConfirmDialog.tsx`, `TimePicker.tsx`: reuse them before adding new ones. Icons for the whole app live in `src/components/icons.tsx`, each a path inside the shared `Icon` outline.
-- Outside the board, `src/components/chat/ChatWidget.tsx` is the assistant: a floating button plus a panel over a dimmed backdrop (clicking it, the ✕ or Escape closes it). Assistant replies render as small yellow sticky notes. It's mounted in `page.tsx` outside `<Board>` (which is keyed by week) so the conversation survives week navigation.
+- Outside the board, `src/components/chat/ChatWidget.tsx` is the assistant: a floating button plus a panel over a dimmed backdrop (clicking it, the ✕ or Escape closes it). Assistant replies render as small yellow sticky notes. It's mounted in `page.tsx` outside `<Board>` so the conversation survives week navigation.
 
 ## Note card styling
 - **Color, rotation and overlap are derived from the note id**: `getNoteStyle(id)` in `src/lib/noteColor.ts` hashes the id and picks from `PALETTE`, `ROTATIONS` and `OVERLAPS`. The same note always looks the same, and there's no stored color. If a feature needs user-chosen colors, that's a schema change (see `new-entity-crud`), not a tweak here.
@@ -43,10 +43,12 @@ Both of these caused infinite render loops before (commits `5dd3e9f`, `d55e0d1`)
 - **The draft tray keeps its height during a drag** (`isDragging` from `Board`): it sits above the week, so shrinking it as a draft leaves would shift every droppable under the pointer. Anything new above the week must not change height mid-drag either.
 - Drag feedback: the source card goes to `opacity: 0.5` (inline style) and `z-20`. `DragOverlay` in `Board.tsx` renders a simplified copy (palette + rotation + FoldedCorner + title).
 - A drop calls `moveNote` / `moveDraftNote` / `scheduleDraftNote` inside `startTransition`; the action's response already carries the re-rendered board (no `router.refresh()`, see below).
+- **Changing week while dragging**: the `‹`/`›` arrows in `WeekNav` are droppables (`WEEK_ARROWS`, inside the `DndContext`); holding a note there for `WEEK_FLIP_DELAY_MS` navigates to the adjacent week (`useWeekFlip`, which waits for each week to be shown before counting again). A note from another week isn't in `notesByDay`, so `handleDragOver` adds it to the day it's over. Dropping on an arrow, nowhere, or while the next week loads (`isFlipping`, the label pulses) rebuilds from server data.
 - **Keep `id={useId()}` on `DndContext`.** Without it dnd-kit numbers its `aria-describedby` ids from a module-level counter that differs between server and client, which causes a hydration mismatch warning and leaves the attribute pointing at a missing element.
 
 ## React state patterns
 - **Syncing state from props**: this codebase adjusts state during render by comparing to a stored previous value (`syncedNotes` and `syncedWeekStart` in `Board`) instead of using a `useEffect` that sets state. Follow that pattern. An effect that sets state here adds an extra render and was part of the loops above.
+- **`Board` is not keyed by week** (only its week grid and the focused `DayColumn` are), so a drag survives changing week. Anything that belongs to one week is reset in the `isNewWeek` sync (the error notice, the focused day, which keeps its weekday, and the new week's notes not animating in); new week-dependent state in `Board` goes there too.
 - **Board mutations go through `useBoardActions().run({ optimistic, action, onError? })`** (`BoardActionsContext.tsx`, provided by `Board`), never a direct `startTransition` + action call:
   - `optimistic` runs inside the action's transition and sets `useOptimistic` state, so the change shows on the current frame, lasts until the action's response (with the re-rendered board) commits, and is undone by React if the action throws. Don't mirror server props into `useState` for this (the old `lastServerNote` pattern).
   - A thrown error code shows as a dismissible `role="alert"` notice above the board (translated from `errors`, `GENERIC` otherwise); the board is never replaced by `error.tsx` for an expected failure. `onError` undoes plain state, e.g. a drag's preview.
@@ -62,7 +64,7 @@ Both of these caused infinite render loops before (commits `5dd3e9f`, `d55e0d1`)
 - Keyframes live in `globals.css` as `.animate-*` classes, and **every one** is listed in the `prefers-reduced-motion` block there.
 - Cards and forms animate `translate`/`scale`/`opacity`, never `transform`: dnd-kit writes an inline `transform` on sortable cards (an animation on it would override the drag), and the tilt is the separate `rotate` property.
 - Exit animations keep the element mounted (and `inert`) until `animationend`; check `animatesExit()` (`src/components/motion.ts`) first, since with reduced motion (or in jsdom) `animationend` never fires. `useFormTransition` does this for the new-note/new-draft forms.
-- New notes animate in because `Board` marks ids that weren't in the previous server data (`newNoteIds`); a moved note keeps its id, so drag & drop never animates.
+- New notes animate in because `Board` marks ids that weren't in the previous server data (`newNoteIds`); a moved note keeps its id, so drag & drop never animates. A note dropped on another week wasn't in that week's data, so the drop adds its id to `createdIds` to keep it from animating.
 - Keyboard focus: append `FOCUS_RING` (`src/components/focusRing.ts`) to any new button or link.
 - Touch targets: small icon buttons grow to 40px with `pointer-coarse:` (e.g. `pointer-coarse:size-10`), without changing the desktop look.
 

@@ -16,12 +16,15 @@ export default function WeekNav({
   nextWeekParam,
   currentWeekParam,
   todayWeekParam,
+  isLoading = false,
 }: {
   weekLabel: string;
   prevWeekParam: string;
   nextWeekParam: string;
   currentWeekParam: string;
   todayWeekParam: string;
+  /** A week is loading while a note is dragged (the label pulses until it's shown). */
+  isLoading?: boolean;
 }) {
   const t = useTranslations("board");
   const router = useRouter();
@@ -58,7 +61,8 @@ export default function WeekNav({
           <button
             type="button"
             onClick={openPicker}
-            className={`flex cursor-pointer items-center gap-1.5 rounded-full bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-zinc-700 pointer-coarse:py-2.5 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white ${FOCUS_RING}`}
+            aria-busy={isLoading || undefined}
+            className={`${isLoading ? "motion-safe:animate-pulse" : ""} flex cursor-pointer items-center gap-1.5 rounded-full bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-zinc-700 pointer-coarse:py-2.5 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white ${FOCUS_RING}`}
           >
             <CalendarIcon className="h-4 w-4 opacity-80" />
             {weekLabel}

@@ -17,8 +17,8 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import { differenceInCalendarDays, parseISO } from "date-fns";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import {
   startTransition,
   useCallback,
@@ -35,13 +35,13 @@ import {
   DRAFT_CONTAINER,
   WEEK_ARROWS,
   type BoardAction,
-  type WeekDirection,
 } from "@/components/board/BoardActionsContext";
 import DayColumn from "@/components/board/DayColumn";
 import DayFocusNav from "@/components/board/DayFocusNav";
 import DraftPanel from "@/components/board/DraftPanel";
 import FoldedCorner from "@/components/board/FoldedCorner";
 import { TimeZoneProvider } from "@/components/board/TimeZoneContext";
+import { useWeekFlip } from "@/components/board/useWeekFlip";
 import WeekNav from "@/components/board/WeekNav";
 import type { BoardDay, NoteDTO, StoredNoteDTO } from "@/components/board/types";
 import { useErrorMessage } from "@/components/errorMessage";
@@ -54,10 +54,7 @@ import { toScheduleInput, toStoredSchedule } from "@/lib/schedule";
 
 type NotesByDay = Record<string, NoteDTO[]>;
 
-/** How long a dragged note waits over a week arrow before the week changes. */
-const WEEK_FLIP_DELAY_MS = 700;
-
-function weekArrowDirection(id: unknown): WeekDirection | null {
+function weekArrowDirection(id: unknown): keyof typeof WEEK_ARROWS | null {
   if (id === WEEK_ARROWS.prev) return "prev";
   if (id === WEEK_ARROWS.next) return "next";
   return null;
@@ -124,6 +121,11 @@ export default function Board({
   // with the server data that brings them: they animated in while pending,
   // so they don't animate again then.
   const [createdIds, setCreatedIds] = useState<ReadonlySet<string>>(() => new Set());
+  // The board stays mounted across weeks (a drag can change the week), so
+  // what belongs to one week is reset when another one is shown, below.
+  const weekStart = days[0]?.key;
+  const [syncedWeekStart, setSyncedWeekStart] = useState(weekStart);
+  const isNewWeek = weekStart !== syncedWeekStart;
   const [syncedNotes, setSyncedNotes] = useState(notes);
   const [syncedDraftNotes, setSyncedDraftNotes] = useState(draftNotes);
   const [syncedTimeZone, setSyncedTimeZone] = useState(timeZone);
@@ -137,7 +139,8 @@ export default function Board({
     const previousIds = new Set([...syncedNotes, ...syncedDraftNotes].map((note) => note.id));
     const serverIds = new Set([...notes, ...draftNotes].map((note) => note.id));
     const addedIds = [...serverIds].filter((id) => !previousIds.has(id) && !createdIds.has(id));
-    if (addedIds.length > 0) setNewNoteIds(new Set(addedIds));
+    // A new week's notes were never on the board, but they aren't new.
+    if (addedIds.length > 0 && !isNewWeek) setNewNoteIds(new Set(addedIds));
     if ([...createdIds].some((id) => serverIds.has(id))) {
       setCreatedIds(new Set([...createdIds].filter((id) => !serverIds.has(id))));
     }
@@ -193,32 +196,17 @@ export default function Board({
   const originContainerRef = useRef<string | null>(null);
   const lastOverIdRef = useRef<string | null>(null);
   const recentlyMovedToNewContainerRef = useRef(false);
-  const router = useRouter();
-  // The adjacent weeks, read when the timer fires (the props change with
-  // every week the drag goes through).
-  const weekParamsRef = useRef({ prev: prevWeekParam, next: nextWeekParam });
-  useEffect(() => {
-    weekParamsRef.current = { prev: prevWeekParam, next: nextWeekParam };
-  }, [prevWeekParam, nextWeekParam]);
-  const weekFlipRef = useRef<{ direction: WeekDirection; timer: number } | null>(null);
-  function stopWeekFlip() {
-    if (weekFlipRef.current) window.clearInterval(weekFlipRef.current.timer);
-    weekFlipRef.current = null;
-  }
-  function startWeekFlip(direction: WeekDirection) {
-    if (weekFlipRef.current?.direction === direction) return;
-    stopWeekFlip();
-    const timer = window.setInterval(() => {
-      router.push(`/?week=${weekParamsRef.current[direction]}`, { scroll: false });
-    }, WEEK_FLIP_DELAY_MS);
-    weekFlipRef.current = { direction, timer };
-  }
-  useEffect(() => stopWeekFlip, []);
+  const weekFlip = useWeekFlip({ weekStart, prevWeekParam, nextWeekParam });
   const [focusedDay, setFocusedDay] = useState<string | null>(null);
-  const [syncedWeekStart, setSyncedWeekStart] = useState(days[0]?.key);
-  if (days[0]?.key !== syncedWeekStart) {
-    setSyncedWeekStart(days[0]?.key);
-    setFocusedDay(null);
+  if (isNewWeek) {
+    setSyncedWeekStart(weekStart);
+    setActionError(null);
+    // Focus-day mode stays on the same weekday, so changing week mid-drag
+    // doesn't swap the single day for the whole week under the finger.
+    if (focusedDay && syncedWeekStart) {
+      const weekday = differenceInCalendarDays(parseISO(focusedDay), parseISO(syncedWeekStart));
+      setFocusedDay(days[weekday]?.key ?? null);
+    }
   }
   const focusedDayInfo = days.find((day) => day.key === focusedDay) ?? null;
   // dnd-kit derives its aria-describedby ids from a module-level counter that
@@ -236,21 +224,23 @@ export default function Board({
   );
 
   // When the days stack (phones, narrow or vertical screens) today can be
-  // several screens down, so start there. Only on load (the board remounts
-  // per week), only if today is below the middle of the screen (never in the
-  // seven-column layout) and only if the page wasn't already scrolled (back
-  // navigation or a reload restores it).
+  // several screens down, so start there. Only when a week is shown (on load
+  // and on each week change, but not one made by a drag), only if today is
+  // below the middle of the screen (never in the seven-column layout) and
+  // only if the page wasn't already scrolled (back navigation or a reload
+  // restores it).
   // Read through a ref so a new `todayKey` after midnight (any revalidation
   // brings one) doesn't scroll a page the user is already looking at.
-  const initialTodayKeyRef = useRef(todayKey);
+  const todayKeyRef = useRef(todayKey);
   useEffect(() => {
-    if (window.scrollY > 0) return;
-    const today = document.querySelector<HTMLElement>(
-      `[data-day="${initialTodayKeyRef.current}"]`
-    );
+    todayKeyRef.current = todayKey;
+  }, [todayKey]);
+  useEffect(() => {
+    if (originContainerRef.current !== null || window.scrollY > 0) return;
+    const today = document.querySelector<HTMLElement>(`[data-day="${todayKeyRef.current}"]`);
     if (!today || today.getBoundingClientRect().top < window.innerHeight / 2) return;
     today.scrollIntoView({ block: "start" });
-  }, []);
+  }, [weekStart]);
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
@@ -307,19 +297,28 @@ export default function Board({
     const { active, over } = event;
     const arrow = weekArrowDirection(over?.id);
     if (arrow) {
-      startWeekFlip(arrow);
+      weekFlip.start(arrow);
       return;
     }
-    stopWeekFlip();
+    weekFlip.stop();
     if (!over) return;
 
     const overContainer =
       findContainer(over.id as string, notesByDay) ?? (over.id as string);
     const activeContainer = findContainer(active.id as string, notesByDay);
 
+    // A scheduled note isn't moved into the drafts while dragging: a
+    // collapsed tray renders no cards, so it would have nowhere to be (and
+    // expanding it mid-drag would shift the week under the pointer). It stays
+    // in its day (or, from another week, nowhere), the tray is highlighted, and the drop moves it.
+    const isOverDraftsNow =
+      overContainer === DRAFT_CONTAINER && originContainerRef.current !== DRAFT_CONTAINER;
+    if (isOverDraftsNow !== isOverDrafts) setIsOverDrafts(isOverDraftsNow);
+    if (isOverDraftsNow) return;
+
     // The note came from another week: it isn't in this week's data, so it
     // joins the day it's over.
-    if (!activeContainer && activeNote && overContainer !== DRAFT_CONTAINER) {
+    if (!activeContainer && activeNote) {
       recentlyMovedToNewContainerRef.current = true;
       setNotesByDay((prev) => {
         const overItems = prev[overContainer];
@@ -356,14 +355,6 @@ export default function Board({
       return;
     }
 
-    // A scheduled note isn't moved into the drafts while dragging: a
-    // collapsed tray renders no cards, so it would have nowhere to be (and
-    // expanding it mid-drag would shift the week under the pointer). It stays
-    // in its day, the tray is highlighted, and the drop moves it.
-    const isOverDraftsNow =
-      overContainer === DRAFT_CONTAINER && originContainerRef.current !== DRAFT_CONTAINER;
-    if (isOverDraftsNow !== isOverDrafts) setIsOverDrafts(isOverDraftsNow);
-    if (isOverDraftsNow) return;
 
     recentlyMovedToNewContainerRef.current = true;
     setNotesByDay((prev) => {
@@ -405,16 +396,17 @@ export default function Board({
     lastOverIdRef.current = null;
     setActiveNote(null);
     setIsOverDrafts(false);
-    stopWeekFlip();
-    if (!over || weekArrowDirection(over.id)) {
-      // Dropped on an arrow (or nowhere): the note stays where the server has it.
+    weekFlip.stop();
+    if (!over || weekArrowDirection(over.id) || weekFlip.isFlipping) {
+      // Dropped on an arrow, nowhere, or while the next week loads (the days
+      // on screen are the old week's): the note stays where the server has it.
       setNotesByDay(buildNotesByDay());
       return;
     }
 
     const overContainer = findContainer(over.id as string, notesByDay) ?? (over.id as string);
     if (overContainer === DRAFT_CONTAINER && originContainer && originContainer !== DRAFT_CONTAINER) {
-      moveToDrafts(active.id as string, over.id as string);
+      moveToDrafts(active.id as string, over.id as string, activeNote);
       return;
     }
 
@@ -422,7 +414,10 @@ export default function Board({
       findContainer(active.id as string, notesByDay) ?? (over.id as string);
     const items = notesByDay[destinationContainer] ?? [];
     const index = items.findIndex((note) => note.id === active.id);
-    if (index === -1) return;
+    if (index === -1) {
+      setNotesByDay(buildNotesByDay());
+      return;
+    }
 
     if (destinationContainer === DRAFT_CONTAINER) {
       // Reordered among the drafts (a draft dragged over a day and back ends
@@ -436,7 +431,15 @@ export default function Board({
       toStoredSchedule(destinationContainer, items[index].time, timeZone)
     );
 
+    // A note brought from another week isn't in this week's server data, so
+    // the response would make it look new; a moved note doesn't animate in.
+    const noteId = active.id as string;
+    const isFromAnotherWeek =
+      originContainer !== DRAFT_CONTAINER && !notes.some((note) => note.id === noteId);
     run({
+      optimistic: isFromAnotherWeek
+        ? () => setCreatedIds((current) => new Set(current).add(noteId))
+        : undefined,
       action: () =>
         originContainer === DRAFT_CONTAINER
           ? scheduleDraftNote({ noteId: active.id as string, day: destinationContainer, index })
@@ -445,21 +448,22 @@ export default function Board({
   }
 
   /** Drops a scheduled note on the drafts: before the draft it's over, or last. */
-  function moveToDrafts(noteId: string, overId: string) {
+  function moveToDrafts(noteId: string, overId: string, draggedNote: NoteDTO | null) {
     const drafts = notesIn(DRAFT_CONTAINER);
     const overIndex = drafts.findIndex((note) => note.id === overId);
     const index = overIndex >= 0 ? overIndex : drafts.length;
     if (drafts.length < MAX_DRAFT_NOTES) {
       setNotesByDay((prev) => {
         // Where dragOver left it, which may be a day it crossed on the way.
+        // Nowhere if it came from another week and never joined a day here.
         const container = findContainer(noteId, prev);
-        const note = container && prev[container].find(({ id }) => id === noteId);
-        if (!container || !note) return prev;
+        const note = container ? prev[container].find(({ id }) => id === noteId) : draggedNote;
+        if (!note) return prev;
         const moved = { ...note, time: null, isDone: false, googleEventId: null };
         const list = prev[DRAFT_CONTAINER];
         return {
           ...prev,
-          [container]: prev[container].filter(({ id }) => id !== noteId),
+          ...(container && { [container]: prev[container].filter(({ id }) => id !== noteId) }),
           [DRAFT_CONTAINER]: [...list.slice(0, index), moved, ...list.slice(index)],
         };
       });
@@ -489,7 +493,7 @@ export default function Board({
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
             onDragCancel={() => {
-              stopWeekFlip();
+              weekFlip.stop();
               setNotesByDay(buildNotesByDay());
               lastOverIdRef.current = null;
               setActiveNote(null);
@@ -502,6 +506,7 @@ export default function Board({
             nextWeekParam={nextWeekParam}
             currentWeekParam={currentWeekParam}
             todayWeekParam={todayWeekParam}
+            isLoading={weekFlip.isFlipping}
           />
           {actionError && (
             <div
@@ -536,7 +541,9 @@ export default function Board({
                     onSelect={setFocusedDay}
                     onExit={() => setFocusedDay(null)}
                   />
+                  {/* Keyed so a form open in it doesn't carry over to another week's day. */}
                   <DayColumn
+                    key={focusedDayInfo.key}
                     day={focusedDayInfo}
                     notes={notesIn(focusedDayInfo.key)}
                     newNoteIds={animatedIds}
