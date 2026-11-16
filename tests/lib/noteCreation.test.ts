@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
+import { MAX_DRAFT_NOTES } from "@/lib/noteInput";
 
 const mockPrisma = vi.hoisted(() => ({
   note: {
@@ -124,7 +125,7 @@ describe("createDraftNoteForUser", () => {
   });
 
   test("rejects a fifth draft", async () => {
-    mockPrisma.note.aggregate.mockResolvedValue({ _count: 4, _max: { position: 3 } });
+    mockPrisma.note.aggregate.mockResolvedValue({ _count: MAX_DRAFT_NOTES, _max: { position: 3 } });
 
     await expect(createDraftNoteForUser("user-1", DRAFT)).rejects.toThrow("DRAFT_LIMIT_REACHED");
     expect(mockPrisma.note.create).not.toHaveBeenCalled();

@@ -21,7 +21,7 @@ export function isValidId(value: unknown): value is string {
 }
 
 /** How many draft notes (no date yet) a user can keep at once. */
-export const MAX_DRAFT_NOTES = 4;
+export const MAX_DRAFT_NOTES = 10;
 
 export function sanitizeTitle(title: string): string {
   const trimmed = title.trim().slice(0, MAX_TITLE_LENGTH);

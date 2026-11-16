@@ -13,6 +13,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 
 import DraftPanel from "@/components/board/DraftPanel";
 import type { NoteDTO } from "@/components/board/types";
+import { MAX_DRAFT_NOTES } from "@/lib/noteInput";
 
 function drafts(count: number): NoteDTO[] {
   return Array.from({ length: count }, (_, index) => ({
@@ -82,10 +83,10 @@ describe("DraftPanel", () => {
     expect(screen.getByLabelText(messages.board.titlePlaceholder)).toBeTruthy();
   });
 
-  test("hides the new draft button at four drafts", () => {
-    renderPanel(drafts(4));
+  test("hides the new draft button at the draft limit", () => {
+    renderPanel(drafts(MAX_DRAFT_NOTES));
 
-    expect(screen.getByText("Draft 3")).toBeTruthy();
+    expect(screen.getByText(`Draft ${MAX_DRAFT_NOTES - 1}`)).toBeTruthy();
     expect(screen.queryByRole("button", { name: NEW_DRAFT })).toBeNull();
   });
 
@@ -125,7 +126,7 @@ describe("DraftPanel", () => {
   test("explains drafts and their limit while the panel is empty", () => {
     renderPanel(drafts(0));
 
-    expect(screen.getByText(messages.board.emptyDraftsHint.replace("{count}", "4"))).toBeTruthy();
+    expect(screen.getByText(messages.board.emptyDraftsHint.replace("{count}", String(MAX_DRAFT_NOTES)))).toBeTruthy();
   });
 
   test("hides the hint once there is a draft or one is being written", () => {

@@ -135,7 +135,7 @@ export default function DraftPanel({
       {isBodyShown && (
         <SortableContext id="draft" items={notes.map((note) => note.id)} strategy={rectSortingStrategy}>
           {/* A grid, not flex-wrap, as in the day columns (see ui-conventions),
-              but with card-sized tracks: one row of drafts on a wide screen,
+              but with card-sized tracks: as many drafts per row as fit,
               two per row on a phone. */}
           <div
             id={bodyId}
