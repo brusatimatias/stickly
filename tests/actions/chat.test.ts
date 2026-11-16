@@ -1,6 +1,7 @@
 import { APICallError } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { MAX_DRAFT_NOTES } from "@/lib/noteInput";
 
 const mockPrisma = vi.hoisted(() => ({
   note: {
@@ -215,7 +216,7 @@ describe("sendChatMessage", () => {
   });
 
   test("returns the draft limit to the model as a recoverable error", async () => {
-    mockPrisma.note.aggregate.mockResolvedValue({ _count: 4, _max: { position: 3 } });
+    mockPrisma.note.aggregate.mockResolvedValue({ _count: MAX_DRAFT_NOTES, _max: { position: 3 } });
     const model = mockModel([
       toolCall({ title: "Comprar pilas" }, "create_draft_note"),
       text("Ya tenés 4 borradores."),

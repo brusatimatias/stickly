@@ -8,7 +8,7 @@ A notes/reminders app organized on a whiteboard-style weekly board, with Google 
 - Forgotten password: users who also sign in with Google can reset it from the profile ("Forgot it?"), by signing in with Google again instead of typing the current password.
 - Weekly board based on real calendar weeks, with navigation between weeks and jumping to a specific week.
 - Notes as sticky notes per day and time (title, optional location, exact date/time), movable via drag & drop.
-- Draft notes: up to 4 per user, with no date, used as a scratch space; they can be reordered and dragged onto a day, and the assistant creates one when asked for a draft.
+- Draft notes: up to 10 per user, with no date, used as a scratch space; they can be reordered and dragged onto a day, and the assistant creates one when asked for a draft.
 - A per-note button to create a Google Calendar event, linked to the note via `googleEventId`. Editing or moving a synced note updates its event.
 - Assistant chat (floating button on the board) that works in natural language, in English or Spanish:
   - Creates notes: "remind me on Friday at 6 pm to buy my sister's gift" becomes a note with the right day, time, title and details. If no date is given, it asks for one.
@@ -171,7 +171,7 @@ See `prisma/schema.prisma`. Notable decisions:
 
 - A note's schedule is `startsAt` plus a `kind`. A note with a time (`TIMED`) is an instant stored in UTC and shown in the time zone you're in: 10:00 written in Buenos Aires shows 09:00 in Miami. A note without a time (`ALL_DAY`) is a calendar day and stays on that day everywhere. The time zone is the one the browser reports, stored in `User.timeZone`.
 - `startsAt` is nullable; the only valid case with `null` is a draft note (`isDraft: true`).
-- The "at most 4 draft notes per user" rule is enforced at the application level, not in the schema.
+- The "at most 10 draft notes per user" rule is enforced at the application level, not in the schema.
 - Composite index `[userId, startsAt]` for the weekly-notes query.
 - `WebChatUsage` stores one row per chat message, from the board or WhatsApp (user and timestamp only, never the message text), to enforce the chat's rate limits. Board conversations are not persisted: the history lives in the browser and is lost on reload.
 - `PushSubscription` is one row per device with notifications on: the push service's endpoint, the keys that encrypt what's sent to it, and the device's language for the notification text. Reminder settings live on `User` (`reminderMinutesBefore`, `digestEnabled`, `digestTime`); `Note.reminderSentFor` and `User.digestSentOn` record what was already sent.
