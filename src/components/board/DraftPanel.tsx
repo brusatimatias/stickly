@@ -56,6 +56,38 @@ export default function DraftPanel({
     body.style.minHeight = isDragging ? `${body.offsetHeight}px` : "";
   }, [isDragging]);
 
+  // The collapsed row shows the titles that fit and counts the rest in a
+  // "+N" next to it. The chips that don't fit are made invisible (they keep
+  // their place, so the measure is stable); showing the count narrows the
+  // row, which can only hide more chips, so it settles in one more pass.
+  const chipsRef = useRef<HTMLButtonElement>(null);
+  const [hiddenCount, setHiddenCount] = useState(0);
+  useLayoutEffect(() => {
+    const row = chipsRef.current;
+    if (!row) {
+      // No row (no drafts, or expanded): nothing is hidden.
+      setHiddenCount(0);
+      return;
+    }
+    function measure() {
+      if (!row) return;
+      const rowRight = row.getBoundingClientRect().right;
+      let hidden = 0;
+      for (const chip of Array.from(row.children) as HTMLElement[]) {
+        // A tilted chip's box pokes out by a pixel or so; that still fits.
+        const fits = hidden === 0 && chip.getBoundingClientRect().right <= rowRight + 2;
+        chip.style.visibility = fits ? "" : "hidden";
+        if (!fits) hidden++;
+      }
+      setHiddenCount(hidden);
+    }
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(row);
+    return () => observer.disconnect();
+  }, [notes, isExpanded]);
+
   function openForm() {
     setIsExpanded(true);
     form.open();
@@ -92,6 +124,7 @@ export default function DraftPanel({
               // get the same through the toggle, so it's no tab stop.
               <button
                 type="button"
+                ref={chipsRef}
                 tabIndex={-1}
                 aria-hidden
                 onClick={() => setIsExpanded(true)}
@@ -110,6 +143,19 @@ export default function DraftPanel({
             )
           )}
         </div>
+        {!isExpanded && !form.isMounted && hiddenCount > 0 && (
+          // Part of the same mouse shortcut as the chips; the counter and the
+          // toggle already tell keyboard and screen reader users how many.
+          <button
+            type="button"
+            tabIndex={-1}
+            aria-hidden
+            onClick={() => setIsExpanded(true)}
+            className="shrink-0 cursor-pointer text-xs font-semibold tabular-nums text-zinc-500 dark:text-zinc-400"
+          >
+            +{hiddenCount}
+          </button>
+        )}
 
         {canCreate && (
           <button type="button" onClick={openForm} aria-label={t("newDraftNote")} className={ICON_BUTTON}>
