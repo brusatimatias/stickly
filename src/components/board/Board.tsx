@@ -534,8 +534,14 @@ export default function Board({
               </button>
             </div>
           )}
-            {/* Bottom padding so the chat launcher never covers the last notes. */}
-            <div className="flex flex-1 flex-col gap-3 p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
+            {/* Bottom padding so the chat launcher never covers the last notes.
+                The desktop week grid moves it into each day instead, so the
+                dividers between days run down to the bottom of the screen. */}
+            <div
+              className={`flex flex-1 flex-col gap-3 p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] ${
+                focusedDayInfo ? "" : "lg:pb-0"
+              }`}
+            >
               <DraftPanel
                 notes={notesIn(DRAFT_CONTAINER)}
                 newNoteIds={animatedIds}
@@ -578,11 +584,11 @@ export default function Board({
                   {days.map((day, index) => (
                     <div
                       key={day.key}
-                      className={
+                      className={`lg:pb-[calc(5.5rem+env(safe-area-inset-bottom))] ${
                         index > 0
                           ? "shadow-[inset_1px_0_0_rgba(0,0,0,0.1)] dark:shadow-[inset_1px_0_0_rgba(255,255,255,0.08)]"
                           : ""
-                      }
+                      }`}
                     >
                       <DayColumn
                         day={day}
