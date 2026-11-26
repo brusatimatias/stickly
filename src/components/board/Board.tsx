@@ -534,8 +534,14 @@ export default function Board({
               </button>
             </div>
           )}
-            {/* Bottom padding so the chat launcher never covers the last notes. */}
-            <div className="flex flex-col gap-3 p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
+            {/* Bottom padding so the chat launcher never covers the last notes.
+                The desktop week grid moves it into each day instead, so the
+                dividers between days run down to the bottom of the screen. */}
+            <div
+              className={`flex flex-1 flex-col gap-3 p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] ${
+                focusedDayInfo ? "" : "lg:pb-0"
+              }`}
+            >
               <DraftPanel
                 notes={notesIn(DRAFT_CONTAINER)}
                 newNoteIds={animatedIds}
@@ -562,9 +568,14 @@ export default function Board({
                   />
                 </div>
               ) : (
+                // On desktop the grid fills the screen so the dividers between
+                // days reach the bottom; only the days' row grows, not the hint's.
                 <div
                   key={days[0]?.key}
-                  className="animate-week-in grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-7">
+                  className={`animate-week-in grid grid-cols-1 gap-3 sm:grid-cols-2 lg:flex-1 lg:grid-cols-7 ${
+                    isWeekEmpty ? "lg:grid-rows-[auto_1fr]" : "lg:grid-rows-[1fr]"
+                  }`}
+                >
                   {isWeekEmpty && (
                     <p className="col-span-full rounded-lg border border-dashed border-zinc-200 px-4 py-2.5 text-center text-sm text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
                       {t("emptyWeekHint")}
@@ -573,11 +584,11 @@ export default function Board({
                   {days.map((day, index) => (
                     <div
                       key={day.key}
-                      className={
+                      className={`lg:pb-[calc(5.5rem+env(safe-area-inset-bottom))] ${
                         index > 0
                           ? "shadow-[inset_1px_0_0_rgba(0,0,0,0.1)] dark:shadow-[inset_1px_0_0_rgba(255,255,255,0.08)]"
                           : ""
-                      }
+                      }`}
                     >
                       <DayColumn
                         day={day}
