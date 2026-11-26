@@ -535,7 +535,7 @@ export default function Board({
             </div>
           )}
             {/* Bottom padding so the chat launcher never covers the last notes. */}
-            <div className="flex flex-col gap-3 p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
+            <div className="flex flex-1 flex-col gap-3 p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
               <DraftPanel
                 notes={notesIn(DRAFT_CONTAINER)}
                 newNoteIds={animatedIds}
@@ -562,9 +562,14 @@ export default function Board({
                   />
                 </div>
               ) : (
+                // On desktop the grid fills the screen so the dividers between
+                // days reach the bottom; only the days' row grows, not the hint's.
                 <div
                   key={days[0]?.key}
-                  className="animate-week-in grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-7">
+                  className={`animate-week-in grid grid-cols-1 gap-3 sm:grid-cols-2 lg:flex-1 lg:grid-cols-7 ${
+                    isWeekEmpty ? "lg:grid-rows-[auto_1fr]" : "lg:grid-rows-[1fr]"
+                  }`}
+                >
                   {isWeekEmpty && (
                     <p className="col-span-full rounded-lg border border-dashed border-zinc-200 px-4 py-2.5 text-center text-sm text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
                       {t("emptyWeekHint")}
